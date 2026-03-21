@@ -21,7 +21,9 @@
     "typeorm": "ts-node ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- -d ./src/database/data-source.ts migration:generate",
     "migration:run": "npm run typeorm -- -d ./src/database/data-source.ts migration:run",
-    "migration:revert": "npm run typeorm -- -d ./src/database/data-source.ts migration:revert"
+    "migration:revert": "npm run typeorm -- -d ./src/database/data-source.ts migration:revert",
+    "migration:create": "npm run typeorm -- migration:create",
+    "migration:show": "npm run typeorm -- -d ./src/database/data-source.ts migration:show"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
