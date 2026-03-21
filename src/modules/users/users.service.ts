@@ -10,6 +10,7 @@ import { ErrorMessages } from '@common/exceptions/error-messages';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserRole } from '@database/entities/user.entity.enums';
 
 @Injectable()
 export class UsersService {
@@ -35,10 +36,14 @@ export class UsersService {
     }
 
     const createdUser = this._usersRepository.create({
-      ...createUserDto,
+      firstName: createUserDto.firstName,
+      lastName: createUserDto.lastName,
+      email: createUserDto.email,
       password: hashedPassword,
+      phone: createUserDto.phone,
       department,
       position,
+      role: UserRole.EMPLOYEE,
     });
 
     return this._usersRepository.save(createdUser);
@@ -79,7 +84,6 @@ export class UsersService {
     if (updateUserDto.firstName !== undefined) updateData.firstName = updateUserDto.firstName;
     if (updateUserDto.lastName !== undefined) updateData.lastName = updateUserDto.lastName;
     if (updateUserDto.email !== undefined) updateData.email = updateUserDto.email;
-    if (updateUserDto.role !== undefined) updateData.role = updateUserDto.role;
     if (updateUserDto.phone !== undefined) updateData.phone = updateUserDto.phone;
 
     if (updateUserDto.departmentId !== undefined) {

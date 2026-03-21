@@ -1,5 +1,4 @@
-import { IsEmail, IsString, MaxLength, IsOptional, IsEnum, IsUUID, Matches } from 'class-validator';
-import { UserRole } from '@database/entities/user.entity.enums';
+import { IsEmail, IsString, MaxLength, IsOptional, IsUUID, Matches } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -15,10 +14,6 @@ export class UpdateUserDto {
   @IsOptional()
   @IsEmail()
   email?: string;
-
-  @IsOptional()
-  @IsEnum(UserRole)
-  role?: UserRole;
 
   @IsOptional()
   @IsUUID()
