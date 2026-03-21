@@ -1,7 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity, Column, PrimaryGeneratedColumn,
+  CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn
+} from 'typeorm';
 import { Exclude } from 'class-transformer';
 
 import { UserRole } from './user.entity.enums'
+import { Department } from './department.entity';
+import { Position } from './position.entity';
 
 @Entity('users')
 export class User {
@@ -23,6 +28,20 @@ export class User {
   @Exclude()
   @Column({ select: false })
   password: string;
+
+  @ManyToOne(() => Department, { nullable: true })
+  @JoinColumn({ name: 'department_id' })
+  department: Department;
+
+  @ManyToOne(() => Position, { nullable: true })
+  @JoinColumn({ name: 'position_id' })
+  position: Position;
+
+  @Column({ nullable: true })
+  phone: string;
+
+  @Column({ nullable: true })
+  avatar: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

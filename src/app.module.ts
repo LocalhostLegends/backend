@@ -7,6 +7,8 @@ import configuration from './config/configuration';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { UsersModule } from './modules/users/users.module';
+import { DepartmentsModule } from './modules/departments/departments.module';
+import { PositionsModule } from './modules/positions/positions.module';
 
 @Module({
   imports: [
@@ -33,7 +35,11 @@ import { UsersModule } from './modules/users/users.module';
       }),
     }),
 
-    UsersModule
+    UsersModule,
+
+    DepartmentsModule,
+
+    PositionsModule
   ],
   controllers: [],
   providers: [

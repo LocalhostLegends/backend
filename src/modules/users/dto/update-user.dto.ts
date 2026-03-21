@@ -1,5 +1,4 @@
-import { IsEmail, IsString, MaxLength, IsOptional, IsEnum } from 'class-validator';
-
+import { IsEmail, IsString, MaxLength, IsOptional, IsEnum, IsUUID, Matches } from 'class-validator';
 import { UserRole } from '@database/entities/user.entity.enums';
 
 export class UpdateUserDto {
@@ -20,4 +19,19 @@ export class UpdateUserDto {
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
+
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  positionId?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[\+\d\s\-\(\)]+$/, {
+    message: 'Phone number can only contain +, digits, spaces, hyphens, and parentheses'
+  })
+  phone?: string;
 }
