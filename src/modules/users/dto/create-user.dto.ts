@@ -1,22 +1,38 @@
-import { IsEmail, IsString, MinLength, MaxLength, IsNotEmpty } from 'class-validator';
+import {
+  IsEmail, IsString, IsOptional,
+  MinLength, MaxLength, IsUUID, Matches
+} from 'class-validator';
 
 export class CreateUserDto {
-  @IsNotEmpty()
   @IsString()
+  @MinLength(2)
   @MaxLength(100)
   firstName: string;
 
-  @IsNotEmpty()
   @IsString()
+  @MinLength(2)
   @MaxLength(100)
   lastName: string;
 
-  @IsNotEmpty()
   @IsEmail()
   email: string;
 
-  @IsNotEmpty()
   @IsString()
   @MinLength(6)
   password: string;
+
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  positionId?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[\+\d\s\-\(\)]+$/, {
+    message: 'Phone number can only contain +, digits, spaces, hyphens, and parentheses'
+  })
+  phone?: string;
 }

@@ -7,6 +7,10 @@ import configuration from './config/configuration';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { UsersModule } from './modules/users/users.module';
+import { DepartmentsModule } from './modules/departments/departments.module';
+import { PositionsModule } from './modules/positions/positions.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { SeedModule } from './database/seed/seed.module';
 
 @Module({
   imports: [
@@ -27,13 +31,21 @@ import { UsersModule } from './modules/users/users.module';
         password: configService.get('database.password'),
         database: configService.get('database.database'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('nodeEnv') === 'development' ? true : false,
-        migrationsRun: configService.get('nodeEnv') === 'production',
+        synchronize: false,
+        migrationsRun: false,
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
       }),
     }),
 
-    UsersModule
+    UsersModule,
+
+    DepartmentsModule,
+
+    PositionsModule,
+
+    AuthModule,
+
+    SeedModule
   ],
   controllers: [],
   providers: [
