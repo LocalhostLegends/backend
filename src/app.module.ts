@@ -7,6 +7,7 @@ import configuration from './config/configuration';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -33,7 +34,8 @@ import { UsersModule } from './modules/users/users.module';
       }),
     }),
 
-    UsersModule
+    UsersModule,
+    AuthModule
   ],
   controllers: [],
   providers: [
