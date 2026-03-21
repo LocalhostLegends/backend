@@ -10,6 +10,7 @@ import { UsersModule } from './modules/users/users.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { SeedModule } from './database/seed/seed.module';
 
 @Module({
   imports: [
@@ -42,7 +43,9 @@ import { AuthModule } from './modules/auth/auth.module';
 
     PositionsModule,
 
-    AuthModule
+    AuthModule,
+
+    SeedModule
   ],
   controllers: [],
   providers: [
