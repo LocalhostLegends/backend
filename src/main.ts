@@ -47,8 +47,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
 
-  const port = configService.get('port');
+  const port = process.env.PORT || configService.get('port') || 3000;
   await app.listen(port);
+
 
   const pgAdminEmail = configService.get('pgAdmin.email');
   const pgAdminPassword = configService.get('pgAdmin.password');
