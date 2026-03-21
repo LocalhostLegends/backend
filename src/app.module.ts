@@ -9,6 +9,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { UsersModule } from './modules/users/users.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -39,7 +40,9 @@ import { PositionsModule } from './modules/positions/positions.module';
 
     DepartmentsModule,
 
-    PositionsModule
+    PositionsModule,
+
+    AuthModule
   ],
   controllers: [],
   providers: [
