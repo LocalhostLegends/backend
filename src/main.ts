@@ -1,6 +1,6 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -35,6 +35,8 @@ async function bootstrap() {
     }),
   );
 
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('API')
     .setDescription('API documentation')
@@ -45,8 +47,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
 
-  const port = configService.get('port');
+  const port = process.env.PORT || configService.get('port') || 3000;
   await app.listen(port);
+
 
   const pgAdminEmail = configService.get('pgAdmin.email');
   const pgAdminPassword = configService.get('pgAdmin.password');

@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+
 import configuration from './config/configuration';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -29,7 +31,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
         migrationsRun: configService.get('nodeEnv') === 'production',
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
       }),
-    })
+    }),
+
+    UsersModule
   ],
   controllers: [],
   providers: [
