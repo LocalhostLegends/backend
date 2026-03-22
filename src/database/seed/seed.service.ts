@@ -24,11 +24,13 @@ export class SeedService implements OnModuleInit {
     private readonly _positionRepository: Repository<Position>,
   ) {}
 
-  async onModuleInit() {
+ async onModuleInit() {
+  if (process.env.NODE_ENV !== 'production') {
     await this.seed().catch(err => {
       this.logger.error('Seeding failed:', err);
     });
   }
+}
 
   async seed() {
     const departmentCount = await this._departmentRepository.count();
