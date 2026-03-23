@@ -29,4 +29,8 @@ export class UpdateUserDto {
     message: 'Phone number can only contain +, digits, spaces, hyphens, and parentheses'
   })
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  avatar?: string;
 }

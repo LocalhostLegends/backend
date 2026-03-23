@@ -23,4 +23,4 @@ export const ErrorMessages = {
   // General errors
   INTERNAL_SERVER_ERROR: 'Internal server error',
   BAD_REQUEST: 'Invalid request',
-};
+} as const;
