@@ -17,7 +17,7 @@ export class AuthController {
   constructor(
     private readonly _authService: AuthService,
     private readonly _configService: ConfigService
-  ) {}
+  ) { }
 
   @Post('register')
   register(@Body() registerDto: RegisterDto): Promise<User> {
@@ -30,17 +30,19 @@ export class AuthController {
     const { accessToken, refreshToken } = await this._authService.login(loginDto);
     const refreshExpiresIn = this._configService.get<StringValue>('jwt.refreshExpiresIn');
 
-    if (!refreshExpiresIn){
+    if (!refreshExpiresIn) {
       throw new Error('Jwt refresh expires in is not defined');
     }
 
+    const isProduction = this._configService.get('nodeEnv') === 'production';
+
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
       maxAge: ms(refreshExpiresIn)
     })
-    
+
     return { accessToken };
   }
 

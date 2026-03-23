@@ -66,10 +66,13 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this._usersRepository.findOne({
-      where: { email },
-      select: { password: true }
-    })
+    return this._usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.department', 'department')
+      .leftJoinAndSelect('user.position', 'position')
+      .where('user.email = :email', { email })
+      .addSelect('user.password')
+      .getOne();
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
