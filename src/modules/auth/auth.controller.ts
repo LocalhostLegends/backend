@@ -1,5 +1,6 @@
 import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ApiBearerAuth, ApiExtraModels, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import ms, { StringValue } from 'ms';
 
@@ -11,7 +12,14 @@ import { LoginDto } from './dto/login.dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { AuthResponse } from './auth.types';
+import { AuthResponseSchema, LoginBodySchema, RegisterBodySchema } from './swagger/auth.schema';
+import { SwaggerLogin, SwaggerRefresh, SwaggerRegister } from './swagger/auth.swagger';
 
+@ApiTags('Auth')
+@ApiBearerAuth()
+@ApiExtraModels(AuthResponseSchema)
+@ApiExtraModels(RegisterBodySchema)
+@ApiExtraModels(LoginBodySchema)
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -20,12 +28,14 @@ export class AuthController {
   ) { }
 
   @Post('register')
+  @SwaggerRegister()
   register(@Body() registerDto: RegisterDto): Promise<User> {
     return this._authService.register(registerDto);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @SwaggerLogin()
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response): Promise<AuthResponse> {
     const { accessToken, refreshToken } = await this._authService.login(loginDto);
     const refreshExpiresIn = this._configService.get<StringValue>('jwt.refreshExpiresIn');
@@ -49,6 +59,7 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtRefreshGuard)
+  @SwaggerRefresh()
   refresh(@CurrentUser() user: User): Promise<AuthResponse> {
     return this._authService.refresh(user.id);
   }
