@@ -42,7 +42,7 @@ export class AuthService {
   }
 
   async refresh(userId: string): Promise<AuthResponse> {
-    const user = await this._usersService.findOne(userId);
+    const user = await this._usersService.findById(userId);
     const accessToken = this._generateAccessToken(user);
 
     return { accessToken };

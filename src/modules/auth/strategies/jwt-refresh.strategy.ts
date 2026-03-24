@@ -1,11 +1,12 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import {  Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 
 import { UsersService } from '@modules/users/users.service';
 import { User } from '@database/entities/user.entity';
+import { ErrorMessages } from '@common/exceptions/error-messages';
 
 import { JwtRefreshPayload } from '../auth.types';
 
@@ -28,12 +29,10 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
   }
 
   async validate(payload: JwtRefreshPayload): Promise<User> {
-    const user = await this._usersService.findOne(payload.sub);
-
-    if (!user) {
-      throw new UnauthorizedException();
+    try {
+      return await this._usersService.findById(payload.sub);
+    } catch {
+      throw new UnauthorizedException(ErrorMessages.UNAUTHORIZED);
     }
-
-    return user;
   }
 }

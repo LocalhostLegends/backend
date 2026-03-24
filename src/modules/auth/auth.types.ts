@@ -11,3 +11,9 @@ export interface JwtRefreshPayload {
 export interface AuthResponse {
   accessToken: string;
 }
+
+export interface AuthorizedUser {
+  id: string;
+  email: string;
+  role: string;
+}

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as argon2 from '@node-rs/argon2';
@@ -6,11 +6,13 @@ import * as argon2 from '@node-rs/argon2';
 import { User } from '@database/entities/user.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
+import { UserRole } from '@database/entities/user.entity.enums';
 import { ErrorMessages } from '@common/exceptions/error-messages';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRole } from '@database/entities/user.entity.enums';
+
+import { AuthorizedUser } from '../auth/auth.types';
 
 @Injectable()
 export class UsersService {
@@ -55,25 +57,39 @@ export class UsersService {
     });
   }
 
-  async findOne(id: string): Promise<User> {
+  async findOne(id: string, currentUser: AuthorizedUser): Promise<User> {
+    if (currentUser.role !== UserRole.HR && currentUser.id !== id) {
+      throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(UserRole.HR));
+    }
+
+    return this.findById(id);
+  }
+
+  async findById(id: string): Promise<User> {
     const user = await this._usersRepository.findOne({
       where: { id },
       relations: ['department', 'position'],
     });
 
-    if (!user) throw new NotFoundException(ErrorMessages.USER_NOT_FOUND(id));
+    if (!user) {
+      throw new NotFoundException(ErrorMessages.USER_NOT_FOUND(id));
+    }
+
     return user;
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this._usersRepository.findOne({
-      where: { email },
-      select: { password: true }
-    })
+    return this._usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.department', 'department')
+      .leftJoinAndSelect('user.position', 'position')
+      .where('user.email = :email', { email })
+      .addSelect('user.password')
+      .getOne();
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
+  async update(id: string, updateUserDto: UpdateUserDto, currentUser: AuthorizedUser): Promise<User> {
+    const user = await this.findOne(id, currentUser);
 
     if (updateUserDto.email !== undefined && updateUserDto.email !== user.email) {
       await this._ensureEmailUnique(updateUserDto.email);
@@ -85,17 +101,20 @@ export class UsersService {
     if (updateUserDto.lastName !== undefined) updateData.lastName = updateUserDto.lastName;
     if (updateUserDto.email !== undefined) updateData.email = updateUserDto.email;
     if (updateUserDto.phone !== undefined) updateData.phone = updateUserDto.phone;
+    if (updateUserDto.avatar !== undefined) updateData.avatar = updateUserDto.avatar;
 
-    if (updateUserDto.departmentId !== undefined) {
-      updateData.department = updateUserDto.departmentId
-        ? await this._findDepartmentById(updateUserDto.departmentId)
-        : undefined;
-    }
+    if (currentUser.role === UserRole.HR) {
+      if (updateUserDto.departmentId !== undefined) {
+        updateData.department = updateUserDto.departmentId
+          ? await this._findDepartmentById(updateUserDto.departmentId)
+          : undefined;
+      }
 
-    if (updateUserDto.positionId !== undefined) {
-      updateData.position = updateUserDto.positionId
-        ? await this._findPositionById(updateUserDto.positionId)
-        : undefined;
+      if (updateUserDto.positionId !== undefined) {
+        updateData.position = updateUserDto.positionId
+          ? await this._findPositionById(updateUserDto.positionId)
+          : undefined;
+      }
     }
 
     const updatedUser = this._usersRepository.merge(user, updateData);
@@ -103,7 +122,7 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<void> {
-    const user = await this.findOne(id);
+    const user = await this.findById(id);
     await this._usersRepository.remove(user);
   }
 
