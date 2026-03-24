@@ -15,6 +15,8 @@ export const ErrorMessages = {
   INVALID_CREDENTIALS: 'Invalid credentials',
   UNAUTHORIZED: 'Unauthorized access',
   FORBIDDEN: 'Access denied',
+  FORBIDDEN_RESOURCE_ACCESS: (requiredRole: string) =>
+    `This endpoint requires ${requiredRole} role or ownership of the resource`,
 
   // Validation errors
   INVALID_ID: 'Invalid ID format',

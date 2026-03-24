@@ -59,7 +59,7 @@ export class UsersService {
 
   async findOne(id: string, currentUser: AuthorizedUser): Promise<User> {
     if (currentUser.role !== UserRole.HR && currentUser.id !== id) {
-      throw new ForbiddenException(`This endpoint requires ${UserRole.HR} role or ownership of the resource`);
+      throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(UserRole.HR));
     }
 
     return this.findById(id);
