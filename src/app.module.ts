@@ -27,22 +27,21 @@ import { SeedModule } from './database/seed/seed.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const databaseConfig = configService.get('database');
-        const isProduction = configService.get('nodeEnv') === 'production';
-
+        const databaseConfig = configService.get<any>('database');
+      
         return {
-          type: 'postgres',
-          ...(databaseConfig.url
+          type: 'postgres' as const,
+          ...(databaseConfig?.url
             ? {
                 url: databaseConfig.url,
-                ssl: isProduction ? { rejectUnauthorized: false } : false,
+                ssl: databaseConfig.ssl,
               }
             : {
-                host: databaseConfig.host,
-                port: databaseConfig.port,
-                username: databaseConfig.username,
-                password: databaseConfig.password,
-                database: databaseConfig.database,
+                host: databaseConfig?.host,
+                port: databaseConfig?.port,
+                username: databaseConfig?.username,
+                password: databaseConfig?.password,
+                database: databaseConfig?.database,
                 ssl: false,
               }),
          entities: [__dirname + '/**/*.entity{.ts,.js}'],
