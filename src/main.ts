@@ -17,7 +17,11 @@ async function bootstrap() {
 
   const corsOrigins = configService.get('cors.origins');
   app.enableCors({
-    origin: corsOrigins[0] === '*' ? '*' : corsOrigins,
+    origin: [
+      'http://localhost:4200',
+      'https://vercel.app',
+
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
