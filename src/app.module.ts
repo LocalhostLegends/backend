@@ -42,7 +42,7 @@ import { SeedModule } from './database/seed/seed.module';
                 username: databaseConfig?.username,
                 password: databaseConfig?.password,
                 database: databaseConfig?.database,
-                ssl: false,
+                ssl: true,
               }),
          entities: [__dirname + '/**/*.entity{.ts,.js}'],
          synchronize: false,
