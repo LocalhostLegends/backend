@@ -7,19 +7,20 @@ import ms, { StringValue } from 'ms';
 import { User } from '@database/entities/user.entity';
 
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+
 import { AuthResponse } from './auth.types';
-import { AuthResponseSchema, LoginBodySchema, RegisterBodySchema } from './swagger/auth.schema';
-import { SwaggerLogin, SwaggerRefresh, SwaggerRegister } from './swagger/auth.swagger';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { AuthSchema } from './swagger/auth.schema';
+import { AuthSwagger } from './swagger/auth.swagger';
 
 @ApiTags('Auth')
 @ApiBearerAuth()
-@ApiExtraModels(AuthResponseSchema)
-@ApiExtraModels(RegisterBodySchema)
-@ApiExtraModels(LoginBodySchema)
+@ApiExtraModels(AuthSchema.response)
+@ApiExtraModels(AuthSchema.registerBody)
+@ApiExtraModels(AuthSchema.loginBody)
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -28,14 +29,14 @@ export class AuthController {
   ) { }
 
   @Post('register')
-  @SwaggerRegister()
+  @AuthSwagger.register()
   register(@Body() registerDto: RegisterDto): Promise<User> {
     return this._authService.register(registerDto);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @SwaggerLogin()
+  @AuthSwagger.login()
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response): Promise<AuthResponse> {
     const { accessToken, refreshToken } = await this._authService.login(loginDto);
     const refreshExpiresIn = this._configService.get<StringValue>('jwt.refreshExpiresIn');
@@ -59,7 +60,7 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtRefreshGuard)
-  @SwaggerRefresh()
+  @AuthSwagger.refresh()
   refresh(@CurrentUser() user: User): Promise<AuthResponse> {
     return this._authService.refresh(user.id);
   }

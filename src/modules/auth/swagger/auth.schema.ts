@@ -26,3 +26,9 @@ export class LoginBodySchema {
   @ApiProperty({ example: '123456', description: 'Password' })
   password: string;
 }
+
+export const AuthSchema = {
+  response: AuthResponseSchema,
+  registerBody: RegisterBodySchema,
+  loginBody: LoginBodySchema,
+};
