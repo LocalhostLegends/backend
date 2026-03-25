@@ -1,0 +1,41 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ azure ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Deploy to Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'hrplatform-backend'
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          package: .
+      
+      - name: Run migrations
+        run: npm run migration:run
+        env:
+          DB_HOST: ${{ secrets.DB_HOST_AZURE }}
+          DB_PORT: ${{ secrets.DB_PORT_AZURE }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME_AZURE }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD_AZURE }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE_AZURE }}
+          DB_SSL: ${{ secrets.DB_SSL_AZURE }}
