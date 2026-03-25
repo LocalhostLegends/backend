@@ -42,7 +42,7 @@ app.enableCors({
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup(`${apiPrefix}/docs`, app, document, swaggerOptions);
 
-  const port = process.env.PORT || configService.get('port') || 3000;
+  const port = process.env.PORT || configService.get('port') || 3175;
   await app.listen(port);
 
   const pgAdminEmail = configService.get('pgAdmin.email');

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as argon2 from '@node-rs/argon2';
+import * as bcrypt from 'bcryptjs';
 
 import { User } from '@database/entities/user.entity';
 import { Department } from '@database/entities/department.entity';
@@ -25,7 +25,7 @@ export class UsersService {
   async create(createUserDto: CreateUserDto): Promise<User> {
     await this._ensureEmailUnique(createUserDto.email);
 
-    const hashedPassword = await argon2.hash(createUserDto.password);
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
     let department: Department | undefined;
     if (createUserDto.departmentId) {
