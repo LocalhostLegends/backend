@@ -19,7 +19,7 @@ import { SeedModule } from './database/seed/seed.module';
       envFilePath:
         process.env.NODE_ENV === 'production'
           ? '.env.production'
-          : '.env.development',
+          : '.env.development.local',
       load: [configuration],
     }),
 
