@@ -44,7 +44,7 @@ exports.AppModule = AppModule = __decorate([
                     password: configService.get('database.password'),
                     database: configService.get('database.database'),
                     entities: [__dirname + '/**/*.entity{.ts,.js}'],
-                    synchronize: true,
+                    synchronize: false,
                     migrationsRun: false,
                     migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
                     ssl: configService.get('database.ssl') ? {
