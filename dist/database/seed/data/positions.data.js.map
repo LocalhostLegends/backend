@@ -1,0 +1,1 @@
+{"version":3,"file":"positions.data.js","sourceRoot":"","sources":["../../../../src/database/seed/data/positions.data.ts"],"names":[],"mappings":";;;AAAa,QAAA,aAAa,GAAG;IAC3B,EAAE,KAAK,EAAE,YAAY,EAAE,WAAW,EAAE,sBAAsB,EAAE;IAC5D,EAAE,KAAK,EAAE,mBAAmB,EAAE,WAAW,EAAE,mBAAmB,EAAE;IAChE,EAAE,KAAK,EAAE,sBAAsB,EAAE,WAAW,EAAE,mBAAmB,EAAE;CACpE,CAAC"}
