@@ -8,6 +8,7 @@ declare const _default: () => {
         username: string;
         password: string;
         database: string;
+        ssl: boolean;
     };
     jwt: {
         secret: string;

@@ -34,6 +34,9 @@ import { SeedModule } from './database/seed/seed.module';
         synchronize: false,
         migrationsRun: false,
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+        ssl: configService.get('database.ssl') ? {
+          rejectUnauthorized: false
+        } : false,
       }),
     }),
 

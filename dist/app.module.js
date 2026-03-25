@@ -47,6 +47,9 @@ exports.AppModule = AppModule = __decorate([
                     synchronize: false,
                     migrationsRun: false,
                     migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+                    ssl: configService.get('database.ssl') ? {
+                        rejectUnauthorized: false
+                    } : false,
                 }),
             }),
             users_module_1.UsersModule,
