@@ -40,5 +40,5 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg' })
   @IsOptional()
   @IsString()
-  avatar?: string;
+  avatar?: string | null;
 }

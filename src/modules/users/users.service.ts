@@ -101,19 +101,15 @@ export class UsersService {
     if (updateUserDto.lastName !== undefined) updateData.lastName = updateUserDto.lastName;
     if (updateUserDto.email !== undefined) updateData.email = updateUserDto.email;
     if (updateUserDto.phone !== undefined) updateData.phone = updateUserDto.phone;
-    if (updateUserDto.avatar !== undefined) updateData.avatar = updateUserDto.avatar;
+    if (updateUserDto.avatar !== null) updateData.avatar = updateUserDto.avatar;
 
     if (currentUser.role === UserRole.HR) {
       if (updateUserDto.departmentId !== undefined) {
-        updateData.department = updateUserDto.departmentId
-          ? await this._findDepartmentById(updateUserDto.departmentId)
-          : undefined;
+        updateData.department = await this._findDepartmentById(updateUserDto.departmentId);
       }
 
       if (updateUserDto.positionId !== undefined) {
-        updateData.position = updateUserDto.positionId
-          ? await this._findPositionById(updateUserDto.positionId)
-          : undefined;
+        updateData.position = await this._findPositionById(updateUserDto.positionId);
       }
     }
 

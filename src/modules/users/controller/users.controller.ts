@@ -6,15 +6,15 @@ import { RequireRole } from '@common/decorators/require-role.decorator';
 import { UserRole } from '@database/entities/user.entity.enums';
 import { User } from '@database/entities/user.entity';
 
-import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { UserResponse } from './swagger/user.schema';
-import { SwaggerCreateUser, SwaggerDeleteUser, SwaggerFindAllUsers, SwaggerFindOneUser, SwaggerUpdateUser } from './swagger/user.swagger';
+import { UsersService } from '../users.service';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { UserResponse } from '../swagger/user.schema';
+import { SwaggerCreateUser, SwaggerDeleteUser, SwaggerFindAllUsers, SwaggerFindOneUser, SwaggerUpdateUser } from '../swagger/user.swagger';
 
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { AuthorizedUser } from '../auth/auth.types';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import type { AuthorizedUser } from '../../auth/auth.types';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -22,7 +22,7 @@ import type { AuthorizedUser } from '../auth/auth.types';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly _usersService: UsersService) {}
+  constructor(private readonly _usersService: UsersService) { }
 
   @Post()
   @RequireRole(UserRole.HR)

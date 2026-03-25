@@ -11,6 +11,7 @@ import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SeedModule } from './database/seed/seed.module';
+import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { SeedModule } from './database/seed/seed.module';
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
       }),
     }),
+    CloudflareModule,
 
     UsersModule,
 

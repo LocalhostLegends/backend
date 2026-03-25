@@ -3,12 +3,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@database/entities/user.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
-import { UsersController } from './users.controller';
+import { UsersController } from './controller/users.controller';
 import { UsersService } from './users.service';
+import { CloudflareModule } from '../cloudflare/cloudflare.module';
+import { AvatarController } from './controller/avatar.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Department, Position])],
-  controllers: [UsersController],
+  imports: [
+    TypeOrmModule.forFeature([User, Department, Position]),
+    CloudflareModule,
+  ],
+  controllers: [UsersController, AvatarController],
   providers: [UsersService],
   exports: [UsersService],
 })
