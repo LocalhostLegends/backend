@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
 import configuration from './config/configuration';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -28,7 +28,8 @@ import { SeedModule } from './database/seed/seed.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const databaseConfig = configService.get<any>('database');
-      
+        const isProduction = configService.get<string>('nodeEnv') === 'production';
+
         return {
           type: 'postgres' as const,
           ...(databaseConfig?.url
@@ -42,15 +43,15 @@ import { SeedModule } from './database/seed/seed.module';
                 username: databaseConfig?.username,
                 password: databaseConfig?.password,
                 database: databaseConfig?.database,
-                ssl: true,
+                ssl: isProduction ? { rejectUnauthorized: false } : false,
               }),
-         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-         synchronize: false,
-         migrationsRun: false,
-         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-      };
-    },
-  }),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: false,
+          migrationsRun: false,
+          migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+        };
+      },
+    }),
 
     UsersModule,
 
@@ -59,8 +60,8 @@ import { SeedModule } from './database/seed/seed.module';
     PositionsModule,
 
     AuthModule,
-
-    SeedModule
+    
+    SeedModule,
   ],
   controllers: [],
   providers: [
@@ -74,4 +75,4 @@ import { SeedModule } from './database/seed/seed.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
