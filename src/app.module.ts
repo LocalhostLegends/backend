@@ -31,7 +31,7 @@ import { SeedModule } from './database/seed/seed.module';
         password: configService.get('database.password'),
         database: configService.get('database.database'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false,
+        synchronize: true,
         migrationsRun: false,
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         ssl: configService.get('database.ssl') ? { rejectUnauthorized: false } : false,
