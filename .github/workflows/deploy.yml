@@ -28,12 +28,12 @@ jobs:
           publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
           package: .
       
-      - name: Run migrations
-        run: npm run migration:run
-        env:
-          DB_HOST: ${{ secrets.DB_HOST_AZURE }}
-          DB_PORT: ${{ secrets.DB_PORT_AZURE }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME_AZURE }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD_AZURE }}
-          DB_DATABASE: ${{ secrets.DB_DATABASE_AZURE }}
-          DB_SSL: ${{ secrets.DB_SSL_AZURE }}
+      # - name: Run migrations
+      #   run: npm run migration:run
+      #   env:
+      #     DB_HOST: ${{ secrets.DB_HOST_AZURE }}
+      #     DB_PORT: ${{ secrets.DB_PORT_AZURE }}
+      #     DB_USERNAME: ${{ secrets.DB_USERNAME_AZURE }}
+      #     DB_PASSWORD: ${{ secrets.DB_PASSWORD_AZURE }}
+      #     DB_DATABASE: ${{ secrets.DB_DATABASE_AZURE }}
+      #     DB_SSL: ${{ secrets.DB_SSL_AZURE }}
