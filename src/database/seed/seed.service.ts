@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as argon2 from '@node-rs/argon2';
+import * as bcrypt from 'bcryptjs';
 
 import { User } from '../entities/user.entity';
 import { Department } from '../entities/department.entity';
@@ -22,7 +22,7 @@ export class SeedService implements OnModuleInit {
     private readonly _departmentRepository: Repository<Department>,
     @InjectRepository(Position)
     private readonly _positionRepository: Repository<Position>,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     await this.seed().catch(err => {
@@ -51,7 +51,7 @@ export class SeedService implements OnModuleInit {
       );
       this.logger.log(`✓ ${positions.length} positions created`);
 
-      const hashedPassword = await argon2.hash('123456');
+      const hashedPassword = await bcrypt.hash('123456', 10);
 
       await this._userRepository.save(
         usersData.map(u => this._userRepository.create({
