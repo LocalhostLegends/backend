@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
 import configuration from './config/configuration';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -16,26 +16,41 @@ import { SeedModule } from './database/seed/seed.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath:
+        process.env.NODE_ENV === 'production'
+          ? '.env.production'
+          : '.env.development.local',
       load: [configuration],
     }),
 
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('database.host'),
-        port: configService.get('database.port'),
-        username: configService.get('database.username'),
-        password: configService.get('database.password'),
-        database: configService.get('database.database'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
-        migrationsRun: false,
-        migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-        ssl: configService.get('database.ssl') ? { rejectUnauthorized: false } : false,
-      }),
+      useFactory: (configService: ConfigService) => {
+        const databaseConfig = configService.get<any>('database');
+        const isProduction = configService.get<string>('nodeEnv') === 'production';
+
+        return {
+          type: 'postgres' as const,
+          ...(databaseConfig?.url
+            ? {
+                url: databaseConfig.url,
+                ssl: databaseConfig.ssl,
+              }
+            : {
+                host: databaseConfig?.host,
+                port: databaseConfig?.port,
+                username: databaseConfig?.username,
+                password: databaseConfig?.password,
+                database: databaseConfig?.database,
+                ssl: isProduction ? { rejectUnauthorized: false } : false,
+              }),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: false,
+          migrationsRun: false,
+          migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+        };
+      },
     }),
 
     UsersModule,
@@ -45,8 +60,8 @@ import { SeedModule } from './database/seed/seed.module';
     PositionsModule,
 
     AuthModule,
-
-    SeedModule
+    
+    SeedModule,
   ],
   controllers: [],
   providers: [
@@ -60,4 +75,4 @@ import { SeedModule } from './database/seed/seed.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

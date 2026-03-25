@@ -15,15 +15,16 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  const corsOrigins = configService.get('cors.origins');
-  app.enableCors({
-    origin: corsOrigins[0] === '*' ? '*' : corsOrigins,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  });
+  const corsOrigins = configService.get<string[]>('cors.origins') ?? ['*'];
+
+app.enableCors({
+  origin: corsOrigins[0] === '*' ? '*' : corsOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+});
 
   const apiPrefix = configService.get('apiPrefix');
   app.setGlobalPrefix(apiPrefix);
