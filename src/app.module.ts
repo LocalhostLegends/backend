@@ -11,6 +11,7 @@ import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SeedModule } from './database/seed/seed.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -34,17 +35,17 @@ import { SeedModule } from './database/seed/seed.module';
           type: 'postgres' as const,
           ...(databaseConfig?.url
             ? {
-                url: databaseConfig.url,
-                ssl: databaseConfig.ssl,
-              }
+              url: databaseConfig.url,
+              ssl: databaseConfig.ssl,
+            }
             : {
-                host: databaseConfig?.host,
-                port: databaseConfig?.port,
-                username: databaseConfig?.username,
-                password: databaseConfig?.password,
-                database: databaseConfig?.database,
-                ssl: isProduction ? { rejectUnauthorized: false } : false,
-              }),
+              host: databaseConfig?.host,
+              port: databaseConfig?.port,
+              username: databaseConfig?.username,
+              password: databaseConfig?.password,
+              database: databaseConfig?.database,
+              ssl: isProduction ? { rejectUnauthorized: false } : false,
+            }),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
           synchronize: false,
           migrationsRun: false,
@@ -60,8 +61,10 @@ import { SeedModule } from './database/seed/seed.module';
     PositionsModule,
 
     AuthModule,
-    
+
     SeedModule,
+
+    HealthModule,
   ],
   controllers: [],
   providers: [
@@ -75,4 +78,4 @@ import { SeedModule } from './database/seed/seed.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

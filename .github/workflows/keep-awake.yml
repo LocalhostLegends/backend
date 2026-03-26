@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Ping Render service
         run: |
-          STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" https://backend-pcz4.onrender.com)
+          STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" https://backend-pcz4.onrender.com/health)
           echo "HTTP status: $STATUS"
 
           if [ "$STATUS" -ne 200 ]; then

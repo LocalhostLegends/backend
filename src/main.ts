@@ -17,17 +17,17 @@ async function bootstrap() {
 
   const corsOrigins = configService.get<string[]>('cors.origins') ?? ['*'];
 
-app.enableCors({
-  origin: corsOrigins[0] === '*' ? '*' : corsOrigins,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-});
+  app.enableCors({
+    origin: corsOrigins[0] === '*' ? '*' : corsOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
 
   const apiPrefix = configService.get('apiPrefix');
-  app.setGlobalPrefix(apiPrefix);
+  app.setGlobalPrefix(apiPrefix, { exclude: ['health'] });
 
   app.useGlobalPipes(
     new ValidationPipe({
