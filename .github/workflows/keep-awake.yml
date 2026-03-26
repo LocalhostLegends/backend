@@ -1,0 +1,21 @@
+name: Keep Render Awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Render service
+        run: |
+          STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" https://backend-pcz4.onrender.com/health)
+          echo "HTTP status: $STATUS"
+
+          if [ "$STATUS" -ne 200 ]; then
+            echo "Service is unavailable"
+            exit 1
+          fi

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
 import configuration from './config/configuration';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -12,30 +12,47 @@ import { PositionsModule } from './modules/positions/positions.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SeedModule } from './database/seed/seed.module';
 import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath:
+        process.env.NODE_ENV === 'production'
+          ? '.env.production'
+          : '.env.development.local',
       load: [configuration],
     }),
 
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('database.host'),
-        port: configService.get('database.port'),
-        username: configService.get('database.username'),
-        password: configService.get('database.password'),
-        database: configService.get('database.database'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false,
-        migrationsRun: false,
-        migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-      }),
+      useFactory: (configService: ConfigService) => {
+        const databaseConfig = configService.get<any>('database');
+        const isProduction = configService.get<string>('nodeEnv') === 'production';
+
+        return {
+          type: 'postgres' as const,
+          ...(databaseConfig?.url
+            ? {
+              url: databaseConfig.url,
+              ssl: databaseConfig.ssl,
+            }
+            : {
+              host: databaseConfig?.host,
+              port: databaseConfig?.port,
+              username: databaseConfig?.username,
+              password: databaseConfig?.password,
+              database: databaseConfig?.database,
+              ssl: isProduction ? { rejectUnauthorized: false } : false,
+            }),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: false,
+          migrationsRun: false,
+          migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+        };
+      },
     }),
     CloudflareModule,
 
@@ -47,7 +64,9 @@ import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
 
     AuthModule,
 
-    SeedModule
+    SeedModule,
+
+    HealthModule,
   ],
   controllers: [],
   providers: [

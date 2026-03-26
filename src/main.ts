@@ -15,7 +15,8 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  const corsOrigins = configService.get('cors.origins');
+  const corsOrigins = configService.get<string[]>('cors.origins') ?? ['*'];
+
   app.enableCors({
     origin: corsOrigins[0] === '*' ? '*' : corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -26,7 +27,7 @@ async function bootstrap() {
   });
 
   const apiPrefix = configService.get('apiPrefix');
-  app.setGlobalPrefix(apiPrefix);
+  app.setGlobalPrefix(apiPrefix, { exclude: ['health'] });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -41,7 +42,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup(`${apiPrefix}/docs`, app, document, swaggerOptions);
 
-  const port = process.env.PORT || configService.get('port') || 3000;
+  const port = process.env.PORT || configService.get('port') || 3175;
   await app.listen(port);
 
   const pgAdminEmail = configService.get('pgAdmin.email');

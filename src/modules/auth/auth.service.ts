@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as argon2 from '@node-rs/argon2';
+import * as bcrypt from 'bcryptjs';
 
 import { UsersService } from '@modules/users/users.service';
 import { User } from '@database/entities/user.entity';
@@ -16,7 +16,7 @@ export class AuthService {
     private readonly _usersService: UsersService,
     private readonly _jwtService: JwtService,
     private readonly _configService: ConfigService,
-  ) {}
+  ) { }
 
   async register(registerDto: RegisterDto): Promise<User> {
     return this._usersService.create(registerDto);
@@ -29,7 +29,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await argon2.verify(user.password, loginDto.password);
+    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -55,7 +55,7 @@ export class AuthService {
         secret: this._configService.get('jwt.secret'),
         expiresIn: this._configService.get('jwt.expiresIn'),
       },
-    ); 
+    );
   }
 
   private _generateRefreshToken(user: User): string {
