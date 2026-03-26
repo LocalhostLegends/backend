@@ -1,19 +1,13 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiExtraModels } from '@nestjs/swagger';
 import { PositionsService } from './positions.service';
-import { CreatePositionDto } from './dto/create-position.dto';
-import { UpdatePositionDto } from './dto/update-position.dto';
-import { RequireRole } from '@/common/decorators/require-role.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RequireRole } from '@/common/decorators/require-role.decorator';
 import { RolesGuard } from '@/common/guards/roles.guard';
 
-import {
-  SwaggerCreatePosition,
-  SwaggerFindAllPositions,
-  SwaggerFindOnePosition,
-  SwaggerUpdatePosition,
-  SwaggerDeletePosition,
-} from './swagger/positions.swagger';
+import { CreatePositionDto } from './dto/create-position.dto';
+import { UpdatePositionDto } from './dto/update-position.dto';
+import { PositionSwagger } from './swagger/positions.swagger';
 import { PositionResponse } from './swagger/position.schema';
 
 @ApiTags('Positions')
@@ -26,25 +20,25 @@ export class PositionsController {
   constructor(private readonly positionsService: PositionsService) { }
 
   @Post()
-  @SwaggerCreatePosition()
+  @PositionSwagger.create()
   create(@Body() createPositionDto: CreatePositionDto) {
     return this.positionsService.create(createPositionDto);
   }
 
   @Get()
-  @SwaggerFindAllPositions()
+  @PositionSwagger.findAll()
   findAll() {
     return this.positionsService.findAll();
   }
 
   @Get(':id')
-  @SwaggerFindOnePosition()
+  @PositionSwagger.findOne()
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.positionsService.findOne(id);
   }
 
   @Patch(':id')
-  @SwaggerUpdatePosition()
+  @PositionSwagger.update()
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updatePositionDto: UpdatePositionDto,
@@ -53,7 +47,7 @@ export class PositionsController {
   }
 
   @Delete(':id')
-  @SwaggerDeletePosition()
+  @PositionSwagger.delete()
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.positionsService.remove(id);
   }

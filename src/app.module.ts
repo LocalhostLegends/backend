@@ -11,6 +11,7 @@ import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SeedModule } from './database/seed/seed.module';
+import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
 import { HealthModule } from './modules/health/health.module';
 
 @Module({
@@ -53,6 +54,7 @@ import { HealthModule } from './modules/health/health.module';
         };
       },
     }),
+    CloudflareModule,
 
     UsersModule,
 

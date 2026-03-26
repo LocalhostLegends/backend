@@ -29,6 +29,8 @@
     "db:reset": "npm run db:drop && npm run migration:run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1015.0",
+    "@aws-sdk/s3-request-presigner": "^3.1015.0",
     "@nestjs/cli": "^11.0.16",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
@@ -61,6 +63,8 @@
     "@types/helmet": "^0.0.48",
     "@types/jest": "^30.0.0",
     "@types/ms": "^2.1.0",
+    "@types/multer": "^2.1.0",
+    "@types/multer-s3": "^3.0.3",
     "@types/node": "^22.10.7",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.2",
