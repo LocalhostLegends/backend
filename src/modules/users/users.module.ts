@@ -17,4 +17,4 @@ import { AvatarController } from './controller/avatar.controller';
   providers: [UsersService],
   exports: [UsersService],
 })
-export class UsersModule { }
+export class UsersModule {}

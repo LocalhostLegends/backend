@@ -22,15 +22,15 @@ export class SeedService implements OnModuleInit {
     private readonly _departmentRepository: Repository<Department>,
     @InjectRepository(Position)
     private readonly _positionRepository: Repository<Position>,
-  ) { }
+  ) {}
 
- async onModuleInit() {
-  if (process.env.NODE_ENV !== 'production') {
-    await this.seed().catch(err => {
-      this.logger.error('Seeding failed:', err);
-    });
+  async onModuleInit() {
+    if (process.env.NODE_ENV !== 'production') {
+      await this.seed().catch((err) => {
+        this.logger.error('Seeding failed:', err);
+      });
+    }
   }
-}
 
   async seed() {
     const departmentCount = await this._departmentRepository.count();
@@ -44,27 +44,29 @@ export class SeedService implements OnModuleInit {
 
     try {
       const departments = await this._departmentRepository.save(
-        departmentsData.map(d => this._departmentRepository.create(d))
+        departmentsData.map((d) => this._departmentRepository.create(d)),
       );
       this.logger.log(`✓ ${departments.length} departments created`);
 
       const positions = await this._positionRepository.save(
-        positionsData.map(p => this._positionRepository.create(p))
+        positionsData.map((p) => this._positionRepository.create(p)),
       );
       this.logger.log(`✓ ${positions.length} positions created`);
 
       const hashedPassword = await bcrypt.hash('123456', 10);
 
       await this._userRepository.save(
-        usersData.map(u => this._userRepository.create({
-          firstName: u.firstName,
-          lastName: u.lastName,
-          email: u.email,
-          password: hashedPassword,
-          role: u.role,
-          department: departments[u.departmentIndex],
-          position: positions[u.positionIndex],
-        }))
+        usersData.map((u) =>
+          this._userRepository.create({
+            firstName: u.firstName,
+            lastName: u.lastName,
+            email: u.email,
+            password: hashedPassword,
+            role: u.role,
+            department: departments[u.departmentIndex],
+            position: positions[u.positionIndex],
+          }),
+        ),
       );
       this.logger.log('✓ 2 HR and 3 employees created');
 

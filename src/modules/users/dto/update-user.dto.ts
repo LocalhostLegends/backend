@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsString, MaxLength, IsOptional, IsUUID, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MaxLength,
+  IsOptional,
+  IsUUID,
+  Matches,
+} from 'class-validator';
 
 export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'John', maxLength: 100 })
@@ -32,8 +39,9 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ example: '+380501234567' })
   @IsOptional()
   @IsString()
-  @Matches(/^[\+\d\s\-\(\)]+$/, {
-    message: 'Phone number can only contain +, digits, spaces, hyphens, and parentheses'
+  @Matches(/^[+0-9\s()-]+$/, {
+    message:
+      'Phone number can only contain +, digits, spaces, hyphens, and parentheses',
   })
   phone?: string;
 

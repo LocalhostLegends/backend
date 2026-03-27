@@ -1,4 +1,12 @@
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Res,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiExtraModels, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -25,8 +33,8 @@ import { AuthSwagger } from './swagger/auth.swagger';
 export class AuthController {
   constructor(
     private readonly _authService: AuthService,
-    private readonly _configService: ConfigService
-  ) { }
+    private readonly _configService: ConfigService,
+  ) {}
 
   @Post('register')
   @AuthSwagger.register()
@@ -37,9 +45,15 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @AuthSwagger.login()
-  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response): Promise<AuthResponse> {
-    const { accessToken, refreshToken } = await this._authService.login(loginDto);
-    const refreshExpiresIn = this._configService.get<StringValue>('jwt.refreshExpiresIn');
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponse> {
+    const { accessToken, refreshToken } =
+      await this._authService.login(loginDto);
+    const refreshExpiresIn = this._configService.get<StringValue>(
+      'jwt.refreshExpiresIn',
+    );
 
     if (!refreshExpiresIn) {
       throw new Error('Jwt refresh expires in is not defined');
@@ -51,8 +65,8 @@ export class AuthController {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: ms(refreshExpiresIn)
-    })
+      maxAge: ms(refreshExpiresIn),
+    });
 
     return { accessToken };
   }

@@ -8,4 +8,4 @@ import { CloudflareService } from './cloudflare.service';
   providers: [CloudflareService],
   exports: [CloudflareService],
 })
-export class CloudflareModule { }
+export class CloudflareModule {}

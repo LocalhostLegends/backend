@@ -10,4 +10,4 @@ import { PositionsController } from './positions.controller';
   providers: [PositionsService],
   exports: [PositionsService],
 })
-export class PositionsModule { }
+export class PositionsModule {}
