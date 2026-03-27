@@ -1,17 +1,14 @@
 import { Controller, Post, Delete, UseInterceptors, UploadedFile, UseGuards, Req, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiTags, ApiExtraModels } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CloudflareService } from '@/modules/cloudflare/cloudflare.service';
 import { UsersService } from '../users.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 
 import { AvatarSwagger } from '../swagger/avatar.swagger';
-import { AvatarSchema } from '../swagger/avatar.schema';
 
 @ApiTags('Users')
 @ApiBearerAuth()
-@ApiExtraModels(AvatarSchema.uploadResponse)
-@ApiExtraModels(AvatarSchema.deleteResponse)
 @Controller('users/me/avatar')
 @UseGuards(JwtAuthGuard)
 export class AvatarController {

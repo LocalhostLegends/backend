@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiExtraModels } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { PositionsService } from './positions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequireRole } from '@/common/decorators/require-role.decorator';
@@ -8,11 +8,9 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
 import { PositionSwagger } from './swagger/positions.swagger';
-import { PositionResponse } from './swagger/position.schema';
 
 @ApiTags('Positions')
 @ApiBearerAuth()
-@ApiExtraModels(PositionResponse)
 @Controller('positions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @RequireRole('hr')
