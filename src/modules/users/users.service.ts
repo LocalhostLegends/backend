@@ -11,8 +11,12 @@ import { ErrorMessages } from '@common/exceptions/error-messages';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserFilterDto } from './dto/user-filter.dto';
 
 import { AuthorizedUser } from '../auth/auth.types';
+import { PaginationService } from '@common/pagination/pagination.service';
+import { UserFilterBuilder } from './user-filter.builder';
+import { PaginatedResult } from '@common/pagination/pagination.interface';
 
 @Injectable()
 export class UsersService {
@@ -20,6 +24,8 @@ export class UsersService {
     @InjectRepository(User) private readonly _usersRepository: Repository<User>,
     @InjectRepository(Department) private readonly _departmentRepository: Repository<Department>,
     @InjectRepository(Position) private readonly _positionRepository: Repository<Position>,
+    private readonly _paginationService: PaginationService,
+    private readonly _userFilterBuilder: UserFilterBuilder,
   ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -55,6 +61,32 @@ export class UsersService {
     return this._usersRepository.find({
       relations: ['department', 'position'],
     });
+  }
+
+  async findAllPaginated(
+    filters: UserFilterDto,
+    currentUser: AuthorizedUser,
+  ): Promise<PaginatedResult<User>> {
+    const queryBuilder = this._usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.department', 'department')
+      .leftJoinAndSelect('user.position', 'position');
+
+    this._userFilterBuilder.buildFilters(queryBuilder, filters);
+
+    const sortBy = filters.sortBy ?? 'createdAt';
+    const sortOrder = filters.sortOrder ?? 'DESC';
+
+    this._userFilterBuilder.applySorting(queryBuilder, sortBy, sortOrder);
+
+    if (currentUser.role !== UserRole.HR) {
+      queryBuilder.andWhere('user.id = :userId', { userId: currentUser.id });
+    }
+
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 10;
+
+    return this._paginationService.paginate(queryBuilder, page, limit);
   }
 
   async findOne(id: string, currentUser: AuthorizedUser): Promise<User> {
