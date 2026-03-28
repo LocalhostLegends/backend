@@ -13,6 +13,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { SeedModule } from './database/seed/seed.module';
 import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
 import { HealthModule } from './modules/health/health.module';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 interface DatabaseConfig {
   url?: string;
@@ -26,6 +28,12 @@ interface DatabaseConfig {
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath:
@@ -89,6 +97,10 @@ interface DatabaseConfig {
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })
