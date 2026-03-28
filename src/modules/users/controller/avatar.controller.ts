@@ -11,20 +11,16 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiTags, ApiExtraModels } from '@nestjs/swagger';
-
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CloudflareService } from '@/modules/cloudflare/cloudflare.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../../common/types/request-with-user';
 
 import { UsersService } from '../users.service';
 import { AvatarSwagger } from '../swagger/avatar.swagger';
-import { AvatarSchema } from '../swagger/avatar.schema';
 
 @ApiTags('Users')
 @ApiBearerAuth()
-@ApiExtraModels(AvatarSchema.uploadResponse)
-@ApiExtraModels(AvatarSchema.deleteResponse)
 @Controller('users/me/avatar')
 @UseGuards(JwtAuthGuard)
 export class AvatarController {

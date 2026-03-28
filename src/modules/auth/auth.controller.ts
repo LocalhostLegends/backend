@@ -8,7 +8,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiBearerAuth, ApiExtraModels, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import ms, { StringValue } from 'ms';
 
@@ -21,15 +21,11 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { AuthResponse } from './auth.types';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { AuthSchema } from './swagger/auth.schema';
 import { AuthSwagger } from './swagger/auth.swagger';
 import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @ApiBearerAuth()
-@ApiExtraModels(AuthSchema.response)
-@ApiExtraModels(AuthSchema.registerBody)
-@ApiExtraModels(AuthSchema.loginBody)
 @Controller('auth')
 export class AuthController {
   constructor(

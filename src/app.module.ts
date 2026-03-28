@@ -39,7 +39,7 @@ interface DatabaseConfig {
       envFilePath:
         process.env.NODE_ENV === 'production'
           ? '.env.production'
-          : '.env.development.local',
+          : '.env.development',
       load: [configuration],
     }),
 

@@ -1,15 +1,5 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  ParseUUIDPipe,
-  UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiExtraModels } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { DepartmentsService } from './departments.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -18,11 +8,9 @@ import { RequireRole } from '@common/decorators/require-role.decorator';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { DepartmentSwagger } from './swagger/departments.swagger';
-import { DepartmentResponse } from './swagger/department.schema';
 
 @ApiTags('Departments')
 @ApiBearerAuth()
-@ApiExtraModels(DepartmentResponse)
 @Controller('departments')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @RequireRole('hr')
