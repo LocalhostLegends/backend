@@ -23,6 +23,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthSchema } from './swagger/auth.schema';
 import { AuthSwagger } from './swagger/auth.swagger';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @ApiBearerAuth()
@@ -36,12 +37,14 @@ export class AuthController {
     private readonly _configService: ConfigService,
   ) {}
 
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post('register')
   @AuthSwagger.register()
   register(@Body() registerDto: RegisterDto): Promise<User> {
     return this._authService.register(registerDto);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @AuthSwagger.login()
@@ -71,6 +74,7 @@ export class AuthController {
     return { accessToken };
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtRefreshGuard)
