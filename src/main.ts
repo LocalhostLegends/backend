@@ -15,10 +15,10 @@ async function bootstrap(): Promise<void> {
   app.use(helmet());
   app.use(cookieParser());
 
-  const corsOrigins = configService.get<string[]>('cors.origins') ?? ['*'];
+  const corsOrigins = configService.get<string[]>('cors.origins') ?? [];
 
   app.enableCors({
-    origin: corsOrigins[0] === '*' ? '*' : corsOrigins,
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,

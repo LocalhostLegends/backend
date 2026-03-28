@@ -5,7 +5,7 @@ dotenv.config({
   path:
     process.env.NODE_ENV === 'production'
       ? '.env.production'
-      : '.env.development',
+      : '.env.development.local',
 });
 
 const isProduction = process.env.NODE_ENV === 'production';

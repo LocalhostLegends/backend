@@ -28,7 +28,10 @@ export default () => ({
   },
 
   cors: {
-    origins: process.env.CORS_ORIGINS?.split(',') ?? ['*'],
+    origins: (process.env.CORS_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
   },
 
   pgAdmin: {
