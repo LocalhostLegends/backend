@@ -1,7 +1,9 @@
+import { UserRole } from '@/database/entities/user.entity.enums';
+
 export interface JwtPayload {
   sub: string;
   email: string;
-  role: string;
+  role: UserRole;
 }
 
 export interface JwtRefreshPayload {
@@ -15,5 +17,5 @@ export interface AuthResponse {
 export interface AuthorizedUser {
   id: string;
   email: string;
-  role: string;
+  role: UserRole;
 }

@@ -15,7 +15,7 @@ import { PositionSwagger } from './swagger/positions.swagger';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @RequireRole('hr')
 export class PositionsController {
-  constructor(private readonly positionsService: PositionsService) { }
+  constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
   @PositionSwagger.create()

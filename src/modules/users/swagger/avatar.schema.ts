@@ -1,7 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AvatarUploadResponseSchema {
-  @ApiProperty({ example: 'https://pub-xxx.r2.dev/users/test_test_com/avatar/abc123.jpg', description: 'URL of uploaded avatar' })
+  @ApiProperty({
+    example: 'https://pub-xxx.r2.dev/users/test_test_com/avatar/abc123.jpg',
+    description: 'URL of uploaded avatar',
+  })
   avatar: string;
 }
 

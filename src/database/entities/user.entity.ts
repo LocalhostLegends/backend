@@ -1,10 +1,15 @@
 import {
-  Entity, Column, PrimaryGeneratedColumn,
-  CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 
-import { UserRole } from './user.entity.enums'
+import { UserRole } from './user.entity.enums';
 import { Department } from './department.entity';
 import { Position } from './position.entity';
 

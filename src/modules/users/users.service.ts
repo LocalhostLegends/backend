@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -91,7 +96,9 @@ export class UsersService {
 
   async findOne(id: string, currentUser: AuthorizedUser): Promise<User> {
     if (currentUser.role !== UserRole.HR && currentUser.id !== id) {
-      throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(UserRole.HR));
+      throw new ForbiddenException(
+        ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(UserRole.HR),
+      );
     }
 
     return this.findById(id);
@@ -120,28 +127,43 @@ export class UsersService {
       .getOne();
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto, currentUser: AuthorizedUser): Promise<User> {
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto,
+    currentUser: AuthorizedUser,
+  ): Promise<User> {
     const user = await this.findOne(id, currentUser);
 
-    if (updateUserDto.email !== undefined && updateUserDto.email !== user.email) {
+    if (
+      updateUserDto.email !== undefined &&
+      updateUserDto.email !== user.email
+    ) {
       await this._ensureEmailUnique(updateUserDto.email);
     }
 
     const updateData: Partial<User> = {};
 
-    if (updateUserDto.firstName !== undefined) updateData.firstName = updateUserDto.firstName;
-    if (updateUserDto.lastName !== undefined) updateData.lastName = updateUserDto.lastName;
-    if (updateUserDto.email !== undefined) updateData.email = updateUserDto.email;
-    if (updateUserDto.phone !== undefined) updateData.phone = updateUserDto.phone;
+    if (updateUserDto.firstName !== undefined)
+      updateData.firstName = updateUserDto.firstName;
+    if (updateUserDto.lastName !== undefined)
+      updateData.lastName = updateUserDto.lastName;
+    if (updateUserDto.email !== undefined)
+      updateData.email = updateUserDto.email;
+    if (updateUserDto.phone !== undefined)
+      updateData.phone = updateUserDto.phone;
     if (updateUserDto.avatar !== null) updateData.avatar = updateUserDto.avatar;
 
     if (currentUser.role === UserRole.HR) {
       if (updateUserDto.departmentId !== undefined) {
-        updateData.department = await this._findDepartmentById(updateUserDto.departmentId);
+        updateData.department = await this._findDepartmentById(
+          updateUserDto.departmentId,
+        );
       }
 
       if (updateUserDto.positionId !== undefined) {
-        updateData.position = await this._findPositionById(updateUserDto.positionId);
+        updateData.position = await this._findPositionById(
+          updateUserDto.positionId,
+        );
       }
     }
 
@@ -156,19 +178,24 @@ export class UsersService {
 
   private async _ensureEmailUnique(email: string): Promise<void> {
     const user = await this._usersRepository.findOne({ where: { email } });
-    if (user) throw new ConflictException(ErrorMessages.USER_EMAIL_EXISTS(email));
+    if (user)
+      throw new ConflictException(ErrorMessages.USER_EMAIL_EXISTS(email));
   }
 
   private async _findDepartmentById(id: string): Promise<Department> {
-    const department = await this._departmentRepository.findOne({ where: { id } });
-    if (!department) throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(id));
+    const department = await this._departmentRepository.findOne({
+      where: { id },
+    });
+    if (!department)
+      throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(id));
 
     return department;
   }
 
   private async _findPositionById(id: string): Promise<Position> {
     const position = await this._positionRepository.findOne({ where: { id } });
-    if (!position) throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
+    if (!position)
+      throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
 
     return position;
   }

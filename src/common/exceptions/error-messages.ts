@@ -1,15 +1,18 @@
 export const ErrorMessages = {
   // User errors
   USER_NOT_FOUND: (id: string) => `User with id "${id}" not found`,
-  USER_EMAIL_EXISTS: (email: string) => `User with email "${email}" already exists`,
+  USER_EMAIL_EXISTS: (email: string) =>
+    `User with email "${email}" already exists`,
 
   // Department errors
   DEPARTMENT_NOT_FOUND: (id: string) => `Department with id "${id}" not found`,
-  DEPARTMENT_NAME_EXISTS: (name: string) => `Department with name "${name}" already exists`,
+  DEPARTMENT_NAME_EXISTS: (name: string) =>
+    `Department with name "${name}" already exists`,
 
   // Position errors
   POSITION_NOT_FOUND: (id: string) => `Position with id "${id}" not found`,
-  POSITION_TITLE_EXISTS: (title: string) => `Position with title "${title}" already exists`,
+  POSITION_TITLE_EXISTS: (title: string) =>
+    `Position with title "${title}" already exists`,
 
   // Auth errors
   INVALID_CREDENTIALS: 'Invalid credentials',

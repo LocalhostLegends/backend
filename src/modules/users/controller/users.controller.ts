@@ -25,7 +25,7 @@ import { PaginatedResult } from '@/common/pagination/pagination.interface';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly _usersService: UsersService) { }
+  constructor(private readonly _usersService: UsersService) {}
 
   @Post()
   @RequireRole(UserRole.HR)

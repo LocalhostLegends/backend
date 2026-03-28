@@ -5,18 +5,19 @@ export default () => ({
 
   database: process.env.DATABASE_URL
     ? {
-      url: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
+        url: process.env.DATABASE_URL,
+        ssl:
+          process.env.NODE_ENV === 'production'
+            ? { rejectUnauthorized: false }
+            : false,
       }
     : {
-      host: process.env.DB_HOST ?? 'localhost',
-      port: parseInt(process.env.DB_PORT ?? '5432', 10),
-      username: process.env.DB_USERNAME ?? 'postgres',
-      password: process.env.DB_PASSWORD ?? 'postgres',
-      database: process.env.DB_DATABASE ?? 'marketplace',
-      ssl:false,
+        host: process.env.DB_HOST ?? 'localhost',
+        port: parseInt(process.env.DB_PORT ?? '5432', 10),
+        username: process.env.DB_USERNAME ?? 'postgres',
+        password: process.env.DB_PASSWORD ?? 'postgres',
+        database: process.env.DB_DATABASE ?? 'marketplace',
+        ssl: false,
       },
 
   jwt: {
@@ -27,7 +28,10 @@ export default () => ({
   },
 
   cors: {
-    origins: process.env.CORS_ORIGINS?.split(',') ?? ['*'],
+    origins: (process.env.CORS_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
   },
 
   pgAdmin: {

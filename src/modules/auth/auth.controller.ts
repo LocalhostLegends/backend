@@ -1,4 +1,12 @@
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Res,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -14,6 +22,7 @@ import { AuthResponse } from './auth.types';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthSwagger } from './swagger/auth.swagger';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @ApiBearerAuth()
@@ -21,21 +30,29 @@ import { AuthSwagger } from './swagger/auth.swagger';
 export class AuthController {
   constructor(
     private readonly _authService: AuthService,
-    private readonly _configService: ConfigService
-  ) { }
+    private readonly _configService: ConfigService,
+  ) {}
 
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post('register')
   @AuthSwagger.register()
   register(@Body() registerDto: RegisterDto): Promise<User> {
     return this._authService.register(registerDto);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @AuthSwagger.login()
-  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response): Promise<AuthResponse> {
-    const { accessToken, refreshToken } = await this._authService.login(loginDto);
-    const refreshExpiresIn = this._configService.get<StringValue>('jwt.refreshExpiresIn');
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponse> {
+    const { accessToken, refreshToken } =
+      await this._authService.login(loginDto);
+    const refreshExpiresIn = this._configService.get<StringValue>(
+      'jwt.refreshExpiresIn',
+    );
 
     if (!refreshExpiresIn) {
       throw new Error('Jwt refresh expires in is not defined');
@@ -47,12 +64,13 @@ export class AuthController {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: ms(refreshExpiresIn)
-    })
+      maxAge: ms(refreshExpiresIn),
+    });
 
     return { accessToken };
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtRefreshGuard)

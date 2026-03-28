@@ -15,7 +15,7 @@ import { DepartmentSwagger } from './swagger/departments.swagger';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @RequireRole('hr')
 export class DepartmentsController {
-  constructor(private readonly departmentsService: DepartmentsService) { }
+  constructor(private readonly departmentsService: DepartmentsService) {}
 
   @Post()
   @DepartmentSwagger.create()

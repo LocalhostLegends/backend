@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -12,7 +16,7 @@ export class DepartmentsService {
   constructor(
     @InjectRepository(Department)
     private departmentsRepository: Repository<Department>,
-  ) { }
+  ) {}
 
   async create(createDepartmentDto: CreateDepartmentDto): Promise<Department> {
     const existing = await this.departmentsRepository.findOne({
@@ -20,7 +24,9 @@ export class DepartmentsService {
     });
 
     if (existing) {
-      throw new ConflictException(ErrorMessages.DEPARTMENT_NAME_EXISTS(createDepartmentDto.name));
+      throw new ConflictException(
+        ErrorMessages.DEPARTMENT_NAME_EXISTS(createDepartmentDto.name),
+      );
     }
 
     const department = this.departmentsRepository.create(createDepartmentDto);
@@ -32,13 +38,19 @@ export class DepartmentsService {
   }
 
   async findOne(id: string): Promise<Department> {
-    const department = await this.departmentsRepository.findOne({ where: { id } });
-    if (!department) throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(id));
+    const department = await this.departmentsRepository.findOne({
+      where: { id },
+    });
+    if (!department)
+      throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(id));
 
     return department;
   }
 
-  async update(id: string, updateDepartmentDto: UpdateDepartmentDto): Promise<Department> {
+  async update(
+    id: string,
+    updateDepartmentDto: UpdateDepartmentDto,
+  ): Promise<Department> {
     const department = await this.findOne(id);
 
     if (updateDepartmentDto.name) {
@@ -47,7 +59,9 @@ export class DepartmentsService {
       });
 
       if (existing && existing.id !== id) {
-        throw new ConflictException(ErrorMessages.DEPARTMENT_NAME_EXISTS(updateDepartmentDto.name));
+        throw new ConflictException(
+          ErrorMessages.DEPARTMENT_NAME_EXISTS(updateDepartmentDto.name),
+        );
       }
     }
 

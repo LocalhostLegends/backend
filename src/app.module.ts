@@ -13,9 +13,27 @@ import { AuthModule } from './modules/auth/auth.module';
 import { SeedModule } from './database/seed/seed.module';
 import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
 import { HealthModule } from './modules/health/health.module';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+
+interface DatabaseConfig {
+  url?: string;
+  ssl?: boolean | { rejectUnauthorized: boolean };
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  database?: string;
+}
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath:
@@ -29,24 +47,26 @@ import { HealthModule } from './modules/health/health.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const databaseConfig = configService.get<any>('database');
-        const isProduction = configService.get<string>('nodeEnv') === 'production';
+        const databaseConfig =
+          configService.get<DatabaseConfig>('database') ?? {};
+        const isProduction =
+          configService.get<string>('nodeEnv') === 'production';
 
         return {
           type: 'postgres' as const,
-          ...(databaseConfig?.url
+          ...(databaseConfig.url
             ? {
-              url: databaseConfig.url,
-              ssl: databaseConfig.ssl,
-            }
+                url: databaseConfig.url,
+                ssl: databaseConfig.ssl,
+              }
             : {
-              host: databaseConfig?.host,
-              port: databaseConfig?.port,
-              username: databaseConfig?.username,
-              password: databaseConfig?.password,
-              database: databaseConfig?.database,
-              ssl: isProduction ? { rejectUnauthorized: false } : false,
-            }),
+                host: databaseConfig?.host,
+                port: databaseConfig?.port,
+                username: databaseConfig?.username,
+                password: databaseConfig?.password,
+                database: databaseConfig?.database,
+                ssl: isProduction ? { rejectUnauthorized: false } : false,
+              }),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
           synchronize: false,
           migrationsRun: false,
@@ -78,6 +98,10 @@ import { HealthModule } from './modules/health/health.module';
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
     },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
-export class AppModule { }
+export class AppModule {}

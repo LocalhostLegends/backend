@@ -4,7 +4,10 @@ import { User } from '@database/entities/user.entity';
 import { UserRole } from '@database/entities/user.entity.enums';
 
 export class UserResponse implements Partial<User> {
-  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000', description: 'Unique identifier' })
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Unique identifier',
+  })
   id: string;
 
   @ApiProperty({ example: 'John', description: 'First name', maxLength: 100 })
@@ -16,18 +19,36 @@ export class UserResponse implements Partial<User> {
   @ApiProperty({ example: 'john@example.com', description: 'Email address' })
   email: string;
 
-  @ApiProperty({ enum: UserRole, example: UserRole.EMPLOYEE, description: 'User role' })
+  @ApiProperty({
+    enum: UserRole,
+    example: UserRole.EMPLOYEE,
+    description: 'User role',
+  })
   role: UserRole;
 
-  @ApiProperty({ example: '+380501234567', description: 'Phone number', required: false })
+  @ApiProperty({
+    example: '+380501234567',
+    description: 'Phone number',
+    required: false,
+  })
   phone: string;
 
-  @ApiProperty({ example: 'https://example.com/avatar.jpg', description: 'Avatar URL', required: false })
+  @ApiProperty({
+    example: 'https://example.com/avatar.jpg',
+    description: 'Avatar URL',
+    required: false,
+  })
   avatar: string;
 
-  @ApiProperty({ example: '2024-01-01T00:00:00.000Z', description: 'Creation timestamp' })
+  @ApiProperty({
+    example: '2024-01-01T00:00:00.000Z',
+    description: 'Creation timestamp',
+  })
   createdAt: Date;
 
-  @ApiProperty({ example: '2024-01-01T00:00:00.000Z', description: 'Last update timestamp' })
+  @ApiProperty({
+    example: '2024-01-01T00:00:00.000Z',
+    description: 'Last update timestamp',
+  })
   updatedAt: Date;
 }

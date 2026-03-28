@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -12,7 +16,7 @@ export class PositionsService {
   constructor(
     @InjectRepository(Position)
     private positionsRepository: Repository<Position>,
-  ) { }
+  ) {}
 
   async create(createPositionDto: CreatePositionDto): Promise<Position> {
     const existing = await this.positionsRepository.findOne({
@@ -20,7 +24,9 @@ export class PositionsService {
     });
 
     if (existing) {
-      throw new ConflictException(ErrorMessages.POSITION_TITLE_EXISTS(createPositionDto.title));
+      throw new ConflictException(
+        ErrorMessages.POSITION_TITLE_EXISTS(createPositionDto.title),
+      );
     }
 
     const position = this.positionsRepository.create(createPositionDto);
@@ -33,12 +39,16 @@ export class PositionsService {
 
   async findOne(id: string): Promise<Position> {
     const position = await this.positionsRepository.findOne({ where: { id } });
-    if (!position) throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
+    if (!position)
+      throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
 
     return position;
   }
 
-  async update(id: string, updatePositionDto: UpdatePositionDto): Promise<Position> {
+  async update(
+    id: string,
+    updatePositionDto: UpdatePositionDto,
+  ): Promise<Position> {
     const position = await this.findOne(id);
 
     if (updatePositionDto.title) {
@@ -47,7 +57,9 @@ export class PositionsService {
       });
 
       if (existing && existing.id !== id) {
-        throw new ConflictException(ErrorMessages.POSITION_TITLE_EXISTS(updatePositionDto.title));
+        throw new ConflictException(
+          ErrorMessages.POSITION_TITLE_EXISTS(updatePositionDto.title),
+        );
       }
     }
 
