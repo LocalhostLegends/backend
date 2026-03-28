@@ -9,7 +9,9 @@ export class CreatePositionDto {
     maxLength: 100,
   })
   @IsString({ message: 'Position title must be a string' })
-  @MinLength(2, { message: 'Position title must be at least 2 characters long' })
+  @MinLength(2, {
+    message: 'Position title must be at least 2 characters long',
+  })
   @MaxLength(100, { message: 'Position title must not exceed 100 characters' })
   title: string;
 

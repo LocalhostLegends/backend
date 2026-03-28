@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiExtraModels } from '@nestjs/swagger';
 import { PositionsService } from './positions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -17,7 +27,7 @@ import { PositionResponse } from './swagger/position.schema';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @RequireRole('hr')
 export class PositionsController {
-  constructor(private readonly positionsService: PositionsService) { }
+  constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
   @PositionSwagger.create()

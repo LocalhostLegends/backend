@@ -1,7 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AuthResponseSchema {
-  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', description: 'JWT access token' })
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    description: 'JWT access token',
+  })
   accessToken: string;
 }
 
@@ -15,7 +18,11 @@ export class RegisterBodySchema {
   @ApiProperty({ example: 'john@example.com', description: 'Email address' })
   email: string;
 
-  @ApiProperty({ example: '123456', description: 'Password (min 6 characters)', minLength: 6 })
+  @ApiProperty({
+    example: '123456',
+    description: 'Password (min 6 characters)',
+    minLength: 6,
+  })
   password: string;
 }
 

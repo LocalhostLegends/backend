@@ -9,7 +9,9 @@ export class CreateDepartmentDto {
     maxLength: 100,
   })
   @IsString({ message: 'Department name must be a string' })
-  @MinLength(2, { message: 'Department name must be at least 2 characters long' })
+  @MinLength(2, {
+    message: 'Department name must be at least 2 characters long',
+  })
   @MaxLength(100, { message: 'Department name must not exceed 100 characters' })
   name: string;
 

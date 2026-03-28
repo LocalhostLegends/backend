@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  ParseUUIDPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiExtraModels, ApiTags } from '@nestjs/swagger';
 
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -22,7 +32,7 @@ import type { AuthorizedUser } from '@/modules/auth/auth.types';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly _usersService: UsersService) { }
+  constructor(private readonly _usersService: UsersService) {}
 
   @Post()
   @RequireRole(UserRole.HR)
@@ -42,7 +52,7 @@ export class UsersController {
   @UserSwagger.findOne()
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() currentUser: AuthorizedUser
+    @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<User> {
     return this._usersService.findOne(id, currentUser);
   }
@@ -52,7 +62,7 @@ export class UsersController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
-    @CurrentUser() currentUser: AuthorizedUser
+    @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<User> {
     return this._usersService.update(id, updateUserDto, currentUser);
   }

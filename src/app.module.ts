@@ -14,6 +14,16 @@ import { SeedModule } from './database/seed/seed.module';
 import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
 import { HealthModule } from './modules/health/health.module';
 
+interface DatabaseConfig {
+  url?: string;
+  ssl?: boolean | { rejectUnauthorized: boolean };
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  database?: string;
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -29,24 +39,26 @@ import { HealthModule } from './modules/health/health.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const databaseConfig = configService.get<any>('database');
-        const isProduction = configService.get<string>('nodeEnv') === 'production';
+        const databaseConfig =
+          configService.get<DatabaseConfig>('database') ?? {};
+        const isProduction =
+          configService.get<string>('nodeEnv') === 'production';
 
         return {
           type: 'postgres' as const,
-          ...(databaseConfig?.url
+          ...(databaseConfig.url
             ? {
-              url: databaseConfig.url,
-              ssl: databaseConfig.ssl,
-            }
+                url: databaseConfig.url,
+                ssl: databaseConfig.ssl,
+              }
             : {
-              host: databaseConfig?.host,
-              port: databaseConfig?.port,
-              username: databaseConfig?.username,
-              password: databaseConfig?.password,
-              database: databaseConfig?.database,
-              ssl: isProduction ? { rejectUnauthorized: false } : false,
-            }),
+                host: databaseConfig?.host,
+                port: databaseConfig?.port,
+                username: databaseConfig?.username,
+                password: databaseConfig?.password,
+                database: databaseConfig?.database,
+                ssl: isProduction ? { rejectUnauthorized: false } : false,
+              }),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
           synchronize: false,
           migrationsRun: false,
@@ -80,4 +92,4 @@ import { HealthModule } from './modules/health/health.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

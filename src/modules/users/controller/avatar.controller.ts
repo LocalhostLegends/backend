@@ -1,10 +1,23 @@
-import { Controller, Post, Delete, UseInterceptors, UploadedFile, UseGuards, Req, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Delete,
+  UseInterceptors,
+  UploadedFile,
+  UseGuards,
+  Req,
+  BadRequestException,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags, ApiExtraModels } from '@nestjs/swagger';
-import { CloudflareService } from '@/modules/cloudflare/cloudflare.service';
-import { UsersService } from '../users.service';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 
+import { CloudflareService } from '@/modules/cloudflare/cloudflare.service';
+import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import type { RequestWithUser } from '../../../common/types/request-with-user';
+
+import { UsersService } from '../users.service';
 import { AvatarSwagger } from '../swagger/avatar.swagger';
 import { AvatarSchema } from '../swagger/avatar.schema';
 
@@ -18,16 +31,23 @@ export class AvatarController {
   constructor(
     private readonly cloudflare: CloudflareService,
     private readonly users: UsersService,
-  ) { }
+  ) {}
 
   @Post()
   @AvatarSwagger.upload()
   @UseInterceptors(FileInterceptor('avatar'))
-  async upload(@UploadedFile() file: Express.Multer.File, @Req() req) {
+  async upload(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: RequestWithUser,
+  ) {
     if (!file) throw new BadRequestException('No file uploaded');
 
     const user = await this.users.findById(req.user.id);
-    const { url } = await this.cloudflare.uploadAvatar(file, req.user.email, user.avatar);
+    const { url } = await this.cloudflare.uploadAvatar(
+      file,
+      req.user.email,
+      user.avatar,
+    );
     await this.users.update(req.user.id, { avatar: url }, req.user);
 
     return { avatar: url };
@@ -36,7 +56,7 @@ export class AvatarController {
   @Delete()
   @HttpCode(HttpStatus.OK)
   @AvatarSwagger.delete()
-  async delete(@Req() req) {
+  async delete(@Req() req: RequestWithUser) {
     const user = await this.users.findById(req.user.id);
 
     if (user.avatar) {
