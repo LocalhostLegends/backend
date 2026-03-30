@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 
 import configuration from './config/configuration';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -13,8 +13,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { SeedModule } from './database/seed/seed.module';
 import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
 import { HealthModule } from './modules/health/health.module';
-import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
 
 interface DatabaseConfig {
   url?: string;
@@ -87,6 +87,7 @@ interface DatabaseConfig {
     SeedModule,
 
     HealthModule,
+
   ],
   controllers: [],
   providers: [
@@ -104,4 +105,8 @@ interface DatabaseConfig {
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+  }
+}
