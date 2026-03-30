@@ -1,27 +1,9 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { UserResponse } from './user.schema';
 import { UserRole } from '@database/entities/user.entity.enums';
+import { UserResponseDto } from '../dto/user-response.dto';
 
 export const UserSwagger = {
-  create: () =>
-    applyDecorators(
-      ApiOperation({ summary: 'Create a new user' }),
-      ApiResponse({
-        status: HttpStatus.CREATED,
-        description: 'User created successfully',
-        type: UserResponse,
-      }),
-      ApiResponse({
-        status: HttpStatus.CONFLICT,
-        description: 'User with this email already exists',
-      }),
-      ApiResponse({
-        status: HttpStatus.FORBIDDEN,
-        description: 'Access denied. HR role required',
-      }),
-    ),
-
   findAll: () => applyDecorators(
     ApiOperation({
       summary: 'Get all users with pagination and filters',
@@ -37,13 +19,11 @@ export const UserSwagger = {
             firstName: 'John',
             lastName: 'Doe',
             email: 'john.doe@example.com',
-            role: 'EMPLOYEE',
+            role: 'employee',
             phone: '+1234567890',
             avatar: null,
-            department: { id: '...', name: 'Engineering', description: '...' },
-            position: { id: '...', title: 'Software Engineer', description: '...' },
-            createdAt: '2024-01-01T00:00:00.000Z',
-            updatedAt: '2024-01-01T00:00:00.000Z'
+            department: { id: '123e4567-e89b-12d3-a456-426614174000', name: 'Engineering', description: 'Software Engineering department' },
+            position: { id: '123e4567-e89b-12d3-a456-426614174000', title: 'Software Engineer', description: 'Develops software' },
           }],
           meta: {
             page: 1,
@@ -56,6 +36,7 @@ export const UserSwagger = {
         }
       }
     }),
+    ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' }),
     ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Page number' }),
     ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Items per page (max 100)' }),
     ApiQuery({ name: 'sortBy', required: false, type: String, example: 'createdAt', description: 'Sort field: firstName, lastName, email, role, createdAt, updatedAt' }),
@@ -67,53 +48,34 @@ export const UserSwagger = {
     ApiQuery({ name: 'email', required: false, type: String, description: 'Filter by exact email' }),
   ),
 
-  findOne: () =>
-    applyDecorators(
-      ApiOperation({ summary: 'Get user by ID' }),
-      ApiParam({ name: 'id', description: 'User UUID', type: String }),
-      ApiResponse({
-        status: HttpStatus.OK,
-        description: 'User found',
-        type: UserResponse,
-      }),
-      ApiResponse({
-        status: HttpStatus.NOT_FOUND,
-        description: 'User not found',
-      }),
-      ApiResponse({
-        status: HttpStatus.FORBIDDEN,
-        description: 'Access denied',
-      }),
-    ),
+  findOne: () => applyDecorators(
+    ApiOperation({ summary: 'Get user by ID' }),
+    ApiParam({ name: 'id', description: 'User UUID', type: String }),
+    ApiResponse({ status: HttpStatus.OK, description: 'User found', type: UserResponseDto }),
+    ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' }),
+    ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Access denied' }),
+    ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' }),
+  ),
 
-  update: () =>
-    applyDecorators(
-      ApiOperation({ summary: 'Update user' }),
-      ApiParam({ name: 'id', description: 'User UUID', type: String }),
-      ApiResponse({
-        status: HttpStatus.OK,
-        description: 'User updated successfully',
-        type: UserResponse,
-      }),
-      ApiResponse({
-        status: HttpStatus.NOT_FOUND,
-        description: 'User not found',
-      }),
-      ApiResponse({
-        status: HttpStatus.CONFLICT,
-        description: 'User with this email already exists',
-      }),
-      ApiResponse({
-        status: HttpStatus.FORBIDDEN,
-        description: 'Access denied',
-      }),
-    ),
+  update: () => applyDecorators(
+    ApiOperation({ summary: 'Update user' }),
+    ApiParam({ name: 'id', description: 'User UUID', type: String }),
+    ApiResponse({ status: HttpStatus.OK, description: 'User updated successfully', type: UserResponseDto }),
+    ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' }),
+    ApiResponse({ status: HttpStatus.CONFLICT, description: 'User with this email already exists' }),
+    ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Access denied' }),
+    ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' }),
+  ),
 
   delete: () => applyDecorators(
-    ApiOperation({ summary: 'Delete user' }),
+    ApiOperation({
+      summary: 'Soft delete user',
+      description: 'User can delete only themselves. HR can delete anyone.'
+    }),
     ApiParam({ name: 'id', description: 'User UUID', type: String }),
-    ApiResponse({ status: HttpStatus.NO_CONTENT, description: 'User deleted successfully' }),
+    ApiResponse({ status: HttpStatus.OK, description: 'User deleted successfully' }),
     ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' }),
-    ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Access denied. HR role required' }),
+    ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'This endpoint requires hr role or ownership of the resource' }),
+    ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' }),
   ),
 };
