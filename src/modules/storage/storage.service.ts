@@ -8,44 +8,49 @@ import {
 import * as crypto from 'crypto';
 
 @Injectable()
-export class CloudflareService {
-  private readonly logger = new Logger(CloudflareService.name);
+export class StorageService {
+  private readonly logger = new Logger(StorageService.name);
+  private readonly isUsedCloudflare: boolean;
   private s3Client: S3Client;
   private bucket: string;
   private publicUrl: string;
 
-  constructor(private configService: ConfigService) {
-    const accountId = this.configService.get<string>('CLOUDFLARE_ACCOUNT_ID');
-    const accessKeyId = this.configService.get<string>(
-      'CLOUDFLARE_ACCESS_KEY_ID',
-    );
-    const secretAccessKey = this.configService.get<string>(
-      'CLOUDFLARE_SECRET_ACCESS_KEY',
-    );
-    const bucket = this.configService.get<string>('CLOUDFLARE_BUCKET_NAME');
-    const publicUrl = this.configService.get<string>('CLOUDFLARE_PUBLIC_URL');
+  constructor(configService: ConfigService) {
+    const accountId = configService.get<string>('storage.accountId');
+    const accessKeyId = configService.get<string>('storage.accessKeyId');
+    const secretAccessKey = configService.get<string>('storage.secretAccessKey');
+    const bucket = configService.get<string>('storage.bucketName');
+    const publicUrl = configService.get<string>('storage.publicUrl');
+    const endpoint = configService.get<string>('storage.endpoint');
 
     if (
-      !accountId ||
       !accessKeyId ||
       !secretAccessKey ||
       !bucket ||
       !publicUrl
     ) {
-      this.logger.error('Missing Cloudflare R2 configuration');
-      throw new Error('Missing Cloudflare R2 configuration');
+      this.logger.error('Missing Storage configuration');
+      throw new Error('Missing Storage configuration');
+    }
+
+    if (!accountId && !endpoint){
+      this.logger.error('Incorrect Storage configuration. Storage account id or storage endpoint must be provided')
+      throw new Error('Incorrect Storage configuration. Storage account id or storage endpoint must be provided')
     }
 
     this.bucket = bucket;
     this.publicUrl = publicUrl;
 
+    this.isUsedCloudflare = !endpoint;
+
     this.s3Client = new S3Client({
-      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      endpoint: this.isUsedCloudflare ? `https://${accountId}.r2.cloudflarestorage.com` : endpoint,
       region: 'auto',
       credentials: { accessKeyId, secretAccessKey },
+      forcePathStyle: true
     });
 
-    this.logger.log(`✅ Cloudflare R2 initialized`);
+    this.logger.log(`✅ Storage initialized`);
   }
 
   private sanitizeEmail(email: string): string {
@@ -64,6 +69,7 @@ export class CloudflareService {
   ): Promise<{ url: string }> {
     if (oldAvatarUrl) {
       const oldKey = this.extractKeyFromUrl(oldAvatarUrl);
+
       if (oldKey) {
         await this.s3Client.send(
           new DeleteObjectCommand({
@@ -74,7 +80,7 @@ export class CloudflareService {
         this.logger.log(`✅ Deleted old avatar`);
       }
     }
-
+    
     const key = `users/${this.sanitizeEmail(userEmail)}/avatar/${this.generateFileName(file.originalname)}`;
 
     await this.s3Client.send(
@@ -102,6 +108,13 @@ export class CloudflareService {
   }
 
   extractKeyFromUrl(url: string): string | null {
-    return url.match(/\.(?:r2\.dev|com)\/(.+)$/)?.[1] || null;
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split('/').filter(Boolean);
+
+    if (!this.isUsedCloudflare) {
+      parts.shift();
+    }
+    
+    return parts.length ? parts.join('/') : null;
   }
 }

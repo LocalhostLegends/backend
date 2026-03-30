@@ -11,7 +11,7 @@ import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SeedModule } from './database/seed/seed.module';
-import { CloudflareModule } from './modules/cloudflare/cloudflare.module';
+import { StorageModule } from './modules/storage/storage.module';
 import { HealthModule } from './modules/health/health.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -74,7 +74,7 @@ interface DatabaseConfig {
         };
       },
     }),
-    CloudflareModule,
+    StorageModule,
 
     UsersModule,
 
