@@ -20,7 +20,7 @@ import { UsersService } from '../users.service';
 import { AvatarSwagger } from '../swagger/avatar.swagger';
 
 @ApiTags('Users')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @Controller('users/me/avatar')
 @UseGuards(JwtAuthGuard)
 export class AvatarController {

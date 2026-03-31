@@ -10,7 +10,7 @@ import { UpdatePositionDto } from './dto/update-position.dto';
 import { PositionSwagger } from './swagger/positions.swagger';
 
 @ApiTags('Positions')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @Controller('positions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @RequireRole('hr')

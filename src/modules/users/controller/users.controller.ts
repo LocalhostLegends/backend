@@ -18,7 +18,7 @@ import { UserResponseDto } from '../dto/user-response.dto';
 import { UserSwagger } from '../swagger/user.swagger';
 
 @ApiTags('Users')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {

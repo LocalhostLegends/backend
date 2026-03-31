@@ -25,7 +25,7 @@ import { AuthSwagger } from './swagger/auth.swagger';
 import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @Controller('auth')
 export class AuthController {
   constructor(
