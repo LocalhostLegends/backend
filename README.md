@@ -28,6 +28,7 @@ NestJS backend for application with PostgreSQL, TypeORM, and Docker.
 - The API will be available at: http://localhost:3175/api
 - Swagger documentation: http://localhost:3175/api/docs
 - pgAdmin: http://localhost:5050 (admin@admin.com / admin)
+- Storage: http://localhost:9000 (minioadmin / minioadmin)
 
 
 ## 📁 Project Structure

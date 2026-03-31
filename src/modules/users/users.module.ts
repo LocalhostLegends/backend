@@ -12,12 +12,12 @@ import { PaginationService } from '@common/pagination/pagination.service';
 import { UsersController } from './controller/users.controller';
 import { AvatarController } from './controller/avatar.controller';
 
-import { CloudflareModule } from '../cloudflare/cloudflare.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Department, Position]),
-    CloudflareModule,
+    StorageModule,
   ],
   controllers: [UsersController, AvatarController],
   providers: [UsersService, PaginationService, UserFilterBuilder],

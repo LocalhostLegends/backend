@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CloudflareService } from '@/modules/cloudflare/cloudflare.service';
+import { StorageService } from '@/modules/storage/storage.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import type { RequestWithUser } from '../../../common/types/request-with-user';
 
@@ -25,7 +25,7 @@ import { AvatarSwagger } from '../swagger/avatar.swagger';
 @UseGuards(JwtAuthGuard)
 export class AvatarController {
   constructor(
-    private readonly cloudflare: CloudflareService,
+    private readonly storage: StorageService,
     private readonly users: UsersService,
   ) {}
 
@@ -39,7 +39,7 @@ export class AvatarController {
     if (!file) throw new BadRequestException('No file uploaded');
 
     const user = await this.users.findById(req.user.id);
-    const { url } = await this.cloudflare.uploadAvatar(
+    const { url } = await this.storage.uploadAvatar(
       file,
       req.user.email,
       user.avatar,
@@ -56,9 +56,9 @@ export class AvatarController {
     const user = await this.users.findById(req.user.id);
 
     if (user.avatar) {
-      const key = this.cloudflare.extractKeyFromUrl(user.avatar);
+      const key = this.storage.extractKeyFromUrl(user.avatar);
       if (key) {
-        await this.cloudflare.deleteFile(key);
+        await this.storage.deleteFile(key);
       }
     }
 
