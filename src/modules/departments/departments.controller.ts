@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { DepartmentsService } from './departments.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
@@ -37,10 +47,7 @@ export class DepartmentsController {
 
   @Patch(':id')
   @DepartmentSwagger.update()
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateDepartmentDto: UpdateDepartmentDto,
-  ) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateDepartmentDto: UpdateDepartmentDto) {
     return this.departmentsService.update(id, updateDepartmentDto);
   }
 

@@ -1,6 +1,14 @@
 import {
-  Controller, Get, Patch, Delete, Body,
-  Param, ParseUUIDPipe, UseGuards, Query, ValidationPipe,
+  Controller,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  ParseUUIDPipe,
+  UseGuards,
+  Query,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
@@ -32,7 +40,10 @@ export class UsersController {
   ): Promise<PaginatedResult<UserResponseDto>> {
     const result = await this._usersService.findAllPaginated(filters, currentUser);
 
-    return { ...result, data: plainToInstance(UserResponseDto, result.data, { excludeExtraneousValues: true }) };
+    return {
+      ...result,
+      data: plainToInstance(UserResponseDto, result.data, { excludeExtraneousValues: true }),
+    };
   }
 
   @Get(':id')
@@ -41,7 +52,9 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto> {
-    return plainToInstance(UserResponseDto, await this._usersService.findOne(id, currentUser), { excludeExtraneousValues: true });
+    return plainToInstance(UserResponseDto, await this._usersService.findOne(id, currentUser), {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Patch(':id')
@@ -51,7 +64,11 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto> {
-    return plainToInstance(UserResponseDto, await this._usersService.update(id, updateUserDto, currentUser), { excludeExtraneousValues: true });
+    return plainToInstance(
+      UserResponseDto,
+      await this._usersService.update(id, updateUserDto, currentUser),
+      { excludeExtraneousValues: true },
+    );
   }
 
   @Delete(':id')

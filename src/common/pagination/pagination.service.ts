@@ -11,10 +11,7 @@ export class PaginationService {
   ): Promise<PaginatedResult<T>> {
     const skip = (page - 1) * limit;
 
-    const [data, totalItems] = await queryBuilder
-      .skip(skip)
-      .take(limit)
-      .getManyAndCount();
+    const [data, totalItems] = await queryBuilder.skip(skip).take(limit).getManyAndCount();
 
     const totalPages = Math.ceil(totalItems / limit);
     const hasNextPage = page < totalPages;

@@ -32,18 +32,11 @@ export class AvatarController {
   @Post()
   @AvatarSwagger.upload()
   @UseInterceptors(FileInterceptor('avatar'))
-  async upload(
-    @UploadedFile() file: Express.Multer.File,
-    @Req() req: RequestWithUser,
-  ) {
+  async upload(@UploadedFile() file: Express.Multer.File, @Req() req: RequestWithUser) {
     if (!file) throw new BadRequestException('No file uploaded');
 
     const user = await this.users.findById(req.user.id);
-    const { url } = await this.storage.uploadAvatar(
-      file,
-      req.user.email,
-      user.avatar,
-    );
+    const { url } = await this.storage.uploadAvatar(file, req.user.email, user.avatar);
     await this.users.update(req.user.id, { avatar: url }, req.user);
 
     return { avatar: url };

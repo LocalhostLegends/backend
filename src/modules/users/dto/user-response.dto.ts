@@ -23,6 +23,12 @@ export class UserResponseDto {
   @Expose() @ApiProperty({ enum: UserRole }) role: UserRole;
   @Expose() @ApiPropertyOptional() phone: string | null;
   @Expose() @ApiPropertyOptional() avatar: string | null;
-  @Expose() @ApiPropertyOptional({ type: DepartmentResponseDto }) @Type(() => DepartmentResponseDto) department: DepartmentResponseDto | null;
-  @Expose() @ApiPropertyOptional({ type: PositionResponseDto }) @Type(() => PositionResponseDto) position: PositionResponseDto | null;
+  @Expose()
+  @ApiPropertyOptional({ type: DepartmentResponseDto })
+  @Type(() => DepartmentResponseDto)
+  department: DepartmentResponseDto | null;
+  @Expose()
+  @ApiPropertyOptional({ type: PositionResponseDto })
+  @Type(() => PositionResponseDto)
+  position: PositionResponseDto | null;
 }

@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-  DeleteDateColumn
+  DeleteDateColumn,
 } from 'typeorm';
 
 import { UserRole } from './user.entity.enums';

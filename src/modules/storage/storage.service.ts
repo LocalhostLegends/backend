@@ -1,10 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  S3Client,
-  PutObjectCommand,
-  DeleteObjectCommand,
-} from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -23,19 +19,18 @@ export class StorageService {
     const publicUrl = configService.get<string>('storage.publicUrl');
     const endpoint = configService.get<string>('storage.endpoint');
 
-    if (
-      !accessKeyId ||
-      !secretAccessKey ||
-      !bucket ||
-      !publicUrl
-    ) {
+    if (!accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
       this.logger.error('Missing Storage configuration');
       throw new Error('Missing Storage configuration');
     }
 
-    if (!accountId && !endpoint){
-      this.logger.error('Incorrect Storage configuration. Storage account id or storage endpoint must be provided')
-      throw new Error('Incorrect Storage configuration. Storage account id or storage endpoint must be provided')
+    if (!accountId && !endpoint) {
+      this.logger.error(
+        'Incorrect Storage configuration. Storage account id or storage endpoint must be provided',
+      );
+      throw new Error(
+        'Incorrect Storage configuration. Storage account id or storage endpoint must be provided',
+      );
     }
 
     this.bucket = bucket;
@@ -47,7 +42,7 @@ export class StorageService {
       endpoint: this.isUsedCloudflare ? `https://${accountId}.r2.cloudflarestorage.com` : endpoint,
       region: 'auto',
       credentials: { accessKeyId, secretAccessKey },
-      forcePathStyle: true
+      forcePathStyle: true,
     });
 
     this.logger.log(`✅ Storage initialized`);
@@ -80,7 +75,7 @@ export class StorageService {
         this.logger.log(`✅ Deleted old avatar`);
       }
     }
-    
+
     const key = `users/${this.sanitizeEmail(userEmail)}/avatar/${this.generateFileName(file.originalname)}`;
 
     await this.s3Client.send(
@@ -114,7 +109,7 @@ export class StorageService {
     if (!this.isUsedCloudflare) {
       parts.shift();
     }
-    
+
     return parts.length ? parts.join('/') : null;
   }
 }
