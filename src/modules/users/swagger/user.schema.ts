@@ -39,16 +39,4 @@ export class UserResponse implements Partial<User> {
     required: false,
   })
   avatar: string;
-
-  @ApiProperty({
-    example: '2024-01-01T00:00:00.000Z',
-    description: 'Creation timestamp',
-  })
-  createdAt: Date;
-
-  @ApiProperty({
-    example: '2024-01-01T00:00:00.000Z',
-    description: 'Last update timestamp',
-  })
-  updatedAt: Date;
 }
