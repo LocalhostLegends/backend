@@ -17,10 +17,7 @@ type RequestWithRefreshCookie = Request & {
 };
 
 @Injectable()
-export class JwtRefreshStrategy extends PassportStrategy(
-  Strategy,
-  'jwt-refresh',
-) {
+export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(
     configService: ConfigService,
     private readonly _usersService: UsersService,

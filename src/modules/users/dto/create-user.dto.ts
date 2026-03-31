@@ -45,8 +45,7 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   @Matches(/^[+0-9\s()-]+$/, {
-    message:
-      'Phone number can only contain +, digits, spaces, hyphens, and parentheses',
+    message: 'Phone number can only contain +, digits, spaces, hyphens, and parentheses',
   })
   phone?: string;
 }

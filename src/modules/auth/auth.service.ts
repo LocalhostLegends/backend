@@ -22,19 +22,14 @@ export class AuthService {
     return this._usersService.create(registerDto);
   }
 
-  async login(
-    loginDto: LoginDto,
-  ): Promise<AuthResponse & { refreshToken: string }> {
+  async login(loginDto: LoginDto): Promise<AuthResponse & { refreshToken: string }> {
     const user = await this._usersService.findByEmail(loginDto.email);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      loginDto.password,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');

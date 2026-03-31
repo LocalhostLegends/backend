@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { PositionsService } from './positions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,10 +47,7 @@ export class PositionsController {
 
   @Patch(':id')
   @PositionSwagger.update()
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updatePositionDto: UpdatePositionDto,
-  ) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() updatePositionDto: UpdatePositionDto) {
     return this.positionsService.update(id, updatePositionDto);
   }
 

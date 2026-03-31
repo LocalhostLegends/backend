@@ -10,12 +10,8 @@ export class AddDepartmentsAndPositions1774097807026 implements MigrationInterfa
     await queryRunner.query(
       `CREATE TABLE "positions" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying(100) NOT NULL, "description" character varying, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_2bd490ef22317945030a836dbc9" UNIQUE ("title"), CONSTRAINT "PK_17e4e62ccd5749b289ae3fae6f3" PRIMARY KEY ("id"))`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "users" ADD "phone" character varying`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "users" ADD "avatar" character varying`,
-    );
+    await queryRunner.query(`ALTER TABLE "users" ADD "phone" character varying`);
+    await queryRunner.query(`ALTER TABLE "users" ADD "avatar" character varying`);
     await queryRunner.query(`ALTER TABLE "users" ADD "department_id" uuid`);
     await queryRunner.query(`ALTER TABLE "users" ADD "position_id" uuid`);
     await queryRunner.query(
@@ -27,12 +23,8 @@ export class AddDepartmentsAndPositions1774097807026 implements MigrationInterfa
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "users" DROP CONSTRAINT "FK_8e29a9d2f1fa57ebf1a4ce17353"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "users" DROP CONSTRAINT "FK_0921d1972cf861d568f5271cd85"`,
-    );
+    await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT "FK_8e29a9d2f1fa57ebf1a4ce17353"`);
+    await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT "FK_0921d1972cf861d568f5271cd85"`);
     await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "position_id"`);
     await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "department_id"`);
     await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "avatar"`);
