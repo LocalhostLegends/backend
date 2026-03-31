@@ -6,8 +6,8 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  DeleteDateColumn
 } from 'typeorm';
-import { Exclude } from 'class-transformer';
 
 import { UserRole } from './user.entity.enums';
 import { Department } from './department.entity';
@@ -30,7 +30,6 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Exclude()
   @Column({ select: false })
   password: string;
 
@@ -53,4 +52,7 @@ export class User {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at' })
+  deletedAt: Date | null;
 }

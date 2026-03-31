@@ -171,9 +171,9 @@ export class UsersService {
     return this._usersRepository.save(updatedUser);
   }
 
-  async remove(id: string): Promise<void> {
-    const user = await this.findById(id);
-    await this._usersRepository.remove(user);
+  async remove(id: string, currentUser: AuthorizedUser): Promise<void> {
+    await this.findOne(id, currentUser);
+    await this._usersRepository.softDelete(id);
   }
 
   private async _ensureEmailUnique(email: string): Promise<void> {
