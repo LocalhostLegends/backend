@@ -16,43 +16,43 @@ import { Position } from './position.entity';
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 100, name: 'first_name' })
-  firstName: string;
+  firstName!: string;
 
   @Column({ length: 100, name: 'last_name' })
-  lastName: string;
+  lastName!: string;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.EMPLOYEE })
-  role: UserRole;
+  role!: UserRole;
 
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @Column({ select: false })
-  password: string;
+  password!: string;
 
   @ManyToOne(() => Department, { nullable: true })
   @JoinColumn({ name: 'department_id' })
-  department: Department;
+  department!: Department;
 
   @ManyToOne(() => Position, { nullable: true })
   @JoinColumn({ name: 'position_id' })
-  position: Position;
+  position!: Position;
 
   @Column({ nullable: true })
-  phone: string;
+  phone!: string;
 
   @Column({ nullable: true })
-  avatar: string;
+  avatar!: string;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date | null;
+  deletedAt!: Date | null;
 }

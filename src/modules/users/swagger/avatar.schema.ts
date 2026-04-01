@@ -5,12 +5,12 @@ export class AvatarUploadResponseSchema {
     example: 'https://pub-xxx.r2.dev/users/test_test_com/avatar/abc123.jpg',
     description: 'URL of uploaded avatar',
   })
-  avatar: string;
+  avatar!: string;
 }
 
 export class AvatarDeleteResponseSchema {
   @ApiProperty({ example: 'Avatar deleted', description: 'Success message' })
-  message: string;
+  message!: string;
 }
 
 export const AvatarSchema = {

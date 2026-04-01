@@ -13,7 +13,7 @@ export class CreatePositionDto {
     message: 'Position title must be at least 2 characters long',
   })
   @MaxLength(100, { message: 'Position title must not exceed 100 characters' })
-  title: string;
+  title!: string;
 
   @ApiPropertyOptional({
     example: 'Senior software developer position',

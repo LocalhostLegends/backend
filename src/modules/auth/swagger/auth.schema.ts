@@ -5,33 +5,33 @@ export class AuthResponseSchema {
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
     description: 'JWT access token',
   })
-  accessToken: string;
+  accessToken!: string;
 }
 
 export class RegisterBodySchema {
   @ApiProperty({ example: 'John', description: 'First name', maxLength: 100 })
-  firstName: string;
+  firstName!: string;
 
   @ApiProperty({ example: 'Doe', description: 'Last name', maxLength: 100 })
-  lastName: string;
+  lastName!: string;
 
   @ApiProperty({ example: 'john@example.com', description: 'Email address' })
-  email: string;
+  email!: string;
 
   @ApiProperty({
     example: '123456',
     description: 'Password (min 6 characters)',
     minLength: 6,
   })
-  password: string;
+  password!: string;
 }
 
 export class LoginBodySchema {
   @ApiProperty({ example: 'john@example.com', description: 'Email address' })
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: '123456', description: 'Password' })
-  password: string;
+  password!: string;
 }
 
 export const AuthSchema = {

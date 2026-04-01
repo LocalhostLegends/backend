@@ -14,22 +14,22 @@ export class CreateUserDto {
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  firstName: string;
+  firstName!: string;
 
   @ApiProperty({ example: 'Doe', minLength: 2, maxLength: 100 })
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  lastName: string;
+  lastName!: string;
 
   @ApiProperty({ example: 'john@example.com' })
   @IsEmail()
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'strongPassword123', minLength: 6 })
   @IsString()
   @MinLength(6)
-  password: string;
+  password!: string;
 
   @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()

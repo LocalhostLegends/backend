@@ -6,19 +6,19 @@ export class DepartmentResponse implements Partial<Department> {
     example: '123e4567-e89b-12d3-a456-426614174000',
     description: 'Unique identifier',
   })
-  id: string;
+  id!: string;
 
   @ApiProperty({
     example: 'IT Department',
     description: 'Department name',
     maxLength: 100,
   })
-  name: string;
+  name!: string;
 
   @ApiProperty({
     example: 'Information Technology department',
     description: 'Department description',
     required: false,
   })
-  description: string;
+  description!: string;
 }

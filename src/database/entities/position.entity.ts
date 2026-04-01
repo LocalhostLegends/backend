@@ -9,17 +9,17 @@ import {
 @Entity('positions')
 export class Position {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 100, unique: true })
-  title: string;
+  title!: string;
 
   @Column({ nullable: true })
-  description: string;
+  description!: string;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 }

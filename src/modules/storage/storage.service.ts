@@ -20,6 +20,11 @@ export class StorageService {
     const endpoint = configService.get<string>('storage.endpoint');
 
     if (!accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
+      console.log(accessKeyId);
+      console.log(secretAccessKey);
+      console.log(bucket);
+      console.log(publicUrl);
+
       this.logger.error('Missing Storage configuration');
       throw new Error('Missing Storage configuration');
     }
