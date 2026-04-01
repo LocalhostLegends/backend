@@ -20,7 +20,7 @@ import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { DepartmentSwagger } from './swagger/departments.swagger';
 
 @ApiTags('Departments')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @Controller('departments')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @RequireRole('hr')
