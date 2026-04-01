@@ -1,5 +1,6 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+
 import { DepartmentResponse } from './department.schema';
 
 export const DepartmentSwagger = {

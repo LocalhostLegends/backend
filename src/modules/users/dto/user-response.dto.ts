@@ -2,18 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 
 import { UserRole } from '@database/entities/user.entity.enums';
-
-export class DepartmentResponseDto {
-  @Expose() @ApiProperty() id: string;
-  @Expose() @ApiProperty() name: string;
-  @Expose() @ApiProperty() description: string;
-}
-
-export class PositionResponseDto {
-  @Expose() @ApiProperty() id: string;
-  @Expose() @ApiProperty() title: string;
-  @Expose() @ApiProperty() description: string;
-}
+import { DepartmentResponseDto } from '@modules/departments/dto/department-response.dto'
+import { PositionResponseDto } from '@modules/positions/dto/position-response.dto'
 
 export class UserResponseDto {
   @Expose() @ApiProperty() id: string;

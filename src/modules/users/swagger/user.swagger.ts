@@ -1,7 +1,9 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+
 import { UserRole } from '@database/entities/user.entity.enums';
-import { UserResponseDto } from '../dto/user-response.dto';
+
+import { UserResponse } from './user.schema'
 
 export const UserSwagger = {
   findAll: () =>
@@ -110,33 +112,24 @@ export const UserSwagger = {
       }),
     ),
 
-  findOne: () =>
-    applyDecorators(
-      ApiOperation({ summary: 'Get user by ID' }),
-      ApiParam({ name: 'id', description: 'User UUID', type: String }),
-      ApiResponse({ status: HttpStatus.OK, description: 'User found', type: UserResponseDto }),
-      ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' }),
-      ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Access denied' }),
-      ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' }),
-    ),
+  findOne: () => applyDecorators(
+    ApiOperation({ summary: 'Get user by ID' }),
+    ApiParam({ name: 'id', description: 'User UUID', type: String }),
+    ApiResponse({ status: HttpStatus.OK, description: 'User found', type: UserResponse }),
+    ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' }),
+    ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Access denied' }),
+    ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' }),
+  ),
 
-  update: () =>
-    applyDecorators(
-      ApiOperation({ summary: 'Update user' }),
-      ApiParam({ name: 'id', description: 'User UUID', type: String }),
-      ApiResponse({
-        status: HttpStatus.OK,
-        description: 'User updated successfully',
-        type: UserResponseDto,
-      }),
-      ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' }),
-      ApiResponse({
-        status: HttpStatus.CONFLICT,
-        description: 'User with this email already exists',
-      }),
-      ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Access denied' }),
-      ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' }),
-    ),
+  update: () => applyDecorators(
+    ApiOperation({ summary: 'Update user' }),
+    ApiParam({ name: 'id', description: 'User UUID', type: String }),
+    ApiResponse({ status: HttpStatus.OK, description: 'User updated successfully', type: UserResponse }),
+    ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' }),
+    ApiResponse({ status: HttpStatus.CONFLICT, description: 'User with this email already exists' }),
+    ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Access denied' }),
+    ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' }),
+  ),
 
   delete: () =>
     applyDecorators(
