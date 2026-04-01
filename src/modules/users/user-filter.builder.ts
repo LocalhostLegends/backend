@@ -9,11 +9,10 @@ export class UserFilterBuilder {
     queryBuilder: SelectQueryBuilder<User>,
     filters: UserFilterDto,
   ): SelectQueryBuilder<User> {
-
     // by firstName, lastName, email
     if (filters.search) {
       queryBuilder.andWhere(
-        new Brackets(qb => {
+        new Brackets((qb) => {
           qb.where('LOWER(user.firstName) LIKE LOWER(:search)', {
             search: `%${filters.search}%`,
           })
@@ -59,14 +58,7 @@ export class UserFilterBuilder {
     sortBy: string,
     sortOrder: 'ASC' | 'DESC',
   ): SelectQueryBuilder<User> {
-    const allowedSortFields = [
-      'firstName',
-      'lastName',
-      'email',
-      'role',
-      'createdAt',
-      'updatedAt',
-    ];
+    const allowedSortFields = ['firstName', 'lastName', 'email', 'role', 'createdAt', 'updatedAt'];
 
     if (allowedSortFields.includes(sortBy)) {
       queryBuilder.orderBy(`user.${sortBy}`, sortOrder);

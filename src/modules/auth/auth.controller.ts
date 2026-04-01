@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
-  Res,
-} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -25,7 +17,7 @@ import { AuthSwagger } from './swagger/auth.swagger';
 import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -48,11 +40,8 @@ export class AuthController {
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponse> {
-    const { accessToken, refreshToken } =
-      await this._authService.login(loginDto);
-    const refreshExpiresIn = this._configService.get<StringValue>(
-      'jwt.refreshExpiresIn',
-    );
+    const { accessToken, refreshToken } = await this._authService.login(loginDto);
+    const refreshExpiresIn = this._configService.get<StringValue>('jwt.refreshExpiresIn');
 
     if (!refreshExpiresIn) {
       throw new Error('Jwt refresh expires in is not defined');

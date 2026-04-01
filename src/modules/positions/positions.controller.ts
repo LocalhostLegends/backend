@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer'
 
@@ -14,7 +24,7 @@ import { PositionSwagger } from './swagger/positions.swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Positions')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @Controller('positions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @RequireRole('hr')

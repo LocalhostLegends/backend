@@ -18,10 +18,7 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    let requiredRole = this.reflector.get<UserRole>(
-      'role',
-      context.getHandler(),
-    );
+    let requiredRole = this.reflector.get<UserRole>('role', context.getHandler());
 
     if (!requiredRole) {
       requiredRole = this.reflector.get<UserRole>('role', context.getClass());
@@ -45,9 +42,7 @@ export class RolesGuard implements CanActivate {
     this.logger.log(`User role: ${user.role}`);
 
     if (user.role !== requiredRole) {
-      throw new ForbiddenException(
-        `This endpoint requires ${requiredRole} role`,
-      );
+      throw new ForbiddenException(`This endpoint requires ${requiredRole} role`);
     }
 
     return true;

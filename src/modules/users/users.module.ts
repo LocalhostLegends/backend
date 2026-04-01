@@ -15,14 +15,9 @@ import { AvatarController } from './controller/avatar.controller';
 import { StorageModule } from '../storage/storage.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User, Department, Position]),
-    StorageModule,
-  ],
+  imports: [TypeOrmModule.forFeature([User, Department, Position]), StorageModule],
   controllers: [UsersController, AvatarController],
   providers: [UsersService, PaginationService, UserFilterBuilder],
   exports: [UsersService],
 })
-export class UsersModule { }
-
-
+export class UsersModule {}

@@ -44,29 +44,30 @@ async function bootstrap(): Promise<void> {
   await app.listen(port);
 
   const pgAdminEmail = configService.get<string>('pgAdmin.email') ?? 'not set';
-  const pgAdminPassword =
-    configService.get<string>('pgAdmin.password') ?? 'not set';
+  const pgAdminPassword = configService.get<string>('pgAdmin.password') ?? 'not set';
   const pgAdminPort = configService.get<number>('pgAdmin.port') ?? 5050;
   const storageAccountId = configService.get<string>('storage.accountId');
-  const storageEndpoint = configService.get<string>('storage.endpoint') ?? (storageAccountId !== undefined ? `https://${storageAccountId}.r2.cloudflarestorage.com` : 'unknown endpoint');
+  const storageEndpoint =
+    configService.get<string>('storage.endpoint') ??
+    (storageAccountId !== undefined
+      ? `https://${storageAccountId}.r2.cloudflarestorage.com`
+      : 'unknown endpoint');
   const storageUsername = configService.get<string>('storage.accessKeyId') ?? 'not set';
   const storagePassword = configService.get<string>('storage.secretAccessKey') ?? 'not set';
   const nodeEnv = configService.get<string>('nodeEnv') ?? 'development';
 
   console.log('\n');
   console.log(' ==================================');
-  console.log(
-    `✅ Application is running on: http://localhost:${port}/${apiPrefix}`,
-  );
+  console.log(`✅ Application is running on: http://localhost:${port}/${apiPrefix}`);
   console.log(`✅ Swagger docs: http://localhost:${port}/${apiPrefix}/docs`);
   console.log(
     `✅ pgAdmin: http://localhost:${pgAdminPort} (email: ${pgAdminEmail} / password: ${pgAdminPassword})`,
   );
-  console.log(`✅ Storage: ${storageEndpoint} (username: ${storageUsername} / password: ${storagePassword})`);
-  console.log(`✅ Environment: ${nodeEnv}`);
   console.log(
-    `✅ CORS: ${corsOrigins[0] === '*' ? 'all origins' : corsOrigins.join(', ')}`,
+    `✅ Storage: ${storageEndpoint} (username: ${storageUsername} / password: ${storagePassword})`,
   );
+  console.log(`✅ Environment: ${nodeEnv}`);
+  console.log(`✅ CORS: ${corsOrigins[0] === '*' ? 'all origins' : corsOrigins.join(', ')}`);
   console.log(' ==================================');
   console.log('\n');
 }

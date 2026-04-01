@@ -36,10 +36,7 @@ interface DatabaseConfig {
     ]),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath:
-        process.env.NODE_ENV === 'production'
-          ? '.env.production'
-          : '.env.development',
+      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development',
       load: [configuration],
     }),
 
@@ -47,10 +44,8 @@ interface DatabaseConfig {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const databaseConfig =
-          configService.get<DatabaseConfig>('database') ?? {};
-        const isProduction =
-          configService.get<string>('nodeEnv') === 'production';
+        const databaseConfig = configService.get<DatabaseConfig>('database') ?? {};
+        const isProduction = configService.get<string>('nodeEnv') === 'production';
 
         return {
           type: 'postgres' as const,
@@ -87,7 +82,6 @@ interface DatabaseConfig {
     SeedModule,
 
     HealthModule,
-
   ],
   controllers: [],
   providers: [
