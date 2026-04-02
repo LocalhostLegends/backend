@@ -38,12 +38,12 @@ export default () => ({
   },
 
   storage: {
-    accountId: process.env.CLOUDFLARE_ACCOUNT_ID ?? process.env.STORAGE_ACCOUNT_ID,
-    accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID ?? process.env.STORAGE_ACCESS_KEY_ID,
-    secretAccessKey:
-      process.env.CLOUDFLARE_SECRET_ACCESS_KEY ?? process.env.STORAGE_SECRET_ACCESS_KEY,
-    bucketName: process.env.CLOUDFLARE_BUCKET_NAME ?? process.env.STORAGE_BUCKET_NAME,
-    publicUrl: process.env.CLOUDFLARE_PUBLIC_URL ?? process.env.STORAGE_PUBLIC_URL,
+    provider: (process.env.NODE_ENV ?? 'development') === 'production' ? 'cloudflare' : 'minio',
+    accountId: process.env.STORAGE_ACCOUNT_ID,
+    accessKeyId: process.env.STORAGE_ACCESS_KEY_ID,
+    secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY,
+    bucketName: process.env.STORAGE_BUCKET_NAME,
+    publicUrl: process.env.STORAGE_PUBLIC_URL,
     endpoint: process.env.STORAGE_ENDPOINT,
   },
 });
