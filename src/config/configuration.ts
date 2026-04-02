@@ -38,6 +38,7 @@ export default () => ({
   },
 
   storage: {
+    provider: (process.env.NODE_ENV ?? 'development') === 'production' ? 'cloudflare' : 'minio',
     accountId: process.env.STORAGE_ACCOUNT_ID,
     accessKeyId: process.env.STORAGE_ACCESS_KEY_ID,
     secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY,
