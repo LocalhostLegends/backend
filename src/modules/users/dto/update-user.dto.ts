@@ -1,5 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsString, MaxLength, IsOptional, IsUUID, Matches } from 'class-validator';
+import { 
+  IsEmail, 
+  IsString, 
+  MaxLength, 
+  IsOptional, 
+  IsUUID, 
+  Matches,
+  IsEnum,
+  IsUrl,
+} from 'class-validator';
+import { UserRole, UserStatus } from '@database/entities/user.entity.enums';
 
 export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'John', maxLength: 100 })
@@ -19,15 +29,25 @@ export class UpdateUserDto {
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  @ApiPropertyOptional({ enum: UserRole })
   @IsOptional()
-  @IsUUID()
-  departmentId?: string;
+  @IsEnum(UserRole)
+  role?: UserRole;
+
+  @ApiPropertyOptional({ enum: UserStatus })
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
 
   @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()
   @IsUUID()
-  positionId?: string;
+  departmentId?: string | null;
+
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  @IsOptional()
+  @IsUUID()
+  positionId?: string | null;
 
   @ApiPropertyOptional({ example: '+380501234567' })
   @IsOptional()
@@ -40,5 +60,6 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg' })
   @IsOptional()
   @IsString()
+  @IsUrl()
   avatar?: string | null;
 }

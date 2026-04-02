@@ -7,7 +7,10 @@ import {
   MaxLength,
   IsUUID,
   Matches,
+  IsEnum,
+  IsBoolean,
 } from 'class-validator';
+import { UserRole } from '@database/entities/user.entity.enums';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'John', minLength: 2, maxLength: 100 })
@@ -26,10 +29,16 @@ export class CreateUserDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'strongPassword123', minLength: 6 })
+  @ApiPropertyOptional({ example: 'strongPassword123', minLength: 6 })
+  @IsOptional()
   @IsString()
   @MinLength(6)
-  password: string;
+  password?: string;
+
+  @ApiPropertyOptional({ enum: UserRole, default: UserRole.EMPLOYEE })
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
 
   @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()
@@ -48,4 +57,9 @@ export class CreateUserDto {
     message: 'Phone number can only contain +, digits, spaces, hyphens, and parentheses',
   })
   phone?: string;
+
+  @ApiPropertyOptional({ example: false, description: 'Send invitation email' })
+  @IsOptional()
+  @IsBoolean()
+  sendInvitation?: boolean = true;
 }

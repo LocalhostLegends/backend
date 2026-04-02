@@ -5,19 +5,20 @@ import {
   UseInterceptors,
   UploadedFile,
   UseGuards,
-  Req,
-  BadRequestException,
   HttpCode,
   HttpStatus,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { StorageService } from '@/modules/storage/storage.service';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
-import type { RequestWithUser } from '../../../common/types/request-with-user';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { StorageService } from '@modules/storage/storage.service';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@modules/auth/decorators/current-user.decorator';
+import type { AuthorizedUser } from '@modules/auth/auth.types';
 
 import { UsersService } from '../users.service';
-import { AvatarSwagger } from '../swagger/avatar.swagger';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -25,37 +26,78 @@ import { AvatarSwagger } from '../swagger/avatar.swagger';
 @UseGuards(JwtAuthGuard)
 export class AvatarController {
   constructor(
-    private readonly storage: StorageService,
-    private readonly users: UsersService,
+    private readonly _storageService: StorageService,
+    private readonly _usersService: UsersService,
   ) {}
 
   @Post()
-  @AvatarSwagger.upload()
+  @ApiOperation({ summary: 'Upload user avatar' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Avatar uploaded successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'No file uploaded or invalid file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        avatar: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   @UseInterceptors(FileInterceptor('avatar'))
-  async upload(@UploadedFile() file: Express.Multer.File, @Req() req: RequestWithUser) {
-    if (!file) throw new BadRequestException('No file uploaded');
+  async upload(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+          new FileTypeValidator({ fileType: /(jpg|jpeg|png|webp|gif)$/ }),
+        ],
+        fileIsRequired: true,
+      }),
+    )
+    file: Express.Multer.File,
+    @CurrentUser() currentUser: AuthorizedUser,
+  ) {
+    const user = await this._usersService.findById(currentUser.id);
+    
+    const { url } = await this._storageService.uploadAvatar(
+      file, 
+      `${currentUser.companyId}/${currentUser.email}`, 
+      user.avatar
+    );
+    
+    await this._usersService.update(user.id, { avatar: url }, currentUser);
 
-    const user = await this.users.findById(req.user.id);
-    const { url } = await this.storage.uploadAvatar(file, req.user.email, user.avatar);
-    await this.users.update(req.user.id, { avatar: url }, req.user);
-
-    return { avatar: url };
+    return { 
+      success: true,
+      avatar: url,
+      message: 'Avatar uploaded successfully' 
+    };
   }
 
   @Delete()
   @HttpCode(HttpStatus.OK)
-  @AvatarSwagger.delete()
-  async delete(@Req() req: RequestWithUser) {
-    const user = await this.users.findById(req.user.id);
+  @ApiOperation({ summary: 'Delete user avatar' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Avatar deleted successfully' })
+  async delete(
+    @CurrentUser() currentUser: AuthorizedUser,
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await this._usersService.findById(currentUser.id);
 
     if (user.avatar) {
-      const key = this.storage.extractKeyFromUrl(user.avatar);
+      const key = this._storageService.extractKeyFromUrl(user.avatar);
       if (key) {
-        await this.storage.deleteFile(key);
+        await this._storageService.deleteFile(key);
       }
     }
 
-    await this.users.update(req.user.id, { avatar: null }, req.user);
-    return { message: 'Avatar deleted' };
+    await this._usersService.update(user.id, { avatar: null }, currentUser);
+    
+    return { 
+      success: true,
+      message: 'Avatar deleted successfully' 
+    };
   }
 }

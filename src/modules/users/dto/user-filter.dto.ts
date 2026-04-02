@@ -8,9 +8,12 @@ import {
   IsUUID,
   IsEmail,
   IsIn,
+  IsBoolean,
+  IsDateString,
+  IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { UserRole } from '@database/entities/user.entity.enums';
+import { UserRole, UserStatus } from '@database/entities/user.entity.enums';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UserFilterDto {
@@ -32,11 +35,11 @@ export class UserFilterDto {
   @ApiPropertyOptional({
     description: 'Sort field',
     example: 'createdAt',
-    enum: ['firstName', 'lastName', 'email', 'role', 'createdAt', 'updatedAt'],
+    enum: ['firstName', 'lastName', 'email', 'role', 'status', 'createdAt', 'updatedAt'],
   })
   @IsOptional()
   @IsString()
-  @IsIn(['firstName', 'lastName', 'email', 'role', 'createdAt', 'updatedAt'])
+  @IsIn(['firstName', 'lastName', 'email', 'role', 'status', 'createdAt', 'updatedAt'])
   sortBy?: string = 'createdAt';
 
   @ApiPropertyOptional({ description: 'Sort order', example: 'DESC', enum: ['ASC', 'DESC'] })
@@ -53,6 +56,11 @@ export class UserFilterDto {
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
+
+  @ApiPropertyOptional({ description: 'Filter by status', enum: UserStatus })
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
 
   @ApiPropertyOptional({
     description: 'Filter by department ID',
@@ -74,4 +82,92 @@ export class UserFilterDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @ApiPropertyOptional({ 
+    description: 'Filter users with expired invitations', 
+    default: false 
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  expiredInvitationsOnly?: boolean;
+
+  @ApiPropertyOptional({ 
+    description: 'Filter by multiple statuses', 
+    enum: UserStatus, 
+    isArray: true,
+    example: [UserStatus.ACTIVE, UserStatus.INVITED]
+  })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(UserStatus, { each: true })
+  statuses?: UserStatus[];
+
+  @ApiPropertyOptional({ 
+    description: 'Filter by multiple roles', 
+    enum: UserRole, 
+    isArray: true,
+    example: [UserRole.HR, UserRole.EMPLOYEE]
+  })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(UserRole, { each: true })
+  roles?: UserRole[];
+
+  @ApiPropertyOptional({ 
+    description: 'Filter users created after date', 
+    example: '2024-01-01' 
+  })
+  @IsOptional()
+  @IsDateString()
+  createdAfter?: string;
+
+  @ApiPropertyOptional({ 
+    description: 'Filter users created before date', 
+    example: '2024-12-31' 
+  })
+  @IsOptional()
+  @IsDateString()
+  createdBefore?: string;
+
+  @ApiPropertyOptional({ 
+    description: 'Show only invited users (pending activation)' 
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  pendingOnly?: boolean;
+
+  @ApiPropertyOptional({ 
+    description: 'Show only active users' 
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  activeOnly?: boolean;
+
+  @ApiPropertyOptional({ 
+    description: 'Show only blocked users' 
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  blockedOnly?: boolean;
+
+  @ApiPropertyOptional({ 
+    description: 'Include soft-deleted users', 
+    default: false 
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  withDeleted?: boolean = false;
+
+  @ApiPropertyOptional({ 
+    description: 'Filter by company ID (admin only)', 
+    example: '123e4567-e89b-12d3-a456-426614174000' 
+  })
+  @IsOptional()
+  @IsUUID()
+  companyId?: string;
 }
