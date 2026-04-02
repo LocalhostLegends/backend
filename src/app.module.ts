@@ -36,7 +36,7 @@ interface DatabaseConfig {
     ]),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development',
+      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
       load: [configuration],
     }),
 
