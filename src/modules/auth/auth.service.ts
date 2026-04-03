@@ -25,37 +25,33 @@ export class AuthService {
     private readonly _emailService: EmailService,
     private readonly _jwtService: JwtService,
     private readonly _configService: ConfigService,
-  ) {}
+  ) { }
 
   async registerCompany(registerDto: RegisterCompanyDto): Promise<AuthResponse> {
-    // Проверяем, существует ли уже ADMIN в системе
     const existingAdmin = await this._usersService.findFirstAdmin();
     if (existingAdmin) {
       throw new ConflictException('Registration is disabled. System already has an admin.');
     }
 
-    // Создаем компанию
     const company = await this._companiesService.create({
       name: registerDto.companyName,
     });
 
-    // Создаем ADMIN пользователя (сразу ACTIVE, без инвайта)
-    const user = await this._usersService.create({
+    const userData = {
       firstName: registerDto.firstName,
       lastName: registerDto.lastName,
       email: registerDto.email,
       password: registerDto.password,
       role: UserRole.ADMIN,
-      status: UserStatus.ACTIVE,
       companyId: company.id,
-      sendInvitation: false, // Не отправляем инвайт для ADMIN
-    } as any, null as any); // Используем create метод
+      sendInvitation: false,
+    };
 
-    // Отправляем приветственное письмо
+    const user = await this._usersService.create(userData);
+
     const loginLink = `${this._configService.get('FRONTEND_URL')}/login`;
     await this._emailService.sendWelcome(user.email, user.firstName, loginLink);
 
-    // Генерируем токены
     const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
 
@@ -69,7 +65,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Проверка статуса пользователя
     if (user.status === UserStatus.INVITED) {
       throw new UnauthorizedException('Please activate your account first. Check your email for activation link.');
     }
@@ -82,7 +77,6 @@ export class AuthService {
       throw new UnauthorizedException('Account not found');
     }
 
-    // Проверка пароля (нужно получить user с паролем)
     const userWithPassword = await this._usersService.findByEmail(loginDto.email);
     if (!userWithPassword || !userWithPassword.password) {
       throw new UnauthorizedException('Invalid credentials');
@@ -95,7 +89,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Обновляем последний логин
     await this._usersService.updateLastLogin(user.id, loginDto.ipAddress || 'unknown');
 
     const accessToken = this._generateAccessToken(user);
@@ -105,10 +98,8 @@ export class AuthService {
   }
 
   async activateUser(activateDto: ActivateUserDto): Promise<AuthResponse> {
-    // Активируем пользователя
     const user = await this._usersService.activateUser(activateDto.token, activateDto.password);
 
-    // Отправляем приветственное письмо
     const loginLink = `${this._configService.get('FRONTEND_URL')}/login`;
     await this._emailService.sendWelcome(user.email, user.firstName, loginLink);
 
@@ -119,12 +110,10 @@ export class AuthService {
   }
 
   async createHr(createHrDto: CreateHrDto, currentUser: AuthorizedUser): Promise<User> {
-    // Проверяем права (только ADMIN может создавать HR)
     if (currentUser.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Only ADMIN can create HR users');
     }
 
-    // Создаем HR с инвайтом
     const user = await this._usersService.createInvitedUser(
       createHrDto.firstName,
       createHrDto.lastName,
@@ -138,12 +127,10 @@ export class AuthService {
   }
 
   async createEmployee(createEmployeeDto: CreateEmployeeDto, currentUser: AuthorizedUser): Promise<User> {
-    // Проверяем права (ADMIN или HR могут создавать EMPLOYEE)
     if (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.HR) {
       throw new ForbiddenException('Only ADMIN or HR can create employee users');
     }
 
-    // Создаем Employee с инвайтом
     const user = await this._usersService.createInvitedUser(
       createEmployeeDto.firstName,
       createEmployeeDto.lastName,
@@ -158,7 +145,7 @@ export class AuthService {
 
   async refresh(userId: string): Promise<AuthResponse> {
     const user = await this._usersService.findById(userId);
-    
+
     if (!user.isActive()) {
       throw new UnauthorizedException('User is not active');
     }
@@ -170,18 +157,16 @@ export class AuthService {
   }
 
   async logout(): Promise<{ message: string }> {
-    // Здесь можно добавить логику для инвалидации токенов
-    // Например, добавить токен в черный список
     return { message: 'Logged out successfully' };
   }
 
   private _generateAccessToken(user: User): string {
     return this._jwtService.sign<JwtPayload>(
-      { 
-        sub: user.id, 
-        email: user.email, 
+      {
+        sub: user.id,
+        email: user.email,
         role: user.role,
-        companyId: user.companyId 
+        companyId: user.companyId
       },
       {
         secret: this._configService.get('JWT_SECRET'),

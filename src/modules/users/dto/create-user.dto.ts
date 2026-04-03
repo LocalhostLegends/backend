@@ -10,7 +10,7 @@ import {
   IsEnum,
   IsBoolean,
 } from 'class-validator';
-import { UserRole } from '@database/entities/user.entity.enums';
+import { UserRole, UserStatus } from '@database/entities/user.entity.enums';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'John', minLength: 2, maxLength: 100 })
@@ -39,6 +39,17 @@ export class CreateUserDto {
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
+
+  @ApiPropertyOptional({ enum: UserStatus, default: UserStatus.INVITED })
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
+
+
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174330' })
+  @IsOptional()
+  @IsUUID()
+  companyId?: string;
 
   @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()

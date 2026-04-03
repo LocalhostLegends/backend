@@ -37,11 +37,15 @@ export class UsersService {
     private readonly _paginationService: PaginationService,
     private readonly _userFilterBuilder: UserFilterBuilder,
     private readonly _emailService: EmailService,
-  ) {}
+  ) { }
 
-  async create(createUserDto: CreateUserDto, currentUser: AuthorizedUser): Promise<User> {
-    const companyId = currentUser.companyId;
-    
+  async create(createUserDto: CreateUserDto, currentUser?: AuthorizedUser): Promise<User> {
+    const companyId = currentUser?.companyId || createUserDto.companyId;
+
+    if (!companyId) {
+      throw new BadRequestException('Company ID is required');
+    }
+
     await this._ensureEmailUniqueInCompany(createUserDto.email, companyId);
 
     const company = await this._findCompanyById(companyId);
@@ -58,7 +62,7 @@ export class UsersService {
 
     const role = createUserDto.role || UserRole.EMPLOYEE;
     const hasPassword = !!createUserDto.password;
-    
+
     const userData: Partial<User> = {
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
@@ -72,28 +76,25 @@ export class UsersService {
       phone: createUserDto.phone || null,
       role,
       status: hasPassword ? UserStatus.ACTIVE : UserStatus.INVITED,
-      createdBy: currentUser.id,
+      createdBy: currentUser?.id || null, // Если нет currentUser, будет null
     };
 
     if (hasPassword) {
       userData.password = await bcrypt.hash(createUserDto.password!, 10);
     } else {
-      // Generate activation token for invited user
       userData.activationToken = uuidv4();
-      userData.activationTokenExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+      userData.activationTokenExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
     }
 
     const user = this._usersRepository.create(userData);
     const savedUser = await this._usersRepository.save(user);
 
-    // Send invitation email if needed
     if (createUserDto.sendInvitation && !hasPassword && savedUser.activationToken) {
       await this._sendInvitationEmail(savedUser);
     }
 
     return this.findById(savedUser.id);
   }
-
   async createInvitedUser(
     firstName: string,
     lastName: string,
@@ -119,7 +120,7 @@ export class UsersService {
       companyId,
       activationToken,
       activationTokenExpiresAt,
-      createdBy,
+      createdBy: createdBy || null,
     });
 
     const savedUser = await this._usersRepository.save(user);
@@ -139,18 +140,14 @@ export class UsersService {
       .leftJoinAndSelect('user.company', 'company')
       .where('user.companyId = :companyId', { companyId: currentUser.companyId });
 
-    // Apply filters
     this._userFilterBuilder.buildFilters(queryBuilder, filters);
-    
-    // Apply sorting
+
     const sortBy = filters.sortBy ?? 'createdAt';
     const sortOrder = filters.sortOrder ?? 'DESC';
     this._userFilterBuilder.applySorting(queryBuilder, sortBy, sortOrder);
 
-    // Apply role-based access control
     this._applyRoleBasedAccess(queryBuilder, currentUser);
 
-    // Handle soft-deleted
     if (!filters.withDeleted) {
       queryBuilder.andWhere('user.deletedAt IS NULL');
     }
@@ -163,13 +160,11 @@ export class UsersService {
 
   async findOne(id: string, currentUser: AuthorizedUser): Promise<User> {
     const user = await this.findById(id);
-    
-    // Check company access
+
     if (user.companyId !== currentUser.companyId) {
       throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('this company'));
     }
 
-    // Check role-based access
     if (currentUser.role === UserRole.EMPLOYEE && currentUser.id !== id) {
       throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('your own profile only'));
     }
@@ -196,11 +191,11 @@ export class UsersService {
 
   async findByEmail(email: string, companyId?: string): Promise<User | null> {
     const whereCondition: FindOptionsWhere<User> = { email };
-    
+
     if (companyId) {
       whereCondition.companyId = companyId;
     }
-    
+
     return this._usersRepository.findOne({
       where: whereCondition,
       relations: ['company', 'department', 'position'],
@@ -209,7 +204,7 @@ export class UsersService {
 
   async findByActivationToken(token: string): Promise<User | null> {
     return this._usersRepository.findOne({
-      where: { 
+      where: {
         activationToken: token,
         status: UserStatus.INVITED,
       },
@@ -219,7 +214,7 @@ export class UsersService {
 
   async findFirstAdmin(): Promise<User | null> {
     return this._usersRepository.findOne({
-      where: { 
+      where: {
         role: UserRole.ADMIN,
         status: UserStatus.ACTIVE,
       },
@@ -234,12 +229,10 @@ export class UsersService {
   ): Promise<User> {
     const user = await this.findOne(id, currentUser);
 
-    // Check if user can be updated
     if (currentUser.role === UserRole.HR && user.role === UserRole.ADMIN) {
       throw new ForbiddenException('HR cannot update ADMIN users');
     }
 
-    // Check email uniqueness
     if (updateUserDto.email && updateUserDto.email !== user.email) {
       await this._ensureEmailUniqueInCompany(updateUserDto.email, currentUser.companyId);
     }
@@ -251,8 +244,7 @@ export class UsersService {
     if (updateUserDto.email !== undefined) updateData.email = updateUserDto.email;
     if (updateUserDto.phone !== undefined) updateData.phone = updateUserDto.phone;
     if (updateUserDto.avatar !== undefined) updateData.avatar = updateUserDto.avatar;
-    
-    // Only ADMIN can update role and status
+
     if (currentUser.role === UserRole.ADMIN) {
       if (updateUserDto.role !== undefined && updateUserDto.role !== user.role) {
         if (user.id === currentUser.id) {
@@ -260,7 +252,7 @@ export class UsersService {
         }
         updateData.role = updateUserDto.role;
       }
-      
+
       if (updateUserDto.status !== undefined && updateUserDto.status !== user.status) {
         if (user.id === currentUser.id && updateUserDto.status === UserStatus.BLOCKED) {
           throw new BadRequestException('Cannot block yourself');
@@ -269,15 +261,14 @@ export class UsersService {
       }
     }
 
-    // Update department and position (ADMIN and HR)
     if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.HR) {
       if (updateUserDto.departmentId !== undefined) {
         if (updateUserDto.departmentId === null) {
-          updateData.department = null as any;
+          updateData.department = null;
           updateData.departmentId = null;
         } else {
           const department = await this._findDepartmentById(
-            updateUserDto.departmentId, 
+            updateUserDto.departmentId,
             currentUser.companyId
           );
           updateData.department = department;
@@ -287,11 +278,11 @@ export class UsersService {
 
       if (updateUserDto.positionId !== undefined) {
         if (updateUserDto.positionId === null) {
-          updateData.position = null as any;
+          updateData.position = null;
           updateData.positionId = null;
         } else {
           const position = await this._findPositionById(
-            updateUserDto.positionId, 
+            updateUserDto.positionId,
             currentUser.companyId
           );
           updateData.position = position;
@@ -301,30 +292,31 @@ export class UsersService {
     }
 
     updateData.updatedBy = currentUser.id;
-    
+
     const updatedUser = this._usersRepository.merge(user, updateData);
     return this._usersRepository.save(updatedUser);
   }
 
   async remove(id: string, currentUser: AuthorizedUser): Promise<void> {
     const user = await this.findOne(id, currentUser);
-    
+
     if (user.id === currentUser.id) {
       throw new BadRequestException('Cannot delete yourself');
     }
-    
+
     if (currentUser.role === UserRole.HR && user.role === UserRole.ADMIN) {
       throw new ForbiddenException('HR cannot delete ADMIN users');
     }
 
+    user.status = UserStatus.DELETED;
     await this._usersRepository.softDelete(id);
   }
 
-  async activateUser(userId: string, password: string): Promise<User> {
-    const user = await this.findById(userId);
-    
-    if (user.status !== UserStatus.INVITED) {
-      throw new BadRequestException('User is not in invited status');
+  async activateUser(token: string, password: string): Promise<User> {
+    const user = await this.findByActivationToken(token);
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired activation token');
     }
 
     if (user.activationTokenExpiresAt && user.activationTokenExpiresAt < new Date()) {
@@ -343,11 +335,11 @@ export class UsersService {
 
   async blockUser(id: string, currentUser: AuthorizedUser): Promise<User> {
     const user = await this.findOne(id, currentUser);
-    
+
     if (user.id === currentUser.id) {
       throw new BadRequestException('Cannot block yourself');
     }
-    
+
     if (user.role === UserRole.ADMIN && currentUser.role === UserRole.HR) {
       throw new ForbiddenException('HR cannot block ADMIN users');
     }
@@ -359,6 +351,7 @@ export class UsersService {
   async unblockUser(id: string, currentUser: AuthorizedUser): Promise<User> {
     const user = await this.findOne(id, currentUser);
     user.status = UserStatus.ACTIVE;
+    user.resetFailedLoginAttempts();
     return this._usersRepository.save(user);
   }
 
@@ -381,6 +374,7 @@ export class UsersService {
       lastLoginAt: new Date(),
       lastLoginIp: ipAddress,
       failedLoginAttempts: 0,
+      lockedUntil: null,
     });
   }
 
@@ -391,10 +385,10 @@ export class UsersService {
   }
 
   private async _ensureEmailUniqueInCompany(email: string, companyId: string): Promise<void> {
-    const user = await this._usersRepository.findOne({ 
-      where: { email, companyId, deletedAt: IsNull() } 
+    const user = await this._usersRepository.findOne({
+      where: { email, companyId, deletedAt: IsNull() }
     });
-    
+
     if (user) {
       throw new ConflictException(ErrorMessages.USER_EMAIL_EXISTS(email));
     }
@@ -404,7 +398,7 @@ export class UsersService {
     const company = await this._companyRepository.findOne({
       where: { id },
     });
-    
+
     if (!company) {
       throw new NotFoundException(`Company with ID ${id} not found`);
     }
@@ -416,7 +410,7 @@ export class UsersService {
     const department = await this._departmentRepository.findOne({
       where: { id, companyId },
     });
-    
+
     if (!department) {
       throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(id));
     }
@@ -425,10 +419,10 @@ export class UsersService {
   }
 
   private async _findPositionById(id: string, companyId: string): Promise<Position> {
-    const position = await this._positionRepository.findOne({ 
-      where: { id, companyId } 
+    const position = await this._positionRepository.findOne({
+      where: { id, companyId }
     });
-    
+
     if (!position) {
       throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
     }
@@ -442,14 +436,11 @@ export class UsersService {
   ): void {
     switch (currentUser.role) {
       case UserRole.ADMIN:
-        // Admin can see all users in their company
         break;
       case UserRole.HR:
-        // HR cannot see ADMIN users
         queryBuilder.andWhere('user.role != :adminRole', { adminRole: UserRole.ADMIN });
         break;
       case UserRole.EMPLOYEE:
-        // Employee can only see themselves
         queryBuilder.andWhere('user.id = :userId', { userId: currentUser.id });
         break;
     }
