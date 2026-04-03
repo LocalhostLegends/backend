@@ -59,11 +59,13 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponse> {
-    const user = await this._usersService.findByEmail(loginDto.email);
+    const userWithPassword = await this._usersService.findByEmail(loginDto.email, undefined, true);
 
-    if (!user) {
+    if (!userWithPassword) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    const user = userWithPassword;
 
     if (user.status === UserStatus.INVITED) {
       throw new UnauthorizedException('Please activate your account first. Check your email for activation link.');
@@ -77,12 +79,7 @@ export class AuthService {
       throw new UnauthorizedException('Account not found');
     }
 
-    const userWithPassword = await this._usersService.findByEmail(loginDto.email);
-    if (!userWithPassword || !userWithPassword.password) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const isPasswordValid = await bcrypt.compare(loginDto.password, userWithPassword.password);
+    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password!);
 
     if (!isPasswordValid) {
       await this._usersService.incrementFailedLoginAttempts(user.id);

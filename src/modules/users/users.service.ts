@@ -76,7 +76,7 @@ export class UsersService {
       phone: createUserDto.phone || null,
       role,
       status: hasPassword ? UserStatus.ACTIVE : UserStatus.INVITED,
-      createdBy: currentUser?.id || null, // Если нет currentUser, будет null
+      createdBy: currentUser?.id || null,
     };
 
     if (hasPassword) {
@@ -189,17 +189,25 @@ export class UsersService {
     return user;
   }
 
-  async findByEmail(email: string, companyId?: string): Promise<User | null> {
+  async findByEmail(email: string, companyId?: string, includePassword: boolean = false): Promise<User | null> {
     const whereCondition: FindOptionsWhere<User> = { email };
 
     if (companyId) {
       whereCondition.companyId = companyId;
     }
 
-    return this._usersRepository.findOne({
-      where: whereCondition,
-      relations: ['company', 'department', 'position'],
-    });
+    const queryBuilder = this._usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.company', 'company')
+      .leftJoinAndSelect('user.department', 'department')
+      .leftJoinAndSelect('user.position', 'position')
+      .where(whereCondition);
+
+    if (includePassword) {
+      queryBuilder.addSelect('user.password');
+    }
+
+    return queryBuilder.getOne();
   }
 
   async findByActivationToken(token: string): Promise<User | null> {

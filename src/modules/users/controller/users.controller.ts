@@ -34,7 +34,7 @@ import { UserResponseDto } from '../dto/user-response.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly _usersService: UsersService) {}
+  constructor(private readonly _usersService: UsersService) { }
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.HR, UserRole.EMPLOYEE)
@@ -48,7 +48,7 @@ export class UsersController {
 
     return {
       ...result,
-      data: plainToInstance(UserResponseDto, result.data, { 
+      data: plainToInstance(UserResponseDto, result.data, {
         excludeExtraneousValues: true,
         enableImplicitConversion: true,
       }),

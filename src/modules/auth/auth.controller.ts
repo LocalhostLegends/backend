@@ -2,7 +2,6 @@ import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Res, Req } fro
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Response, Request } from 'express';
-import ms, { StringValue } from 'ms';
 
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
@@ -26,7 +25,7 @@ export class AuthController {
   constructor(
     private readonly _authService: AuthService,
     private readonly _configService: ConfigService,
-  ) {}
+  ) { }
 
   @Post('register-company')
   @HttpCode(HttpStatus.CREATED)
@@ -48,9 +47,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponse> {
-    // Add IP address to login dto
     loginDto.ipAddress = req.ip || req.socket.remoteAddress;
-    
     const { accessToken, refreshToken } = await this._authService.login(loginDto);
     this._setRefreshTokenCookie(res, refreshToken);
     return { accessToken, refreshToken };
@@ -58,8 +55,8 @@ export class AuthController {
 
   @Post('activate')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Activate user account with invitation token' })
-  async activate(
+  @ApiOperation({ summary: 'Activate user account' })
+  async activateUser(
     @Body() activateDto: ActivateUserDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponse> {
@@ -76,7 +73,7 @@ export class AuthController {
   async createHr(
     @Body() createHrDto: CreateHrDto,
     @CurrentUser() currentUser: authTypes.AuthorizedUser,
-  ) {
+  ): Promise<authTypes.AuthorizedUser> {
     return this._authService.createHr(createHrDto, currentUser);
   }
 
@@ -84,23 +81,23 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.HR)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Create Employee user (ADMIN or HR only)' })
+  @ApiOperation({ summary: 'Create employee user (ADMIN or HR only)' })
   async createEmployee(
     @Body() createEmployeeDto: CreateEmployeeDto,
     @CurrentUser() currentUser: authTypes.AuthorizedUser,
-  ) {
+  ): Promise<authTypes.AuthorizedUser> {
     return this._authService.createEmployee(createEmployeeDto, currentUser);
   }
 
   @Post('refresh')
-  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtRefreshGuard)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(
-    @CurrentUser() currentUser: authTypes.AuthorizedUser,
+    @CurrentUser() user: authTypes.AuthorizedUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponse> {
-    const { accessToken, refreshToken } = await this._authService.refresh(currentUser.id);
+    const { accessToken, refreshToken } = await this._authService.refresh(user.id);
     this._setRefreshTokenCookie(res, refreshToken);
     return { accessToken, refreshToken };
   }
@@ -108,24 +105,22 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Logout user' })
   async logout(
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
-    res.clearCookie('refreshToken');
+    res.clearCookie('refresh_token');
     return this._authService.logout();
   }
 
-  private _setRefreshTokenCookie(res: Response, refreshToken: string): void {
-    const refreshExpiresIn = this._configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '30d';
-    const isProduction = this._configService.get('NODE_ENV') === 'production';
+  private _setRefreshTokenCookie(res: Response, token: string): void {
+    const maxAge = 30 * 24 * 60 * 60 * 1000;
 
-    res.cookie('refreshToken', refreshToken, {
+    res.cookie('refresh_token', token, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: ms(refreshExpiresIn as StringValue),
+      secure: this._configService.get('NODE_ENV') === 'production',
+      sameSite: 'strict',
+      maxAge: maxAge,
     });
   }
 }
