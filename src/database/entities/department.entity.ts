@@ -25,22 +25,24 @@ export class Department {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ type: 'varchar', length: 20, name: 'code', nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   code: string | null;
 
-  @ManyToOne(() => Company, { nullable: false })
+  // Company relation
+  @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'company_id' })
   company: Company;
 
-  @Column({ type: 'uuid', name: 'company_id' })
+  @Column({ type: 'uuid' })
   @Index()
   companyId: string;
 
-  @ManyToOne(() => Department, { nullable: true })
+  // Self-reference for hierarchy
+  @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'parent_department_id' })
   parentDepartment: Department | null;
 
-  @Column({ type: 'uuid', name: 'parent_department_id', nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   parentDepartmentId: string | null;
 
   @OneToMany(() => Department, (department) => department.parentDepartment)
@@ -49,25 +51,28 @@ export class Department {
   @OneToMany(() => User, (user) => user.department)
   users: User[];
 
-  @Column({ type: 'uuid', name: 'manager_id', nullable: true })
-  managerId: string | null;
-
-  @ManyToOne(() => User, { nullable: true })
+  // Manager relation
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'manager_id' })
   manager: User | null;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'budget', nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  managerId: string | null;
+
+  // Optional fields
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   budget: number | null;
 
-  @Column({ type: 'boolean', name: 'is_active', default: true })
+  @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
-  @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
+  // Timestamps
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
+  @UpdateDateColumn()
   updatedAt: Date;
 
-  @DeleteDateColumn({ type: 'timestamp', name: 'deleted_at' })
+  @DeleteDateColumn()
   deletedAt: Date | null;
 }

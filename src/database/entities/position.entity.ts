@@ -28,35 +28,35 @@ export class Position {
   @Column({ type: 'varchar', length: 50, nullable: true })
   code: string | null;
 
-  @ManyToOne(() => Company, { nullable: false })
+  @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'company_id' })
   company: Company;
 
-  @Column({ type: 'uuid', name: 'company_id' })
+  @Column({ type: 'uuid' })
   @Index()
   companyId: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, name: 'min_salary' })
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   minSalary: number | null;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, name: 'max_salary' })
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   maxSalary: number | null;
 
-  @Column({ type: 'varchar', length: 10, nullable: true, name: 'grade_level' })
+  @Column({ type: 'varchar', length: 10, nullable: true })
   gradeLevel: string | null;
 
-  @Column({ type: 'boolean', name: 'is_active', default: true })
+  @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
   @OneToMany(() => User, (user) => user.position)
   users: User[];
 
-  @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
+  @UpdateDateColumn()
   updatedAt: Date;
 
-  @DeleteDateColumn({ type: 'timestamp', name: 'deleted_at' })
+  @DeleteDateColumn()
   deletedAt: Date | null;
 }

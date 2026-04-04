@@ -8,10 +8,10 @@ import {
   JoinColumn,
   DeleteDateColumn,
   Index,
-  BeforeInsert
+  BeforeInsert,
 } from 'typeorm';
 
-import { UserRole, UserStatus } from './user.entity.enums';
+import { UserStatus, UserRole } from '../enums';
 import { Department } from './department.entity';
 import { Position } from './position.entity';
 import { Company } from './company.entity';
@@ -20,18 +20,26 @@ import { Company } from './company.entity';
 @Index(['companyId', 'email'], { unique: true })
 @Index(['companyId', 'status'])
 @Index(['companyId', 'role'])
+@Index(['email', 'status'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 100, name: 'first_name' })
-  @Index()
+  // Basic info
+  @Column({ type: 'varchar', length: 100 })
   firstName: string;
 
-  @Column({ type: 'varchar', length: 100, name: 'last_name' })
-  @Index()
+  @Column({ type: 'varchar', length: 100 })
   lastName: string;
 
+  @Column({ type: 'varchar', length: 255, unique: true })
+  @Index()
+  email: string;
+
+  @Column({ type: 'varchar', length: 255, select: false, nullable: true })
+  password: string | null;
+
+  // Role & Status
   @Column({ type: 'enum', enum: UserRole, default: UserRole.EMPLOYEE })
   @Index()
   role: UserRole;
@@ -40,92 +48,100 @@ export class User {
   @Index()
   status: UserStatus;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
-  @Index()
-  email: string;
-
-  @Column({ type: 'varchar', select: false, nullable: true })
-  password: string | null;
-
-  @ManyToOne(() => Company, { nullable: false })
+  // Relations
+  @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'company_id' })
   company: Company;
 
-  @Column({ type: 'uuid', name: 'company_id' })
+  @Column({ type: 'uuid' })
   @Index()
   companyId: string;
 
-  @ManyToOne(() => Department, { nullable: true })
+  @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'department_id' })
   department: Department | null;
 
-  @Column({ type: 'uuid', name: 'department_id', nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   @Index()
   departmentId: string | null;
 
-  @ManyToOne(() => Position, { nullable: true })
+  @ManyToOne(() => Position, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'position_id' })
   position: Position | null;
 
-  @Column({ type: 'uuid', name: 'position_id', nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   @Index()
   positionId: string | null;
 
+  // Contact info
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string | null;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   avatar: string | null;
 
-  @Column({ type: 'timestamp', name: 'last_login_at', nullable: true })
+  // Security
+  @Column({ type: 'timestamp', nullable: true })
   lastLoginAt: Date | null;
 
-  @Column({ type: 'varchar', length: 45, name: 'last_login_ip', nullable: true })
+  @Column({ type: 'varchar', length: 45, nullable: true })
   lastLoginIp: string | null;
 
-  @Column({ type: 'int', name: 'failed_login_attempts', default: 0 })
+  @Column({ type: 'int', default: 0 })
   failedLoginAttempts: number;
 
-  @Column({ type: 'timestamp', name: 'locked_until', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   lockedUntil: Date | null;
 
-  @Column({ type: 'varchar', name: 'activation_token', nullable: true })
-  activationToken: string | null;
-
-  @Column({ type: 'timestamp', name: 'activation_token_expires_at', nullable: true })
-  activationTokenExpiresAt: Date | null;
-
-  @Column({ type: 'varchar', name: 'reset_password_token', nullable: true })
-  resetPasswordToken: string | null;
-
-  @Column({ type: 'timestamp', name: 'reset_password_expires_at', nullable: true })
-  resetPasswordExpiresAt: Date | null;
-
-  @Column({ type: 'timestamp', name: 'email_verified_at', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   emailVerifiedAt: Date | null;
 
-  @Column({ type: 'jsonb', name: 'preferences', nullable: true })
-  preferences: Record<string, any>;
+  // only metadata (without tokens!)
+  @Column({ type: 'jsonb', default: {} })
+  metadata: {
+    invitedBy?: string;      // userId whi invited
+    invitedAt?: Date;        // when invited
+    source?: 'invite' | 'manual' | 'import';
+    welcomeEmailSent?: boolean;
+    lastPasswordChange?: Date;
+  };
 
-  @Column({ type: 'jsonb', name: 'metadata', nullable: true })
-  metadata: Record<string, any>;
+  // Preferences
+  @Column({ type: 'jsonb', default: {} })
+  preferences: {
+    language?: 'en' | 'uk';
+    timezone?: string;
+    notifications?: {
+      email?: boolean;
+      push?: boolean;
+      sms?: boolean;
+    };
+    theme?: 'light' | 'dark' | 'system';
+  };
 
-  @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
-  updatedAt: Date;
-
-  @DeleteDateColumn({ type: 'timestamp', name: 'deleted_at' })
-  deletedAt: Date | null;
-
-  @Column({ type: 'uuid', name: 'created_by', nullable: true })
+  // Audit
+  @Column({ type: 'uuid', nullable: true })
   createdBy: string | null;
 
-  @Column({ type: 'uuid', name: 'updated_by', nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   updatedBy: string | null;
 
-  // Helper methods
+  // Timestamps
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date | null;
+
+  // ========== Helper Methods ==========
+
+  getFullName(): string {
+    return `${this.firstName} ${this.lastName}`;
+  }
+
   isActive(): boolean {
     return this.status === UserStatus.ACTIVE;
   }
@@ -136,10 +152,6 @@ export class User {
 
   isBlocked(): boolean {
     return this.status === UserStatus.BLOCKED;
-  }
-
-  isDeleted(): boolean {
-    return this.status === UserStatus.DELETED;
   }
 
   isAdmin(): boolean {
@@ -154,23 +166,22 @@ export class User {
     return this.role === UserRole.EMPLOYEE;
   }
 
-  getFullName(): string {
-    return `${this.firstName} ${this.lastName}`;
+  isSuperAdmin(): boolean {
+    return this.role === UserRole.SUPER_ADMIN;
   }
 
   isLocked(): boolean {
-    if (!this.lockedUntil) return false;
-    return this.lockedUntil > new Date();
+    return this.lockedUntil ? this.lockedUntil > new Date() : false;
   }
 
   canLogin(): boolean {
-    return this.isActive() && !this.isLocked();
+    return this.isActive() && !this.isLocked() && !!this.emailVerifiedAt;
   }
 
   incrementFailedLoginAttempts(): void {
     this.failedLoginAttempts += 1;
     if (this.failedLoginAttempts >= 5) {
-      this.lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
+      this.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // lock 30 min
     }
   }
 
@@ -180,16 +191,19 @@ export class User {
   }
 
   @BeforeInsert()
-  setDefaults(): void {
-    if (!this.preferences) {
+  protected setDefaults(): void {
+    if (!this.preferences?.language) {
       this.preferences = {
         language: 'en',
         timezone: 'UTC',
-        notifications: {
-          email: true,
-          push: true,
-        },
+        notifications: { email: true, push: true },
+        theme: 'system',
+        ...this.preferences,
       };
+    }
+
+    if (!this.metadata) {
+      this.metadata = {};
     }
   }
 }

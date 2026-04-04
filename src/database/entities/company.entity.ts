@@ -1,12 +1,12 @@
-import { 
-  Entity, 
-  Column, 
-  OneToMany, 
-  PrimaryGeneratedColumn, 
-  CreateDateColumn, 
+import {
+  Entity,
+  Column,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  Index 
+  Index
 } from 'typeorm';
 import { User } from './user.entity';
 import { Department } from './department.entity';
@@ -21,51 +21,42 @@ export class Company {
   @Index()
   name: string;
 
-  @Column({ type: 'varchar', length: 100, name: 'subdomain', unique: true, nullable: true })
+  @Column({ type: 'varchar', length: 100, unique: true, nullable: true })
   subdomain: string | null;
 
-  @Column({ type: 'varchar', length: 500, name: 'logo_url', nullable: true })
+  @Column({ type: 'varchar', length: 500, nullable: true })
   logoUrl: string | null;
 
-  @Column({ type: 'varchar', length: 50, name: 'timezone', default: 'UTC' })
+  @Column({ type: 'varchar', length: 50, default: 'UTC' })
   timezone: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  country: string | null;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  city: string | null;
-
-  @Column({ type: 'text', name: 'address', nullable: true })
-  address: string | null;
-
-  @Column({ type: 'varchar', length: 20, name: 'phone', nullable: true })
-  phone: string | null;
-
-  @Column({ type: 'varchar', length: 255, name: 'email', nullable: true })
-  email: string | null;
-
-  @Column({ type: 'varchar', length: 255, name: 'website', nullable: true })
-  website: string | null;
-
-  @Column({ type: 'varchar', length: 50, name: 'tax_id', nullable: true })
-  taxId: string | null;
-
-  @Column({ type: 'int', name: 'employee_count', default: 0 })
-  employeeCount: number;
-
-  @Column({ type: 'boolean', name: 'is_active', default: true })
+  @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
-  @Column({ type: 'varchar', length: 50, name: 'subscription_plan', default: 'free' })
+  @Column({ type: 'varchar', length: 50, default: 'free' })
   subscriptionPlan: string;
 
-  @Column({ type: 'timestamp', name: 'subscription_expires_at', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   subscriptionExpiresAt: Date | null;
 
-  @Column({ type: 'jsonb', name: 'settings', nullable: true })
-  settings: Record<string, any>;
+  @Column({ type: 'jsonb', default: {} })
+  settings: {
+    email?: string;
+    phone?: string;
+    website?: string;
+    address?: string;
+    city?: string;
+    country?: string;
 
+    taxId?: string;
+    registrationNumber?: string;
+
+    employeeCount?: number;
+    industry?: string;
+    companySize?: '1-10' | '11-50' | '51-200' | '201-500' | '500+';
+  };
+
+  // Relations
   @OneToMany(() => User, (user) => user.company)
   users: User[];
 
@@ -75,12 +66,13 @@ export class Company {
   @OneToMany(() => Position, (position) => position.company)
   positions: Position[];
 
-  @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
+  // Timestamps
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
+  @UpdateDateColumn()
   updatedAt: Date;
 
-  @DeleteDateColumn({ type: 'timestamp', name: 'deleted_at' })
+  @DeleteDateColumn()
   deletedAt: Date | null;
 }
