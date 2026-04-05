@@ -12,7 +12,7 @@ import { TokenType } from '../enums/token-type.enum';
 
 @Entity('tokens')
 @Index(['token'])
-@Index(['userId', 'type'])
+@Index(['user', 'type'])
 @Index(['expiresAt'])
 export class Token {
   @PrimaryGeneratedColumn('uuid')
@@ -24,12 +24,9 @@ export class Token {
   @Column({ type: 'enum', enum: TokenType })
   type: TokenType;
 
-  @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
-
-  @Column({ type: 'uuid' })
-  userId: string;
 
   @Column({ type: 'timestamp' })
   expiresAt: Date;

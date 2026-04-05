@@ -14,7 +14,7 @@ import { Company } from './company.entity';
 import { User } from './user.entity';
 
 @Entity('departments')
-@Index(['companyId', 'name'], { unique: true })
+@Index(['company', 'name'], { unique: true })
 export class Department {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -28,16 +28,10 @@ export class Department {
   @Column({ type: 'varchar', length: 20, nullable: true })
   code: string | null;
 
-  // Company relation
   @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'company_id' })
   company: Company;
 
-  @Column({ type: 'uuid' })
-  @Index()
-  companyId: string;
-
-  // Self-reference for hierarchy
   @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'parent_department_id' })
   parentDepartment: Department | null;
@@ -51,7 +45,6 @@ export class Department {
   @OneToMany(() => User, (user) => user.department)
   users: User[];
 
-  // Manager relation
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'manager_id' })
   manager: User | null;
@@ -59,14 +52,12 @@ export class Department {
   @Column({ type: 'uuid', nullable: true })
   managerId: string | null;
 
-  // Optional fields
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   budget: number | null;
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
-  // Timestamps
   @CreateDateColumn()
   createdAt: Date;
 

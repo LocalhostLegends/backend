@@ -14,22 +14,26 @@ export class TokenService {
   ) { }
 
   async createToken(
-    userId: string,
+    userId: string | null,
     type: TokenType,
     hoursValid: number = 24,
+    existingToken?: string,
   ): Promise<Token> {
-    const token = randomUUID();
+    const token = existingToken || randomUUID();
     const expiresAt = new Date(Date.now() + hoursValid * 60 * 60 * 1000);
 
-    const newToken = this._tokenRepository.create({
-      token,
-      type,
-      userId,
-      expiresAt,
-      isUsed: false,
-    });
+    const tokenEntity = new Token();
+    tokenEntity.token = token;
+    tokenEntity.type = type;
+    tokenEntity.expiresAt = expiresAt;
+    tokenEntity.isUsed = false;
 
-    return this._tokenRepository.save(newToken);
+    if (userId) {
+      tokenEntity.user = { id: userId } as any;
+    }
+
+    const savedToken = await this._tokenRepository.save(tokenEntity);
+    return savedToken;
   }
 
   async validateToken(token: string, type: TokenType): Promise<Token> {
@@ -88,5 +92,9 @@ export class TokenService {
       where: { token },
       relations: ['user'],
     });
+  }
+
+  async revokeToken(token: string): Promise<void> {
+    await this._tokenRepository.delete({ token });
   }
 }

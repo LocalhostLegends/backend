@@ -17,15 +17,14 @@ import { Position } from './position.entity';
 import { Company } from './company.entity';
 
 @Entity('users')
-@Index(['companyId', 'email'], { unique: true })
-@Index(['companyId', 'status'])
-@Index(['companyId', 'role'])
+@Index(['company', 'email'], { unique: true })
+@Index(['company', 'status'])
+@Index(['company', 'role'])
 @Index(['email', 'status'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // Basic info
   @Column({ type: 'varchar', length: 100 })
   firstName: string;
 
@@ -39,7 +38,6 @@ export class User {
   @Column({ type: 'varchar', length: 255, select: false, nullable: true })
   password: string | null;
 
-  // Role & Status
   @Column({ type: 'enum', enum: UserRole, default: UserRole.EMPLOYEE })
   @Index()
   role: UserRole;
@@ -48,14 +46,9 @@ export class User {
   @Index()
   status: UserStatus;
 
-  // Relations
   @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'company_id' })
   company: Company;
-
-  @Column({ type: 'uuid' })
-  @Index()
-  companyId: string;
 
   @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'department_id' })
@@ -73,14 +66,12 @@ export class User {
   @Index()
   positionId: string | null;
 
-  // Contact info
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string | null;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   avatar: string | null;
 
-  // Security
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt: Date | null;
 
@@ -96,17 +87,15 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   emailVerifiedAt: Date | null;
 
-  // only metadata (without tokens!)
   @Column({ type: 'jsonb', default: {} })
   metadata: {
-    invitedBy?: string;      // userId whi invited
-    invitedAt?: Date;        // when invited
+    invitedBy?: string;
+    invitedAt?: Date;
     source?: 'invite' | 'manual' | 'import';
     welcomeEmailSent?: boolean;
     lastPasswordChange?: Date;
   };
 
-  // Preferences
   @Column({ type: 'jsonb', default: {} })
   preferences: {
     language?: 'en' | 'uk';
@@ -119,14 +108,12 @@ export class User {
     theme?: 'light' | 'dark' | 'system';
   };
 
-  // Audit
   @Column({ type: 'uuid', nullable: true })
   createdBy: string | null;
 
   @Column({ type: 'uuid', nullable: true })
   updatedBy: string | null;
 
-  // Timestamps
   @CreateDateColumn()
   createdAt: Date;
 
@@ -135,8 +122,6 @@ export class User {
 
   @DeleteDateColumn()
   deletedAt: Date | null;
-
-  // ========== Helper Methods ==========
 
   getFullName(): string {
     return `${this.firstName} ${this.lastName}`;
@@ -181,7 +166,7 @@ export class User {
   incrementFailedLoginAttempts(): void {
     this.failedLoginAttempts += 1;
     if (this.failedLoginAttempts >= 5) {
-      this.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // lock 30 min
+      this.lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
     }
   }
 

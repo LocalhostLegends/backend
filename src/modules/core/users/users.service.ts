@@ -14,7 +14,7 @@ import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
 import { Company } from '@database/entities/company.entity';
 // import { Token } from '@database/entities/token.entity';
-import { UserRole, UserStatus, TokenType } from '@/database/enums';
+import { UserRole, UserStatus, TokenType, InviteStatus } from '@/database/enums';
 import { ErrorMessages } from '@common/exceptions/error-messages';
 
 import { CreateUserDto } from './dto/create-user.dto';
@@ -27,6 +27,7 @@ import { UserFilterBuilder } from './user-filter.builder';
 import { PaginatedResult } from '@common/pagination/pagination.interface';
 import { EmailService } from '@/modules/core/email/email.service';
 import { TokenService } from '@/modules/core/token/token.service';
+import { Invite } from '@database/entities/invite.entity';
 
 @Injectable()
 export class UsersService {
@@ -36,6 +37,7 @@ export class UsersService {
     @InjectRepository(Company) private readonly _companyRepository: Repository<Company>,
     @InjectRepository(Department) private readonly _departmentRepository: Repository<Department>,
     @InjectRepository(Position) private readonly _positionRepository: Repository<Position>,
+    @InjectRepository(Invite) private readonly _inviteRepository: Repository<Invite>,
     private readonly _paginationService: PaginationService,
     private readonly _userFilterBuilder: UserFilterBuilder,
     private readonly _emailService: EmailService,
@@ -71,7 +73,6 @@ export class UsersService {
       lastName: createUserDto.lastName,
       email: createUserDto.email,
       company,
-      companyId,
       department,
       departmentId: department?.id || null,
       position,
@@ -121,7 +122,6 @@ export class UsersService {
       role,
       status: UserStatus.INVITED,
       company,
-      companyId,
       createdBy: createdBy || null,
       metadata: {
         invitedBy: createdBy,
@@ -145,7 +145,7 @@ export class UsersService {
       .leftJoinAndSelect('user.department', 'department')
       .leftJoinAndSelect('user.position', 'position')
       .leftJoinAndSelect('user.company', 'company')
-      .where('user.companyId = :companyId', { companyId: currentUser.companyId });
+      .where('user.company_id = :companyId', { companyId: currentUser.companyId });
 
     this._userFilterBuilder.buildFilters(queryBuilder, filters);
 
@@ -168,7 +168,7 @@ export class UsersService {
   async findOne(id: string, currentUser: AuthorizedUser): Promise<User> {
     const user = await this.findById(id);
 
-    if (user.companyId !== currentUser.companyId) {
+    if (user.company.id !== currentUser.companyId) {
       throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('this company'));
     }
 
@@ -205,7 +205,7 @@ export class UsersService {
       .where('user.email = :email', { email });
 
     if (companyId) {
-      queryBuilder.andWhere('user.companyId = :companyId', { companyId });
+      queryBuilder.andWhere('user.company_id = :companyId', { companyId });
     }
 
     if (includePassword) {
@@ -315,23 +315,49 @@ export class UsersService {
     await this._usersRepository.softDelete(id);
   }
 
-  async activateUser(token: string, password: string, ip?: string): Promise<User> {
-    const tokenRecord = await this._tokenService.validateToken(token, TokenType.ACTIVATION);
+  async activateUser(token: string, password: string, _ip?: string): Promise<User> {
+    const invite = await this._inviteRepository.findOne({
+      where: { token },
+      relations: ['company'],
+    });
 
-    const user = tokenRecord.user;
-
-    if (user.status !== UserStatus.INVITED) {
-      throw new BadRequestException('User is already activated');
+    if (!invite) {
+      throw new BadRequestException('Invalid activation token');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    user.password = hashedPassword;
+    let user = await this._usersRepository.findOne({
+      where: { email: invite.email, company: { id: invite.company.id } },
+    });
+
+    if (!user) {
+      user = this._usersRepository.create({
+        email: invite.email,
+        firstName: invite.email.split('@')[0],
+        lastName: 'User',
+        role: invite.role as UserRole,
+        status: UserStatus.INVITED,
+        company: invite.company,
+        metadata: {
+          invitedBy: invite.invitedBy?.id,
+          invitedAt: new Date(),
+          source: 'invite',
+        },
+      });
+      user = await this._usersRepository.save(user);
+    }
+
+    user.password = await bcrypt.hash(password, 10);
     user.status = UserStatus.ACTIVE;
     user.emailVerifiedAt = new Date();
 
     const savedUser = await this._usersRepository.save(user);
 
-    await this._tokenService.markTokenAsUsed(tokenRecord.id, ip);
+    invite.status = InviteStatus.ACCEPTED;
+    invite.acceptedAt = new Date();
+    await this._inviteRepository.save(invite);
+
+    await this._tokenService.revokeToken(token);
+
     return savedUser;
   }
 
@@ -361,14 +387,14 @@ export class UsersService {
 
   async getUsersByRole(companyId: string, role: UserRole): Promise<User[]> {
     return this._usersRepository.find({
-      where: { companyId, role, status: UserStatus.ACTIVE, deletedAt: IsNull() },
+      where: { company: { id: companyId }, role, status: UserStatus.ACTIVE, deletedAt: IsNull() },
       relations: ['department', 'position'],
     });
   }
 
   async getCompanyUsers(companyId: string): Promise<User[]> {
     return this._usersRepository.find({
-      where: { companyId, deletedAt: IsNull() },
+      where: { company: { id: companyId }, deletedAt: IsNull() },
       relations: ['department', 'position'],
     });
   }
@@ -390,7 +416,7 @@ export class UsersService {
 
   private async _ensureEmailUniqueInCompany(email: string, companyId: string): Promise<void> {
     const user = await this._usersRepository.findOne({
-      where: { email, companyId, deletedAt: IsNull() },
+      where: { email, company: { id: companyId }, deletedAt: IsNull() },
     });
 
     if (user) {
@@ -412,7 +438,7 @@ export class UsersService {
 
   private async _findDepartmentById(id: string, companyId: string): Promise<Department> {
     const department = await this._departmentRepository.findOne({
-      where: { id, companyId },
+      where: { id, company: { id: companyId } },
     });
 
     if (!department) {
@@ -424,7 +450,7 @@ export class UsersService {
 
   private async _findPositionById(id: string, companyId: string): Promise<Position> {
     const position = await this._positionRepository.findOne({
-      where: { id, companyId },
+      where: { id, company: { id: companyId } },
     });
 
     if (!position) {

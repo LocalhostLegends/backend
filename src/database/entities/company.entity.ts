@@ -47,16 +47,13 @@ export class Company {
     address?: string;
     city?: string;
     country?: string;
-
     taxId?: string;
     registrationNumber?: string;
-
     employeeCount?: number;
     industry?: string;
     companySize?: '1-10' | '11-50' | '51-200' | '201-500' | '500+';
   };
 
-  // Relations
   @OneToMany(() => User, (user) => user.company)
   users: User[];
 
@@ -66,7 +63,6 @@ export class Company {
   @OneToMany(() => Position, (position) => position.company)
   positions: Position[];
 
-  // Timestamps
   @CreateDateColumn()
   createdAt: Date;
 

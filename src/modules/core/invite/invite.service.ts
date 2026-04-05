@@ -13,6 +13,8 @@ import { UsersService } from '@/modules/core/users/users.service';
 
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { AuthorizedUser } from '@/modules/core/auth/auth.types';
+import { TokenService } from '../token/token.service';
+import { TokenType } from '@/database/enums';
 
 @Injectable()
 export class InviteService {
@@ -23,6 +25,7 @@ export class InviteService {
     private readonly _companyRepository: Repository<Company>,
     private readonly _emailService: EmailService,
     private readonly _usersService: UsersService,
+    private readonly _tokenService: TokenService
   ) { }
 
   async createInvite(
@@ -45,7 +48,7 @@ export class InviteService {
     const existingInvite = await this._inviteRepository.findOne({
       where: {
         email: dto.email,
-        companyId: currentUser.companyId,
+        company: { id: currentUser.companyId },
         status: InviteStatus.PENDING,
       },
     });
@@ -63,21 +66,35 @@ export class InviteService {
     }
 
     const token = randomUUID();
-    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
-    const invite = this._inviteRepository.create({
-      email: dto.email,
+    const result = await this._inviteRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Invite)
+      .values({
+        email: dto.email,
+        token: token,
+        role: dto.role,
+        company: { id: currentUser.companyId },
+        invitedBy: { id: currentUser.id },
+        departmentId: dto.departmentId || null,
+        positionId: dto.positionId || null,
+        expiresAt: expiresAt,
+        status: InviteStatus.PENDING,
+        sentCount: 1,
+      })
+      .returning('*')
+      .execute();
+
+    const savedInvite = result.generatedMaps[0] as Invite;
+
+    await this._tokenService.createToken(
+      null,
+      TokenType.ACTIVATION,
+      48,
       token,
-      role: dto.role,
-      companyId: currentUser.companyId,
-      invitedById: currentUser.id,
-      departmentId: dto.departmentId || null,
-      positionId: dto.positionId || null,
-      expiresAt,
-      status: InviteStatus.PENDING,
-    });
-
-    const savedInvite = await this._inviteRepository.save(invite);
+    );
 
     const inviteLink = `${process.env.FRONTEND_URL}/auth/accept-invite?token=${token}`;
     await this._emailService.sendInviteEmail(
@@ -88,7 +105,16 @@ export class InviteService {
       inviteLink,
     );
 
-    return savedInvite;
+    const loadedInvite = await this._inviteRepository.findOne({
+      where: { id: savedInvite.id },
+      relations: ['company', 'invitedBy'],
+    });
+
+    if (!loadedInvite) {
+      throw new NotFoundException('Invite not found after creation');
+    }
+
+    return loadedInvite;
   }
 
   async validateInvite(token: string): Promise<Invite> {
@@ -123,9 +149,10 @@ export class InviteService {
   ): Promise<User> {
     const invite = await this.validateInvite(token);
 
+    // ✅ доступ к id через invite.company.id
     const existingUser = await this._usersService.findByEmail(
       invite.email,
-      invite.companyId,
+      invite.company.id,
     );
 
     if (existingUser && existingUser.status === UserStatus.ACTIVE) {
@@ -134,7 +161,7 @@ export class InviteService {
 
     if (existingUser && existingUser.status === UserStatus.INVITED) {
       const activatedUser = await this._usersService.activateUser(
-        token, // TODO: нужно передать правильный токен
+        token,
         password,
         ip,
       );
@@ -146,17 +173,18 @@ export class InviteService {
       return activatedUser;
     }
 
+    // ✅ доступ к id через invite.company.id и invite.invitedBy.id
     await this._usersService.createInvitedUser(
       firstName || invite.email.split('@')[0],
       lastName || 'User',
       invite.email,
       invite.role as UserRole,
-      invite.companyId,
-      invite.invitedById,
+      invite.company.id,
+      invite.invitedBy.id,
     );
 
     const activatedUser = await this._usersService.activateUser(
-      token, // TODO 
+      token,
       password,
       ip,
     );
@@ -169,8 +197,9 @@ export class InviteService {
   }
 
   async resendInvite(inviteId: string, currentUser: AuthorizedUser): Promise<Invite> {
+    // ✅ используем company: { id: ... }
     const invite = await this._inviteRepository.findOne({
-      where: { id: inviteId, companyId: currentUser.companyId },
+      where: { id: inviteId, company: { id: currentUser.companyId } },
       relations: ['company', 'invitedBy'],
     });
 
@@ -199,8 +228,9 @@ export class InviteService {
   }
 
   async cancelInvite(inviteId: string, currentUser: AuthorizedUser): Promise<void> {
+    // ✅ используем company: { id: ... }
     const invite = await this._inviteRepository.findOne({
-      where: { id: inviteId, companyId: currentUser.companyId },
+      where: { id: inviteId, company: { id: currentUser.companyId } },
     });
 
     if (!invite) {
@@ -216,17 +246,19 @@ export class InviteService {
   }
 
   async getCompanyInvites(companyId: string): Promise<Invite[]> {
+    // ✅ используем company: { id: ... }
     return this._inviteRepository.find({
-      where: { companyId },
+      where: { company: { id: companyId } },
       relations: ['invitedBy'],
       order: { createdAt: 'DESC' },
     });
   }
 
   async getPendingInvites(companyId: string): Promise<Invite[]> {
+    // ✅ используем company: { id: ... }
     return this._inviteRepository.find({
       where: {
-        companyId,
+        company: { id: companyId },
         status: InviteStatus.PENDING,
         expiresAt: MoreThan(new Date()),
       },

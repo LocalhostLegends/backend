@@ -1,4 +1,3 @@
-// auth.service.ts
 import { Injectable, UnauthorizedException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -190,7 +189,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
-      companyId: user.companyId,
+      companyId: user.company.id,
     };
 
     return this._jwtService.sign(payload, {
@@ -202,7 +201,7 @@ export class AuthService {
   private _generateRefreshToken(user: User): string {
     const payload: JwtRefreshPayload = {
       sub: user.id,
-      companyId: user.companyId,
+      companyId: user.company.id,
     };
 
     return this._jwtService.sign(payload, {

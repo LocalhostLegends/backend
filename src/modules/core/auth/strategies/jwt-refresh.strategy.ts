@@ -5,9 +5,9 @@ import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 
 import { UsersService } from '@/modules/core/users/users.service';
-import { User } from '@database/entities/user.entity';
+import { UserStatus } from '@/database/enums';
 import { ErrorMessages } from '@common/exceptions/error-messages';
-
+import { AuthorizedUser } from '../auth.types';
 import { JwtRefreshPayload } from '../auth.types';
 
 type RequestWithRefreshCookie = Request & {
@@ -32,11 +32,10 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       jwtFromRequest: (req: RequestWithRefreshCookie): string | null =>
         req.cookies?.refresh_token ?? null,
       secretOrKey: secret,
-      passReqToCallback: false,
     });
   }
 
-  async validate(payload: JwtRefreshPayload): Promise<User> {
+  async validate(payload: JwtRefreshPayload): Promise<AuthorizedUser> {
     try {
       const user = await this._usersService.findById(payload.sub);
 
@@ -44,7 +43,22 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         throw new UnauthorizedException('User not found');
       }
 
-      return user;
+      if (user.status !== UserStatus.ACTIVE) {
+        throw new UnauthorizedException('User account is not active');
+      }
+
+      if (user.deletedAt) {
+        throw new UnauthorizedException('User account has been deleted');
+      }
+
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        companyId: payload.companyId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      };
     } catch {
       throw new UnauthorizedException(ErrorMessages.UNAUTHORIZED);
     }

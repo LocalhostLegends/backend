@@ -4,8 +4,8 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 
 import { UsersService } from '@/modules/core/users/users.service';
-import { User } from '@database/entities/user.entity';
 import { UserStatus } from '@/database/enums';
+import { AuthorizedUser } from '@/modules/core/auth/auth.types';
 
 export interface JwtPayloadWithCompany {
   sub: string;
@@ -33,7 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(payload: JwtPayloadWithCompany): Promise<User> {
+  async validate(payload: JwtPayloadWithCompany): Promise<AuthorizedUser> {
     const user = await this._usersService.findById(payload.sub);
 
     if (!user) {
@@ -48,6 +48,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('User account has been deleted');
     }
 
-    return user;
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      companyId: payload.companyId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    };
   }
 }

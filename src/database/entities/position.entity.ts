@@ -14,7 +14,7 @@ import { Company } from './company.entity';
 import { User } from './user.entity';
 
 @Entity('positions')
-@Index(['companyId', 'title'], { unique: true })
+@Index(['company', 'title'], { unique: true })
 export class Position {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -31,10 +31,6 @@ export class Position {
   @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'company_id' })
   company: Company;
-
-  @Column({ type: 'uuid' })
-  @Index()
-  companyId: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   minSalary: number | null;

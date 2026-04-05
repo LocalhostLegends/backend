@@ -17,6 +17,7 @@ import { LoginDto } from './dto/login.dto';
 import { CreateHrDto } from './dto/create-hr.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import type { AuthResponse, AuthorizedUser } from './auth.types';
+import { User } from '@/database/entities';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -76,7 +77,7 @@ export class AuthController {
   async createHr(
     @Body() createHrDto: CreateHrDto,
     @CurrentUser() currentUser: AuthorizedUser,
-  ): Promise<AuthorizedUser> {
+  ): Promise<User> {
     return this._authService.createHr(createHrDto, currentUser);
   }
 
@@ -89,7 +90,7 @@ export class AuthController {
   async createEmployee(
     @Body() createEmployeeDto: CreateEmployeeDto,
     @CurrentUser() currentUser: AuthorizedUser,
-  ): Promise<AuthorizedUser> {
+  ): Promise<User> {
     return this._authService.createEmployee(createEmployeeDto, currentUser);
   }
 
