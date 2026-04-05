@@ -1,4 +1,4 @@
-import { UserRole } from '../../entities/user.entity.enums';
+import { UserRole } from "@/database/enums";
 
 export const usersData = [
   {

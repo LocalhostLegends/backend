@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { AuthorizedUser } from '../../modules/auth/auth.types';
+import { AuthorizedUser } from '../../modules/core/auth/auth.types';
 
 export interface RequestWithUser extends Request {
   user: AuthorizedUser;

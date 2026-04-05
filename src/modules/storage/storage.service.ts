@@ -12,12 +12,14 @@ export class StorageService {
   private publicUrl: string;
 
   constructor(configService: ConfigService) {
-    const accountId = configService.get<string>('storage.accountId');
-    const accessKeyId = configService.get<string>('storage.accessKeyId');
-    const secretAccessKey = configService.get<string>('storage.secretAccessKey');
-    const bucket = configService.get<string>('storage.bucketName');
-    const publicUrl = configService.get<string>('storage.publicUrl');
-    const endpoint = configService.get<string>('storage.endpoint');
+    const accountId = configService.get<string>('STORAGE_ACCOUNT_ID');
+    const accessKeyId = configService.get<string>('STORAGE_ACCESS_KEY_ID');
+    const secretAccessKey = configService.get<string>('STORAGE_SECRET_ACCESS_KEY');
+    const bucket = configService.get<string>('STORAGE_BUCKET_NAME');
+    const publicUrl = configService.get<string>('STORAGE_PUBLIC_URL');
+    const endpoint = configService.get<string>('STORAGE_ENDPOINT');
+
+    this.logger.log(`Storage config: bucket=${bucket}, publicUrl=${publicUrl}, endpoint=${endpoint}`);
 
     if (!accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
       this.logger.error('Missing Storage configuration');
@@ -45,7 +47,7 @@ export class StorageService {
       forcePathStyle: true,
     });
 
-    this.logger.log(`✅ Storage initialized`);
+    this.logger.log(`✅ Storage initialized with ${this.isUsedCloudflare ? 'Cloudflare R2' : 'MinIO'}`);
   }
 
   private sanitizeEmail(email: string): string {
@@ -87,7 +89,7 @@ export class StorageService {
       }),
     );
 
-    this.logger.log(`✅ Avatar uploaded`);
+    this.logger.log(`✅ Avatar uploaded: ${key}`);
 
     return { url: `${this.publicUrl}/${key}` };
   }
@@ -99,17 +101,21 @@ export class StorageService {
         Key: key,
       }),
     );
-    this.logger.log(`✅ Avatar deleted`);
+    this.logger.log(`✅ File deleted: ${key}`);
   }
 
   extractKeyFromUrl(url: string): string | null {
-    const parsed = new URL(url);
-    const parts = parsed.pathname.split('/').filter(Boolean);
+    try {
+      const parsed = new URL(url);
+      const parts = parsed.pathname.split('/').filter(Boolean);
 
-    if (!this.isUsedCloudflare) {
-      parts.shift();
+      if (!this.isUsedCloudflare) {
+        parts.shift();
+      }
+
+      return parts.length ? parts.join('/') : null;
+    } catch {
+      return null;
     }
-
-    return parts.length ? parts.join('/') : null;
   }
 }
