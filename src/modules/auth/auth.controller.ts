@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Res, Req } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -15,6 +15,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthSwagger } from './swagger/auth.swagger';
 import { Throttle } from '@nestjs/throttler';
+
+import type { RequestWithContext } from '@common/middleware/request-context.middleware';
 
 @ApiTags('Auth')
 @ApiBearerAuth('JWT-auth')
@@ -38,9 +40,10 @@ export class AuthController {
   @AuthSwagger.login()
   async login(
     @Body() loginDto: LoginDto,
+    @Req() req: RequestWithContext,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponse> {
-    const { accessToken, refreshToken } = await this._authService.login(loginDto);
+    const { accessToken, refreshToken } = await this._authService.login(loginDto, req.context);
     const refreshExpiresIn = this._configService.get<StringValue>('jwt.refreshExpiresIn');
 
     if (!refreshExpiresIn) {

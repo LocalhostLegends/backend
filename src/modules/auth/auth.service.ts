@@ -9,6 +9,8 @@ import { User } from '@database/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload, JwtRefreshPayload, AuthResponse } from './auth.types';
+import { AuditLogService } from '../audit/audit-log.service';
+import { RequestContext } from '@common/middleware/request-context.middleware';
 
 @Injectable()
 export class AuthService {
@@ -16,24 +18,65 @@ export class AuthService {
     private readonly _usersService: UsersService,
     private readonly _jwtService: JwtService,
     private readonly _configService: ConfigService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<User> {
     return this._usersService.create(registerDto);
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponse & { refreshToken: string }> {
+  async login(
+    loginDto: LoginDto,
+    context?: RequestContext,
+  ): Promise<AuthResponse & { refreshToken: string }> {
     const user = await this._usersService.findByEmail(loginDto.email);
 
     if (!user) {
+      await this.auditLogService.createAuthLog({
+        eventType: 'auth.login.failed',
+        userId: null,
+        emailAttempted: loginDto.email,
+        ip: context?.ip,
+        userAgent: context?.userAgent,
+        requestId: context?.requestId,
+        method: context?.method,
+        path: context?.path,
+        success: false,
+        failureReason: 'user_not_found',
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
 
     if (!isPasswordValid) {
+      await this.auditLogService.createAuthLog({
+        eventType: 'auth.login.failed',
+        userId: user.id,
+        emailAttempted: loginDto.email,
+        ip: context?.ip,
+        userAgent: context?.userAgent,
+        requestId: context?.requestId,
+        method: context?.method,
+        path: context?.path,
+        success: false,
+        failureReason: 'wrong_password',
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.auditLogService.createAuthLog({
+      eventType: 'auth.login.success',
+      userId: user.id,
+      emailAttempted: loginDto.email,
+      ip: context?.ip,
+      userAgent: context?.userAgent,
+      requestId: context?.requestId,
+      method: context?.method,
+      path: context?.path,
+      success: true,
+      failureReason: null,
+    });
 
     return {
       accessToken: this._generateAccessToken(user),
