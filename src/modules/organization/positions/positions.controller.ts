@@ -10,43 +10,50 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer'
+import { plainToInstance } from 'class-transformer';
 
+import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { RequireRole } from '@common/decorators/require-role.decorator';
-import { RolesGuard } from '@common/guards/roles.guard';
+import { UserRolesGuard } from '@common/guards/user-roles.guard';
 
 import { PositionsService } from './positions.service';
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
-import { PositionResponseDto } from './dto/position-response.dto'
+import { PositionResponseDto } from './dto/position-response.dto';
 import { PositionSwagger } from './swagger/positions.swagger';
-
-import { JwtAuthGuard } from '@/modules/core';
 
 @ApiTags('Positions')
 @ApiBearerAuth('JWT-auth')
 @Controller('positions')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, UserRolesGuard)
 @RequireRole('hr')
 export class PositionsController {
-  constructor(private readonly positionsService: PositionsService) { }
+  constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
   @PositionSwagger.create()
   async create(@Body() createPositionDto: CreatePositionDto) {
-    return plainToInstance(PositionResponseDto, await this.positionsService.create(createPositionDto), { excludeExtraneousValues: true });
+    return plainToInstance(
+      PositionResponseDto,
+      await this.positionsService.create(createPositionDto),
+      { excludeExtraneousValues: true },
+    );
   }
 
   @Get()
   @PositionSwagger.findAll()
   async findAll() {
-    return plainToInstance(PositionResponseDto, await this.positionsService.findAll(), { excludeExtraneousValues: true });
+    return plainToInstance(PositionResponseDto, await this.positionsService.findAll(), {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get(':id')
   @PositionSwagger.findOne()
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return plainToInstance(PositionResponseDto, await this.positionsService.findOne(id), { excludeExtraneousValues: true });
+    return plainToInstance(PositionResponseDto, await this.positionsService.findOne(id), {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Patch(':id')
@@ -55,7 +62,11 @@ export class PositionsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updatePositionDto: UpdatePositionDto,
   ) {
-    return plainToInstance(PositionResponseDto, await this.positionsService.update(id, updatePositionDto), { excludeExtraneousValues: true });
+    return plainToInstance(
+      PositionResponseDto,
+      await this.positionsService.update(id, updatePositionDto),
+      { excludeExtraneousValues: true },
+    );
   }
 
   @Delete(':id')

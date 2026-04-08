@@ -8,9 +8,11 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
+
 import { Company } from './company.entity';
 import { User } from './user.entity';
-import { InviteStatus } from '../enums';
+
+import { InviteStatus } from '../enums/invite-status.enum';
 
 @Entity('invites')
 @Index(['email', 'company', 'status'])

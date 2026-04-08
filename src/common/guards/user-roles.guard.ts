@@ -7,15 +7,14 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-import { UserRole } from '@/database/enums';
-
-import { RequestWithUser } from '../types/request-with-user';
+import { UserRole } from '../enums/user-role.enum';
+import { RequestWithUser } from '../types/request-with-user.type';
 
 @Injectable()
-export class RolesGuard implements CanActivate {
-  private readonly logger = new Logger(RolesGuard.name);
+export class UserRolesGuard implements CanActivate {
+  private readonly logger = new Logger(UserRolesGuard.name);
 
-  constructor(private reflector: Reflector) { }
+  constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     let requiredRole = this.reflector.get<UserRole>('role', context.getHandler());

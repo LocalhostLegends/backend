@@ -1,5 +1,6 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
+
 import { AvatarSchema } from './avatar.schema';
 
 export const AvatarSwagger = {

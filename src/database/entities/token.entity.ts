@@ -7,7 +7,9 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
+
 import { User } from './user.entity';
+
 import { TokenType } from '../enums/token-type.enum';
 
 @Entity('tokens')

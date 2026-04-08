@@ -10,7 +10,8 @@ import {
   IsEnum,
   IsBoolean,
 } from 'class-validator';
-import { UserRole } from '@/database/enums';
+
+import { UserRole } from '@common/enums/user-role.enum';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'John', minLength: 2, maxLength: 100 })

@@ -21,20 +21,8 @@ import { PositionsController } from './positions/positions.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Company, Department, Position, User])],
-  controllers: [
-    CompaniesController,
-    DepartmentsController,
-    PositionsController,
-  ],
-  providers: [
-    CompaniesService,
-    DepartmentsService,
-    PositionsService,
-  ],
-  exports: [
-    CompaniesService,
-    DepartmentsService,
-    PositionsService,
-  ],
+  controllers: [CompaniesController, DepartmentsController, PositionsController],
+  providers: [CompaniesService, DepartmentsService, PositionsService],
+  exports: [CompaniesService, DepartmentsService, PositionsService],
 })
-export class OrganizationModule { }
+export class OrganizationModule {}

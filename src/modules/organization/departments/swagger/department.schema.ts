@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+
 import { Department } from '@database/entities/department.entity';
 
 export class DepartmentResponse implements Partial<Department> {

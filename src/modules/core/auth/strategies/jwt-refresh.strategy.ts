@@ -4,11 +4,12 @@ import { Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 
-import { UsersService } from '@/modules/core/users/users.service';
-import { UserStatus } from '@/database/enums';
+import { UserStatus } from '@database/enums/user-status.enum';
 import { ErrorMessages } from '@common/exceptions/error-messages';
-import { AuthorizedUser } from '../auth.types';
+import { AuthorizedUser } from '@common/types/authorized-user.type';
+
 import { JwtRefreshPayload } from '../auth.types';
+import { UsersService } from '../../users/users.service';
 
 type RequestWithRefreshCookie = Request & {
   cookies: {

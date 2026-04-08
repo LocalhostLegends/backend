@@ -3,9 +3,10 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 
-import { UsersService } from '@/modules/core/users/users.service';
-import { UserStatus } from '@/database/enums';
-import { AuthorizedUser } from '@/modules/core/auth/auth.types';
+import { AuthorizedUser } from '@common/types/authorized-user.type';
+import { UserStatus } from '@database/enums/user-status.enum';
+
+import { UsersService } from '../../users/users.service';
 
 export interface JwtPayloadWithCompany {
   sub: string;

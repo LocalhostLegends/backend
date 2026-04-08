@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { InviteStatus } from '@/database/enums';
+
+import { InviteStatus } from '@database/enums/invite-status.enum';
 
 export class InviteResponseDto {
   @Expose()

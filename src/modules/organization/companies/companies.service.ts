@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
 import { Company } from '@database/entities/company.entity';
+
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 
@@ -73,11 +75,7 @@ export class CompaniesService {
     await this._companyRepository.decrement({ id }, 'employeeCount', 1);
   }
 
-  async updateSubscription(
-    id: string,
-    plan: string,
-    expiresAt: Date,
-  ): Promise<Company> {
+  async updateSubscription(id: string, plan: string, expiresAt: Date): Promise<Company> {
     const company = await this.findById(id);
     company.subscriptionPlan = plan;
     company.subscriptionExpiresAt = expiresAt;
@@ -91,12 +89,12 @@ export class CompaniesService {
     activeUsers: number;
   }> {
     const company = await this.findById(id);
-    
+
     return {
       totalUsers: company.users?.length || 0,
       totalDepartments: company.departments?.length || 0,
       totalPositions: company.positions?.length || 0,
-      activeUsers: company.users?.filter(u => u.isActive()).length || 0,
+      activeUsers: company.users?.filter((u) => u.isActive()).length || 0,
     };
   }
 

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { Department } from '@database/entities/department.entity';
 import { ErrorMessages } from '@common/exceptions/error-messages';
+
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 

@@ -12,13 +12,21 @@ import {
   FileTypeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { StorageService } from '@modules/storage/storage.service';
-import { JwtAuthGuard } from '@/modules/core/auth/guards/jwt-auth.guard';
-import { CurrentUser } from '@/modules/core/auth/decorators/current-user.decorator';
-import type { AuthorizedUser } from '@/modules/core/auth/auth.types';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 
-import { UsersService } from '../../core/users/users.service';
+import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
+import { UsersService } from '@modules/core/users/users.service';
+import type { AuthorizedUser } from '@common/types/authorized-user.type';
+
+import { StorageService } from '../storage.service';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -28,7 +36,7 @@ export class AvatarController {
   constructor(
     private readonly _storageService: StorageService,
     private readonly _usersService: UsersService,
-  ) { }
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Upload user avatar' })
@@ -65,7 +73,7 @@ export class AvatarController {
     const { url } = await this._storageService.uploadAvatar(
       file,
       `${currentUser.companyId}/${currentUser.email}`,
-      user.avatar
+      user.avatar,
     );
 
     await this._usersService.update(user.id, { avatar: url }, currentUser);
@@ -73,7 +81,7 @@ export class AvatarController {
     return {
       success: true,
       avatar: url,
-      message: 'Avatar uploaded successfully'
+      message: 'Avatar uploaded successfully',
     };
   }
 
@@ -97,7 +105,7 @@ export class AvatarController {
 
     return {
       success: true,
-      message: 'Avatar deleted successfully'
+      message: 'Avatar deleted successfully',
     };
   }
 }

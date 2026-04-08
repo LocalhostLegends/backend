@@ -1,7 +1,9 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+
 import { AuthSchema } from './auth.schema';
-import { UserResponse } from '@/modules/core/users/swagger/user.schema';
+
+import { UserResponse } from '../../users/swagger/user.schema';
 
 export const AuthSwagger = {
   register: () =>

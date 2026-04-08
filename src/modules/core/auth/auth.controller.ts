@@ -3,21 +3,23 @@ import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Response, Request } from 'express';
 
+import { UserRole } from '@common/enums/user-role.enum';
+import type { AuthorizedUser } from '@common/types/authorized-user.type';
+import { User } from '@database/entities/user.entity';
+
+import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
-import { RolesGuard } from './guards/roles.guard';
-import { Roles } from './decorators/roles.decorator';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { AuthService } from './auth.service';
-import { UserRole } from '@/database/enums';
-
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { ActivateUserDto } from './dto/activate-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { CreateHrDto } from './dto/create-hr.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
-import type { AuthResponse, AuthorizedUser } from './auth.types';
-import { User } from '@/database/entities';
+import type { AuthResponse } from './auth.types';
+
+import { UserRolesGuard } from '../users/guards/user-roles.guard';
+import { UserRoles } from '../users/decorators/user-roles.decorator';
+import { CurrentUser } from '../users/decorators/current-user.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -25,12 +27,15 @@ export class AuthController {
   constructor(
     private readonly _authService: AuthService,
     private readonly _configService: ConfigService,
-  ) { }
+  ) {}
 
   @Post('register-company')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new company with admin user' })
-  @ApiResponse({ status: HttpStatus.CREATED, description: 'Company and admin created successfully' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Company and admin created successfully',
+  })
   async registerCompany(
     @Body() registerDto: RegisterCompanyDto,
     @Res({ passthrough: true }) res: Response,
@@ -69,8 +74,8 @@ export class AuthController {
   }
 
   @Post('hr')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UserRoles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create HR user (ADMIN only)' })
   @ApiResponse({ status: HttpStatus.CREATED, description: 'HR user created successfully' })
@@ -82,8 +87,8 @@ export class AuthController {
   }
 
   @Post('employee')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.HR)
+  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create employee user (ADMIN or HR only)' })
   @ApiResponse({ status: HttpStatus.CREATED, description: 'Employee user created successfully' })
@@ -113,9 +118,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout user' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Logged out successfully' })
-  async logout(
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<{ message: string }> {
+  async logout(@Res({ passthrough: true }) res: Response): Promise<{ message: string }> {
     res.clearCookie('refresh_token', {
       httpOnly: true,
       secure: this._configService.get('NODE_ENV') === 'production',

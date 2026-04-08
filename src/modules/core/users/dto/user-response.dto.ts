@@ -1,9 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { UserRole, UserStatus } from '@/database/enums';
-import { DepartmentResponseDto } from '@/modules/organization/departments/dto/department-response.dto';
-import { PositionResponseDto } from '@/modules/organization';
-import { CompanyResponseDto } from '@/modules/organization/companies/dto/company-response.dto';
+
+import { UserRole } from '@common/enums/user-role.enum';
+import { UserStatus } from '@database/enums/user-status.enum';
+import { DepartmentResponseDto } from '@modules/organization/departments/dto/department-response.dto';
+import { PositionResponseDto } from '@modules/organization/positions/dto/position-response.dto';
+import { CompanyResponseDto } from '@modules/organization/companies/dto/company-response.dto';
 
 export class UserResponseDto {
   @Expose()

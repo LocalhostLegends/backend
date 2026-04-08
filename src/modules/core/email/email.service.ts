@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
-import { Transporter } from 'nodemailer';
+import { Transporter, createTransport } from 'nodemailer';
+import { SentMessageInfo } from 'nodemailer/lib/smtp-transport';
 
 import { getInviteEmailTemplate } from './templates/invite-email.template';
 import { getWelcomeEmailTemplate } from './templates/welcome-email.template';
@@ -9,32 +9,34 @@ import { getWelcomeEmailTemplate } from './templates/welcome-email.template';
 @Injectable()
 export class EmailService {
   private readonly _logger = new Logger(EmailService.name);
-  private _transporter: Transporter;
+
   private readonly _fromEmail: string;
   private readonly _fromName: string;
 
+  private _transporter: Transporter<SentMessageInfo>;
+
   constructor(private readonly _configService: ConfigService) {
-    this._fromEmail = this._configService.get('SMTP_FROM_EMAIL')!;
-    this._fromName = this._configService.get('SMTP_FROM_NAME') || 'SaaS Platform';
+    this._fromEmail = this._configService.get<string>('smtp.fromEmail')!;
+    this._fromName = this._configService.get<string>('smtp.fromName') || 'SaaS Platform';
 
     this._initializeTransporter();
   }
 
   private _initializeTransporter(): void {
-    const host = this._configService.get('SMTP_HOST');
-    const port = this._configService.get('SMTP_PORT');
-    const user = this._configService.get('SMTP_USER');
-    const pass = this._configService.get('SMTP_PASS');
+    const host = this._configService.get<string>('smtp.host');
+    const port = this._configService.get<string>('smtp.port');
+    const user = this._configService.get<string>('smtp.user');
+    const pass = this._configService.get<string>('smtp.pass');
 
-    if (!host || !user || !pass) {
+    if (!host || !port || !user || !pass) {
       this._logger.warn('SMTP credentials not configured. Email service will be disabled.');
       return;
     }
 
-    this._transporter = nodemailer.createTransport({
+    this._transporter = createTransport({
       host,
       port: parseInt(port) || 587,
-      secure: this._configService.get('SMTP_SECURE') === 'true',
+      secure: this._configService.get('smtp.secure') === 'true',
       auth: {
         user,
         pass,
@@ -73,7 +75,12 @@ export class EmailService {
     });
   }
 
-  private async _sendEmail(dto: { to: string; subject: string; html: string; text?: string }): Promise<void> {
+  private async _sendEmail(dto: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }): Promise<void> {
     if (!this._transporter) {
       this._logger.warn(`Email not sent to ${dto.to}: SMTP not configured`);
       return;
@@ -96,7 +103,10 @@ export class EmailService {
   }
 
   private _stripHtml(html: string): string {
-    return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    return html
+      .replace(/<[^>]*>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   async testConnection(): Promise<boolean> {

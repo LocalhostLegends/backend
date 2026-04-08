@@ -11,10 +11,13 @@ import {
   BeforeInsert,
 } from 'typeorm';
 
-import { UserStatus, UserRole } from '../enums';
+import { UserRole } from '@common/enums/user-role.enum';
+
 import { Department } from './department.entity';
 import { Position } from './position.entity';
 import { Company } from './company.entity';
+
+import { UserStatus } from '../enums/user-status.enum';
 
 @Entity('users')
 @Index(['company', 'email'], { unique: true })

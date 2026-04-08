@@ -10,6 +10,7 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
+
 import { Company } from './company.entity';
 import { User } from './user.entity';
 

@@ -1,22 +1,30 @@
-import { Injectable, UnauthorizedException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 
-import { UsersService } from '@/modules/core/users/users.service';
-import { CompaniesService } from '@/modules/organization/companies/companies.service';
-import { EmailService } from '@/modules/core/email/email.service';
-import { InviteService } from '../invite/invite.service';
-import { TokenService } from '@/modules/core/token/token.service';
+import { UserRole } from '@common/enums/user-role.enum';
+import { AuthorizedUser } from '@common/types/authorized-user.type';
+import { UserStatus } from '@database/enums/user-status.enum';
 import { User } from '@database/entities/user.entity';
-import { UserStatus, UserRole } from '@/database/enums';
+import { CompaniesService } from '@modules/organization/companies/companies.service';
 
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { ActivateUserDto } from './dto/activate-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { CreateHrDto } from './dto/create-hr.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
-import { JwtPayload, JwtRefreshPayload, AuthResponse, AuthorizedUser } from './auth.types';
+import { JwtPayload, JwtRefreshPayload, AuthResponse } from './auth.types';
+
+import { TokenService } from '../token/token.service';
+import { EmailService } from '../email/email.service';
+import { UsersService } from '../users/users.service';
+import { InviteService } from '../invite/invite.service';
 
 @Injectable()
 export class AuthService {
@@ -28,7 +36,7 @@ export class AuthService {
     private readonly _tokenService: TokenService,
     private readonly _jwtService: JwtService,
     private readonly _configService: ConfigService,
-  ) { }
+  ) {}
 
   async registerCompany(registerDto: RegisterCompanyDto): Promise<AuthResponse> {
     const existingAdmin = await this._usersService.findFirstAdmin();
@@ -62,11 +70,7 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponse> {
-    const userWithPassword = await this._usersService.findByEmail(
-      loginDto.email,
-      undefined,
-      true,
-    );
+    const userWithPassword = await this._usersService.findByEmail(loginDto.email, undefined, true);
 
     if (!userWithPassword) {
       throw new UnauthorizedException('Invalid credentials');
@@ -107,11 +111,7 @@ export class AuthService {
 
   async activateUser(activateDto: ActivateUserDto, ip?: string): Promise<AuthResponse> {
     // Activate the user via UsersService (works with TokenService)
-    const user = await this._usersService.activateUser(
-      activateDto.token,
-      activateDto.password,
-      ip,
-    );
+    const user = await this._usersService.activateUser(activateDto.token, activateDto.password, ip);
 
     const loginLink = `${this._configService.get('FRONTEND_URL')}/login`;
     await this._emailService.sendWelcome(user.email, user.firstName, loginLink);
@@ -143,7 +143,10 @@ export class AuthService {
     return user!;
   }
 
-  async createEmployee(createEmployeeDto: CreateEmployeeDto, currentUser: AuthorizedUser): Promise<User> {
+  async createEmployee(
+    createEmployeeDto: CreateEmployeeDto,
+    currentUser: AuthorizedUser,
+  ): Promise<User> {
     if (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.HR) {
       throw new ForbiddenException('Only ADMIN or HR can create employee users');
     }
@@ -160,7 +163,10 @@ export class AuthService {
     );
 
     // Return the created user (still in INVITED status)
-    const user = await this._usersService.findByEmail(createEmployeeDto.email, currentUser.companyId);
+    const user = await this._usersService.findByEmail(
+      createEmployeeDto.email,
+      currentUser.companyId,
+    );
     return user!;
   }
 

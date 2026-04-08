@@ -10,20 +10,15 @@ import {
   ParseUUIDPipe,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 
-import { JwtAuthGuard } from '@/modules/core/auth/guards/jwt-auth.guard';
-import { RolesGuard } from '@/modules/core/auth/guards/roles.guard';
-import { Roles } from '@/modules/core/auth/decorators/roles.decorator';
-import { CurrentUser } from '@/modules/core/auth/decorators/current-user.decorator';
-import { UserRole } from '@/database/enums';
-import * as authTypes from '@/modules/core/auth/auth.types';
+import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
+import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
+import { UserRoles } from '@modules/core/users/decorators/user-roles.decorator';
+import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
+import { UserRole } from '@common/enums/user-role.enum';
+import type { AuthorizedUser } from '@common/types/authorized-user.type';
 
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
@@ -32,13 +27,13 @@ import { CompanyResponseDto } from './dto/company-response.dto';
 
 @ApiTags('Companies')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, UserRolesGuard)
 @Controller('companies')
 export class CompaniesController {
-  constructor(private readonly _companiesService: CompaniesService) { }
+  constructor(private readonly _companiesService: CompaniesService) {}
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  @UserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new company' })
   @ApiResponse({ status: 201, type: CompanyResponseDto })
   async create(
@@ -51,7 +46,7 @@ export class CompaniesController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN)
+  @UserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get all companies' })
   @ApiResponse({ status: 200, type: [CompanyResponseDto] })
   async findAll(): Promise<CompanyResponseDto[]> {
@@ -62,12 +57,10 @@ export class CompaniesController {
   }
 
   @Get('my-company')
-  @Roles(UserRole.ADMIN, UserRole.HR, UserRole.EMPLOYEE)
+  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.EMPLOYEE)
   @ApiOperation({ summary: 'Get current user company' })
   @ApiResponse({ status: 200, type: CompanyResponseDto })
-  async getMyCompany(
-    @CurrentUser() currentUser: authTypes.AuthorizedUser,
-  ): Promise<CompanyResponseDto> {
+  async getMyCompany(@CurrentUser() currentUser: AuthorizedUser): Promise<CompanyResponseDto> {
     const company = await this._companiesService.findById(currentUser.companyId);
     return plainToInstance(CompanyResponseDto, company, {
       excludeExtraneousValues: true,
@@ -75,19 +68,17 @@ export class CompaniesController {
   }
 
   @Get('stats')
-  @Roles(UserRole.ADMIN)
+  @UserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get company statistics' })
-  async getStats(@CurrentUser() currentUser: authTypes.AuthorizedUser) {
+  async getStats(@CurrentUser() currentUser: AuthorizedUser) {
     return this._companiesService.getCompanyStats(currentUser.companyId);
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN)
+  @UserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get company by ID' })
   @ApiResponse({ status: 200, type: CompanyResponseDto })
-  async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<CompanyResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<CompanyResponseDto> {
     const company = await this._companiesService.findById(id);
     return plainToInstance(CompanyResponseDto, company, {
       excludeExtraneousValues: true,
@@ -95,7 +86,7 @@ export class CompaniesController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN)
+  @UserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update company' })
   @ApiResponse({ status: 200, type: CompanyResponseDto })
   async update(
@@ -109,7 +100,7 @@ export class CompaniesController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @UserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete company (soft delete)' })
   @ApiResponse({ status: 204 })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
@@ -117,7 +108,7 @@ export class CompaniesController {
   }
 
   @Post(':id/subscription')
-  @Roles(UserRole.ADMIN)
+  @UserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update company subscription' })
   async updateSubscription(
     @Param('id', ParseUUIDPipe) id: string,

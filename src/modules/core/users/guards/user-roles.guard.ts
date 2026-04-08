@@ -1,14 +1,17 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '@/database/enums';
-import { ROLES_KEY } from '../decorators/roles.decorator';
+
+import { UserRole } from '@common/enums/user-role.enum';
+import { RequestWithUser } from '@common/types/request-with-user.type';
+
+import { USER_ROLES_KEY } from '../decorators/user-roles.decorator';
 
 @Injectable()
-export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) { }
+export class UserRolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(USER_ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
@@ -17,7 +20,7 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = context.switchToHttp().getRequest<RequestWithUser>();
 
     if (!user) {
       throw new ForbiddenException('User not found in request');

@@ -1,6 +1,0 @@
-export { Company } from './company.entity'
-export { Department } from './department.entity'
-export { Invite } from './invite.entity'
-export { Position } from './position.entity'
-export { Token } from './token.entity'
-export { User } from './user.entity'

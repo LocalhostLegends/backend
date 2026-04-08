@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { User } from '@database/entities/user.entity';
-import { UserRole } from '@/database/enums';
+import { UserRole } from '@common/enums/user-role.enum';
 
 export class UserResponse implements Partial<User> {
   @ApiProperty({

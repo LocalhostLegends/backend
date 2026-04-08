@@ -12,30 +12,31 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import type { Request } from 'express';
 
-import { JwtAuthGuard } from '@/modules/core/auth/guards/jwt-auth.guard';
-import { RolesGuard } from '@/modules/core/auth/guards/roles.guard';
-import { Roles } from '@/modules/core/auth/decorators/roles.decorator';
-import { CurrentUser } from '@/modules/core/auth/decorators/current-user.decorator';
-import { UserRole } from '@/database/enums';
-import type { AuthorizedUser } from '@/modules/core/auth/auth.types';
+import { UserRole } from '@common/enums/user-role.enum';
+import type { AuthorizedUser } from '@common/types/authorized-user.type';
 
 import { InviteService } from './invite.service';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { ResendInviteDto } from './dto/resend-invite.dto';
 import { ValidateInviteDto } from './dto/validate-invite.dto';
 import { InviteResponseDto } from './dto/invite-response.dto';
-import { plainToInstance } from 'class-transformer';
+
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UserRolesGuard } from '../users/guards/user-roles.guard';
+import { UserRoles } from '../users/decorators/user-roles.decorator';
+import { CurrentUser } from '../users/decorators/current-user.decorator';
 
 @ApiTags('Invites')
 @Controller('invites')
 export class InviteController {
-  constructor(private readonly _inviteService: InviteService) { }
+  constructor(private readonly _inviteService: InviteService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.HR)
+  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create a new invite' })
   @ApiResponse({ status: HttpStatus.CREATED, type: InviteResponseDto })
@@ -52,9 +53,7 @@ export class InviteController {
   @Get('validate')
   @ApiOperation({ summary: 'Validate invite token' })
   @ApiResponse({ status: HttpStatus.OK, type: InviteResponseDto })
-  async validateInvite(
-    @Query() query: ValidateInviteDto,
-  ): Promise<InviteResponseDto> {
+  async validateInvite(@Query() query: ValidateInviteDto): Promise<InviteResponseDto> {
     const invite = await this._inviteService.validateInvite(query.token);
     return plainToInstance(InviteResponseDto, invite, {
       excludeExtraneousValues: true,
@@ -81,8 +80,8 @@ export class InviteController {
   }
 
   @Post('resend')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.HR)
+  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Resend invite email' })
   @ApiResponse({ status: HttpStatus.OK, type: InviteResponseDto })
@@ -97,8 +96,8 @@ export class InviteController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.HR)
+  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Cancel invite' })
@@ -110,8 +109,8 @@ export class InviteController {
   }
 
   @Get('company')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.HR)
+  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all company invites' })
   @ApiResponse({ status: HttpStatus.OK, type: [InviteResponseDto] })
@@ -125,8 +124,8 @@ export class InviteController {
   }
 
   @Get('pending')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.HR)
+  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get pending invites' })
   @ApiResponse({ status: HttpStatus.OK, type: [InviteResponseDto] })

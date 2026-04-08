@@ -13,8 +13,10 @@ import {
   IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { UserRole, UserStatus } from '@/database/enums';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+
+import { UserRole } from '@common/enums/user-role.enum';
+import { UserStatus } from '@database/enums/user-status.enum';
 
 export class UserFilterDto {
   @ApiPropertyOptional({ description: 'Page number', example: 1 })

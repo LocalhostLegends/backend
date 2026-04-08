@@ -3,13 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
-import { User } from '../entities/user.entity';
-import { Department } from '../entities/department.entity';
-import { Position } from '../entities/position.entity';
-
 import { departmentsData } from './data/departments.data';
 import { positionsData } from './data/positions.data';
 import { usersData } from './data/users.data';
+
+import { User } from '../entities/user.entity';
+import { Department } from '../entities/department.entity';
+import { Position } from '../entities/position.entity';
 
 @Injectable()
 export class SeedService implements OnModuleInit {

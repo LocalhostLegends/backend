@@ -9,7 +9,9 @@ import {
   IsEnum,
   IsUrl,
 } from 'class-validator';
-import { UserRole, UserStatus } from '@/database/enums';
+
+import { UserRole } from '@common/enums/user-role.enum';
+import { UserStatus } from '@database/enums/user-status.enum';
 
 export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'John', maxLength: 100 })

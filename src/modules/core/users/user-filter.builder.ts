@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Brackets, SelectQueryBuilder } from 'typeorm';
+
 import { User } from '@database/entities/user.entity';
+import { UserStatus } from '@database/enums/user-status.enum';
+
 import { UserFilterDto } from './dto/user-filter.dto';
-import { UserStatus } from '@/database/enums';
 
 @Injectable()
 export class UserFilterBuilder {

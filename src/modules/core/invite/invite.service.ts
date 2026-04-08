@@ -1,20 +1,27 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 
-import { Invite } from '@/database/entities';
-import { InviteStatus } from '@/database/enums';
+import { Invite } from '@database/entities/invite.entity';
 import { Company } from '@database/entities/company.entity';
 import { User } from '@database/entities/user.entity';
-import { UserRole, UserStatus } from '@/database/enums';
-import { EmailService } from '@/modules/core/email/email.service';
-import { UsersService } from '@/modules/core/users/users.service';
+import { UserStatus } from '@database/enums/user-status.enum';
+import { TokenType } from '@database/enums/token-type.enum';
+import { InviteStatus } from '@database/enums/invite-status.enum';
+import { UserRole } from '@common/enums/user-role.enum';
+import type { AuthorizedUser } from '@common/types/authorized-user.type';
 
 import { CreateInviteDto } from './dto/create-invite.dto';
-import { AuthorizedUser } from '@/modules/core/auth/auth.types';
+
+import { EmailService } from '../email/email.service';
+import { UsersService } from '../users/users.service';
 import { TokenService } from '../token/token.service';
-import { TokenType } from '@/database/enums';
 
 @Injectable()
 export class InviteService {
@@ -25,21 +32,15 @@ export class InviteService {
     private readonly _companyRepository: Repository<Company>,
     private readonly _emailService: EmailService,
     private readonly _usersService: UsersService,
-    private readonly _tokenService: TokenService
-  ) { }
+    private readonly _tokenService: TokenService,
+  ) {}
 
-  async createInvite(
-    dto: CreateInviteDto,
-    currentUser: AuthorizedUser,
-  ): Promise<Invite> {
+  async createInvite(dto: CreateInviteDto, currentUser: AuthorizedUser): Promise<Invite> {
     if (currentUser.role === UserRole.HR && dto.role === UserRole.ADMIN) {
       throw new ForbiddenException('HR cannot invite ADMIN users');
     }
 
-    const existingUser = await this._usersService.findByEmail(
-      dto.email,
-      currentUser.companyId,
-    );
+    const existingUser = await this._usersService.findByEmail(dto.email, currentUser.companyId);
 
     if (existingUser && existingUser.status !== UserStatus.INVITED) {
       throw new BadRequestException('User with this email already exists and is active');
@@ -89,12 +90,7 @@ export class InviteService {
 
     const savedInvite = result.generatedMaps[0] as Invite;
 
-    await this._tokenService.createToken(
-      null,
-      TokenType.ACTIVATION,
-      48,
-      token,
-    );
+    await this._tokenService.createToken(null, TokenType.ACTIVATION, 48, token);
 
     const inviteLink = `${process.env.FRONTEND_URL}/auth/accept-invite?token=${token}`;
     await this._emailService.sendInviteEmail(
@@ -150,21 +146,14 @@ export class InviteService {
     const invite = await this.validateInvite(token);
 
     // ✅ доступ к id через invite.company.id
-    const existingUser = await this._usersService.findByEmail(
-      invite.email,
-      invite.company.id,
-    );
+    const existingUser = await this._usersService.findByEmail(invite.email, invite.company.id);
 
     if (existingUser && existingUser.status === UserStatus.ACTIVE) {
       throw new BadRequestException('User already exists and is active');
     }
 
     if (existingUser && existingUser.status === UserStatus.INVITED) {
-      const activatedUser = await this._usersService.activateUser(
-        token,
-        password,
-        ip,
-      );
+      const activatedUser = await this._usersService.activateUser(token, password, ip);
 
       invite.status = InviteStatus.ACCEPTED;
       invite.acceptedAt = new Date();
@@ -183,11 +172,7 @@ export class InviteService {
       invite.invitedBy.id,
     );
 
-    const activatedUser = await this._usersService.activateUser(
-      token,
-      password,
-      ip,
-    );
+    const activatedUser = await this._usersService.activateUser(token, password, ip);
 
     invite.status = InviteStatus.ACCEPTED;
     invite.acceptedAt = new Date();

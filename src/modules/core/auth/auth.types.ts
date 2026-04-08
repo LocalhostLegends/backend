@@ -1,4 +1,4 @@
-import { UserRole } from '@/database/enums';
+import { UserRole } from '@common/enums/user-role.enum';
 
 export interface JwtPayload {
   sub: string;
@@ -15,13 +15,4 @@ export interface JwtRefreshPayload {
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
-}
-
-export interface AuthorizedUser {
-  id: string;
-  email: string;
-  role: UserRole;
-  companyId: string;
-  firstName?: string;
-  lastName?: string;
 }

@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+
 import { Position } from '@database/entities/position.entity';
 
 export class PositionResponse implements Partial<Position> {

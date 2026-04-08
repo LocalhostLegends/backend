@@ -6,8 +6,9 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  Index
+  Index,
 } from 'typeorm';
+
 import { User } from './user.entity';
 import { Department } from './department.entity';
 import { Position } from './position.entity';

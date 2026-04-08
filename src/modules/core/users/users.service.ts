@@ -6,28 +6,30 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, SelectQueryBuilder } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
 import { User } from '@database/entities/user.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
 import { Company } from '@database/entities/company.entity';
-// import { Token } from '@database/entities/token.entity';
-import { UserRole, UserStatus, TokenType, InviteStatus } from '@/database/enums';
+import { UserStatus } from '@database/enums/user-status.enum';
+import { TokenType } from '@database/enums/token-type.enum';
+import { InviteStatus } from '@database/enums/invite-status.enum';
+import { Invite } from '@database/entities/invite.entity';
 import { ErrorMessages } from '@common/exceptions/error-messages';
+import { UserRole } from '@common/enums/user-role.enum';
+import type { AuthorizedUser } from '@common/types/authorized-user.type';
+import { PaginationService } from '@common/pagination/pagination.service';
+import { PaginatedResult } from '@common/pagination/pagination.interface';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserFilterDto } from './dto/user-filter.dto';
-
-import { AuthorizedUser } from '../auth/auth.types';
-import { PaginationService } from '@common/pagination/pagination.service';
 import { UserFilterBuilder } from './user-filter.builder';
-import { PaginatedResult } from '@common/pagination/pagination.interface';
-import { EmailService } from '@/modules/core/email/email.service';
-import { TokenService } from '@/modules/core/token/token.service';
-import { Invite } from '@database/entities/invite.entity';
+
+import { EmailService } from '../email/email.service';
+import { TokenService } from '../token/token.service';
 
 @Injectable()
 export class UsersService {
@@ -42,7 +44,7 @@ export class UsersService {
     private readonly _userFilterBuilder: UserFilterBuilder,
     private readonly _emailService: EmailService,
     private readonly _tokenService: TokenService,
-  ) { }
+  ) {}
 
   async create(createUserDto: CreateUserDto, currentUser?: AuthorizedUser): Promise<User> {
     const companyId = currentUser?.companyId || createUserDto.companyId;
@@ -173,7 +175,9 @@ export class UsersService {
     }
 
     if (currentUser.role === UserRole.EMPLOYEE && currentUser.id !== id) {
-      throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('your own profile only'));
+      throw new ForbiddenException(
+        ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('your own profile only'),
+      );
     }
 
     if (currentUser.role === UserRole.HR && user.role === UserRole.ADMIN) {
@@ -196,7 +200,11 @@ export class UsersService {
     return user;
   }
 
-  async findByEmail(email: string, companyId?: string, includePassword: boolean = false): Promise<User | null> {
+  async findByEmail(
+    email: string,
+    companyId?: string,
+    includePassword: boolean = false,
+  ): Promise<User | null> {
     const queryBuilder = this._usersRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.company', 'company')
@@ -461,7 +469,7 @@ export class UsersService {
   }
 
   private _applyRoleBasedAccess(
-    queryBuilder: any,
+    queryBuilder: SelectQueryBuilder<User>,
     currentUser: AuthorizedUser,
   ): void {
     switch (currentUser.role) {
@@ -487,10 +495,10 @@ export class UsersService {
 
     await this._emailService.sendInviteEmail(
       user.email,
-      user.role,           // role
-      user.company.name,   // companyName
-      user.firstName,      // invitedByName (who invite)
-      activationLink,      // inviteLink
+      user.role, // role
+      user.company.name, // companyName
+      user.firstName, // invitedByName (who invite)
+      activationLink, // inviteLink
     );
   }
 }

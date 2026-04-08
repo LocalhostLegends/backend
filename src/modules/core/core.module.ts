@@ -12,6 +12,9 @@ import { Company } from '@database/entities/company.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
 
+// Common
+import { PaginationService } from '@common/pagination/pagination.service';
+
 // Users
 import { UsersService } from './users/users.service';
 import { UsersController } from './users/users.controller';
@@ -33,13 +36,11 @@ import { TokenService } from './token/token.service';
 // Email
 import { EmailService } from './email/email.service';
 
-// Common
-import { PaginationService } from '@common/pagination/pagination.service';
-
 // Health
 import { HealthController } from './health/health.controller';
 
-import { CompaniesService } from '../organization/companies/companies.service';
+// Organization
+import { OrganizationModule } from '../organization/organization.module';
 
 @Module({
   imports: [
@@ -54,13 +55,10 @@ import { CompaniesService } from '../organization/companies/companies.service';
       }),
       inject: [ConfigService],
     }),
+
+    OrganizationModule,
   ],
-  controllers: [
-    HealthController,
-    UsersController,
-    AuthController,
-    InviteController,
-  ],
+  controllers: [HealthController, UsersController, AuthController, InviteController],
   providers: [
     // Services
     UsersService,
@@ -68,21 +66,15 @@ import { CompaniesService } from '../organization/companies/companies.service';
     InviteService,
     TokenService,
     EmailService,
-    CompaniesService,
+
     // Builders
     UserFilterBuilder,
     PaginationService,
+
     // Strategies
     JwtStrategy,
     JwtRefreshStrategy,
   ],
-  exports: [
-    UsersService,
-    AuthService,
-    InviteService,
-    TokenService,
-    EmailService,
-    JwtModule,
-  ],
+  exports: [UsersService, AuthService, InviteService, TokenService, EmailService, JwtModule],
 })
-export class CoreModule { }
+export class CoreModule {}

@@ -1,7 +1,4 @@
-export const getWelcomeEmailTemplate = (
-  firstName: string,
-  loginLink: string,
-): string => {
+export const getWelcomeEmailTemplate = (firstName: string, loginLink: string): string => {
   return `
     <!DOCTYPE html>
     <html>

@@ -4,14 +4,15 @@ import { Repository, LessThan } from 'typeorm';
 import { randomUUID } from 'crypto';
 
 import { Token } from '@database/entities/token.entity';
-import { TokenType } from '@/database/enums';
+import { TokenType } from '@database/enums/token-type.enum';
+import { User } from '@database/entities/user.entity';
 
 @Injectable()
 export class TokenService {
   constructor(
     @InjectRepository(Token)
     private readonly _tokenRepository: Repository<Token>,
-  ) { }
+  ) {}
 
   async createToken(
     userId: string | null,
@@ -29,7 +30,7 @@ export class TokenService {
     tokenEntity.isUsed = false;
 
     if (userId) {
-      tokenEntity.user = { id: userId } as any;
+      tokenEntity.user = { id: userId } as User;
     }
 
     const savedToken = await this._tokenRepository.save(tokenEntity);
@@ -66,7 +67,8 @@ export class TokenService {
   }
 
   async revokeUserTokens(userId: string, type?: TokenType): Promise<number> {
-    const where: any = { userId, isUsed: false };
+    const where: { userId: string; isUsed: false; type?: TokenType } = { userId, isUsed: false };
+
     if (type) {
       where.type = type;
     }

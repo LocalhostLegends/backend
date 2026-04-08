@@ -19,7 +19,9 @@ export class StorageService {
     const publicUrl = configService.get<string>('STORAGE_PUBLIC_URL');
     const endpoint = configService.get<string>('STORAGE_ENDPOINT');
 
-    this.logger.log(`Storage config: bucket=${bucket}, publicUrl=${publicUrl}, endpoint=${endpoint}`);
+    this.logger.log(
+      `Storage config: bucket=${bucket}, publicUrl=${publicUrl}, endpoint=${endpoint}`,
+    );
 
     if (!accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
       this.logger.error('Missing Storage configuration');
@@ -47,7 +49,9 @@ export class StorageService {
       forcePathStyle: true,
     });
 
-    this.logger.log(`✅ Storage initialized with ${this.isUsedCloudflare ? 'Cloudflare R2' : 'MinIO'}`);
+    this.logger.log(
+      `✅ Storage initialized with ${this.isUsedCloudflare ? 'Cloudflare R2' : 'MinIO'}`,
+    );
   }
 
   private sanitizeEmail(email: string): string {

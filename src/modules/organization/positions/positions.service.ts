@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { Position } from '@database/entities/position.entity';
 import { ErrorMessages } from '@common/exceptions/error-messages';
+
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
 
