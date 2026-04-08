@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Company } from '@database/entities/company.entity';
+import { ErrorMessages } from '@common/exceptions/error-messages';
 
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -38,7 +39,7 @@ export class CompaniesService {
     });
 
     if (!company) {
-      throw new NotFoundException(`Company with ID ${id} not found`);
+      throw new NotFoundException(ErrorMessages.COMPANY_WITH_ID_NOT_FOUND(id));
     }
 
     return company;

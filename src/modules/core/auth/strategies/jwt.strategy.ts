@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 
 import { AuthorizedUser } from '@common/types/authorized-user.type';
+import { ErrorMessages } from '@common/exceptions/error-messages';
 import { UserStatus } from '@database/enums/user-status.enum';
 
 import { UsersService } from '../../users/users.service';
@@ -38,15 +39,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const user = await this._usersService.findById(payload.sub);
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException(ErrorMessages.USER_WITH_ID_NOT_FOUND(payload.sub));
     }
 
     if (user.status !== UserStatus.ACTIVE) {
-      throw new UnauthorizedException('User account is not active');
+      throw new UnauthorizedException(ErrorMessages.USER_NOT_ACTIVE);
     }
 
     if (user.deletedAt) {
-      throw new UnauthorizedException('User account has been deleted');
+      throw new UnauthorizedException(ErrorMessages.USER_DELETED);
     }
 
     return {

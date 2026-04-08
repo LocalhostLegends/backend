@@ -171,17 +171,17 @@ export class UsersService {
     const user = await this.findById(id);
 
     if (user.company.id !== currentUser.companyId) {
-      throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('this company'));
+      throw new ForbiddenException(ErrorMessages.FORBIDDEN_NON_OWNERSHIP_ACCESS('this company'));
     }
 
     if (currentUser.role === UserRole.EMPLOYEE && currentUser.id !== id) {
       throw new ForbiddenException(
-        ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('your own profile only'),
+        ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(`${UserRole.HR} or ${UserRole.ADMIN}`),
       );
     }
 
     if (currentUser.role === UserRole.HR && user.role === UserRole.ADMIN) {
-      throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('admin users'));
+      throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(UserRole.ADMIN));
     }
 
     return user;
@@ -194,7 +194,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException(ErrorMessages.USER_NOT_FOUND(id));
+      throw new NotFoundException(ErrorMessages.USER_WITH_ID_NOT_FOUND(id));
     }
 
     return user;
@@ -438,7 +438,7 @@ export class UsersService {
     });
 
     if (!company) {
-      throw new NotFoundException(`Company with ID ${id} not found`);
+      throw new NotFoundException(ErrorMessages.COMPANY_WITH_ID_NOT_FOUND(id));
     }
 
     return company;

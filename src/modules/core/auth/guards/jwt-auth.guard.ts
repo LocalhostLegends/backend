@@ -2,6 +2,7 @@ import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/com
 import { AuthGuard } from '@nestjs/passport';
 
 import { User } from '@database/entities/user.entity';
+import { ErrorMessages } from '@common/exceptions/error-messages';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -15,7 +16,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     _: Error | string | null, // info
   ): UserType {
     if (err || !user) {
-      throw err || new UnauthorizedException('Invalid or expired token');
+      throw err || new UnauthorizedException(ErrorMessages.INVALID_TOKEN);
     }
     return user;
   }

@@ -41,15 +41,15 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       const user = await this._usersService.findById(payload.sub);
 
       if (!user) {
-        throw new UnauthorizedException('User not found');
+        throw new UnauthorizedException(ErrorMessages.USER_WITH_ID_NOT_FOUND(payload.sub));
       }
 
       if (user.status !== UserStatus.ACTIVE) {
-        throw new UnauthorizedException('User account is not active');
+        throw new UnauthorizedException(ErrorMessages.USER_NOT_ACTIVE);
       }
 
       if (user.deletedAt) {
-        throw new UnauthorizedException('User account has been deleted');
+        throw new UnauthorizedException(ErrorMessages.USER_DELETED);
       }
 
       return {

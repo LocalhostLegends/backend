@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core';
 
 import { UserRole } from '../enums/user-role.enum';
 import { RequestWithUser } from '../types/request-with-user.type';
+import { ErrorMessages } from '../exceptions/error-messages';
 
 @Injectable()
 export class UserRolesGuard implements CanActivate {
@@ -35,13 +36,13 @@ export class UserRolesGuard implements CanActivate {
     this.logger.log(`User from request: ${JSON.stringify(user)}`);
 
     if (!user) {
-      throw new ForbiddenException('User not found');
+      throw new ForbiddenException(ErrorMessages.USER_NOT_FOUND);
     }
 
     this.logger.log(`User role: ${user.role}`);
 
     if (user.role !== requiredRole) {
-      throw new ForbiddenException(`This endpoint requires ${requiredRole} role`);
+      throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(requiredRole, false));
     }
 
     return true;

@@ -15,6 +15,7 @@ import { UserStatus } from '@database/enums/user-status.enum';
 import { TokenType } from '@database/enums/token-type.enum';
 import { InviteStatus } from '@database/enums/invite-status.enum';
 import { UserRole } from '@common/enums/user-role.enum';
+import { ErrorMessages } from '@common/exceptions/error-messages';
 import type { AuthorizedUser } from '@common/types/authorized-user.type';
 
 import { CreateInviteDto } from './dto/create-invite.dto';
@@ -37,13 +38,15 @@ export class InviteService {
 
   async createInvite(dto: CreateInviteDto, currentUser: AuthorizedUser): Promise<Invite> {
     if (currentUser.role === UserRole.HR && dto.role === UserRole.ADMIN) {
-      throw new ForbiddenException('HR cannot invite ADMIN users');
+      throw new ForbiddenException(ErrorMessages.FORBIDDEN_INVITE_ADMIN);
     }
 
     const existingUser = await this._usersService.findByEmail(dto.email, currentUser.companyId);
 
     if (existingUser && existingUser.status !== UserStatus.INVITED) {
-      throw new BadRequestException('User with this email already exists and is active');
+      throw new BadRequestException(
+        ErrorMessages.USER_EMAIL_EXISTS_AND_INVITED(existingUser.email),
+      );
     }
 
     const existingInvite = await this._inviteRepository.findOne({
@@ -55,7 +58,7 @@ export class InviteService {
     });
 
     if (existingInvite) {
-      throw new BadRequestException('An active invite already exists for this email');
+      throw new BadRequestException(ErrorMessages.ACTIVE_INVITE_EXISTS(dto.email));
     }
 
     const company = await this._companyRepository.findOne({
@@ -63,7 +66,7 @@ export class InviteService {
     });
 
     if (!company) {
-      throw new NotFoundException('Company not found');
+      throw new NotFoundException(ErrorMessages.COMPANY_NOT_FOUND);
     }
 
     const token = randomUUID();
@@ -107,7 +110,7 @@ export class InviteService {
     });
 
     if (!loadedInvite) {
-      throw new NotFoundException('Invite not found after creation');
+      throw new NotFoundException(ErrorMessages.INVITE_NOT_FOUND);
     }
 
     return loadedInvite;
@@ -120,17 +123,17 @@ export class InviteService {
     });
 
     if (!invite) {
-      throw new NotFoundException('Invalid invite token');
+      throw new NotFoundException(ErrorMessages.INVALID_INVITE_TOKEN);
     }
 
     if (invite.status !== InviteStatus.PENDING) {
-      throw new BadRequestException(`Invite is already ${invite.status}`);
+      throw new BadRequestException(ErrorMessages.INVITE_STATUS(invite.status));
     }
 
     if (invite.expiresAt < new Date()) {
       invite.status = InviteStatus.EXPIRED;
       await this._inviteRepository.save(invite);
-      throw new BadRequestException('Invite has expired');
+      throw new BadRequestException(ErrorMessages.INVITE_HAS_EXPIRED);
     }
 
     return invite;
@@ -149,7 +152,7 @@ export class InviteService {
     const existingUser = await this._usersService.findByEmail(invite.email, invite.company.id);
 
     if (existingUser && existingUser.status === UserStatus.ACTIVE) {
-      throw new BadRequestException('User already exists and is active');
+      throw new BadRequestException(ErrorMessages.USER_EMAIL_EXISTS_AND_ACTIVE(existingUser.email));
     }
 
     if (existingUser && existingUser.status === UserStatus.INVITED) {
@@ -189,11 +192,11 @@ export class InviteService {
     });
 
     if (!invite) {
-      throw new NotFoundException('Invite not found');
+      throw new NotFoundException(ErrorMessages.INVITE_NOT_FOUND);
     }
 
     if (invite.status !== InviteStatus.PENDING) {
-      throw new BadRequestException(`Cannot resend ${invite.status} invite`);
+      throw new BadRequestException(ErrorMessages.FORBIDDEN_RESEND_INVITE(invite.status));
     }
 
     invite.expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
@@ -219,11 +222,11 @@ export class InviteService {
     });
 
     if (!invite) {
-      throw new NotFoundException('Invite not found');
+      throw new NotFoundException(ErrorMessages.INVITE_NOT_FOUND);
     }
 
     if (invite.status !== InviteStatus.PENDING) {
-      throw new BadRequestException(`Cannot cancel ${invite.status} invite`);
+      throw new BadRequestException(ErrorMessages.FORBIDDEN_CANCEL_INVITE(invite.status));
     }
 
     invite.status = InviteStatus.CANCELLED;

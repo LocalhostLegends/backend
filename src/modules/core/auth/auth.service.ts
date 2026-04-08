@@ -10,6 +10,7 @@ import * as bcrypt from 'bcryptjs';
 
 import { UserRole } from '@common/enums/user-role.enum';
 import { AuthorizedUser } from '@common/types/authorized-user.type';
+import { ErrorMessages } from '@common/exceptions/error-messages';
 import { UserStatus } from '@database/enums/user-status.enum';
 import { User } from '@database/entities/user.entity';
 import { CompaniesService } from '@modules/organization/companies/companies.service';
@@ -40,8 +41,9 @@ export class AuthService {
 
   async registerCompany(registerDto: RegisterCompanyDto): Promise<AuthResponse> {
     const existingAdmin = await this._usersService.findFirstAdmin();
+
     if (existingAdmin) {
-      throw new ConflictException('Registration is disabled. System already has an admin.');
+      throw new ConflictException(ErrorMessages.HAS_ADMIN);
     }
 
     const company = await this._companiesService.create({
@@ -73,32 +75,28 @@ export class AuthService {
     const userWithPassword = await this._usersService.findByEmail(loginDto.email, undefined, true);
 
     if (!userWithPassword) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(ErrorMessages.INVALID_CREDENTIALS);
     }
 
     const user = userWithPassword;
 
     if (user.status === UserStatus.INVITED) {
-      throw new UnauthorizedException(
-        'Please activate your account first. Check your email for activation link.',
-      );
+      throw new UnauthorizedException(ErrorMessages.USER_INVITED);
     }
 
     if (user.status === UserStatus.BLOCKED) {
-      throw new UnauthorizedException(
-        'Your account has been blocked. Please contact administrator.',
-      );
+      throw new UnauthorizedException(ErrorMessages.USER_BLOCKED);
     }
 
     if (user.deletedAt) {
-      throw new UnauthorizedException('Account not found');
+      throw new UnauthorizedException(ErrorMessages.USER_DELETED);
     }
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password!);
 
     if (!isPasswordValid) {
       await this._usersService.incrementFailedLoginAttempts(user.id);
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(ErrorMessages.INVALID_CREDENTIALS);
     }
 
     await this._usersService.updateLastLogin(user.id, loginDto.ipAddress || 'unknown');
@@ -124,7 +122,7 @@ export class AuthService {
 
   async createHr(createHrDto: CreateHrDto, currentUser: AuthorizedUser): Promise<User> {
     if (currentUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only ADMIN can create HR users');
+      throw new ForbiddenException(ErrorMessages.FORBIDDEN_CREATE_HR);
     }
 
     // Use InviteService to create an invitation
@@ -148,7 +146,7 @@ export class AuthService {
     currentUser: AuthorizedUser,
   ): Promise<User> {
     if (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.HR) {
-      throw new ForbiddenException('Only ADMIN or HR can create employee users');
+      throw new ForbiddenException(ErrorMessages.FORBIDDEN_CREATE_EMPLOYEE);
     }
 
     // Use InviteService to create an invitation
@@ -174,7 +172,7 @@ export class AuthService {
     const user = await this._usersService.findById(userId);
 
     if (!user.isActive()) {
-      throw new UnauthorizedException('User is not active');
+      throw new UnauthorizedException(ErrorMessages.USER_NOT_ACTIVE);
     }
 
     const accessToken = this._generateAccessToken(user);
