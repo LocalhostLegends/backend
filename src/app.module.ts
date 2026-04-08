@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CoreModule } from '@modules/core/core.module';
 import { StorageModule } from '@modules/storage/storage.module';
 import { OrganizationModule } from '@modules/organization/organization.module';
+import { SeedModule } from '@database/seed/seed.module';
 import configuration from '@config/configuration';
 
 @Module({
@@ -31,6 +32,8 @@ import configuration from '@config/configuration';
     CoreModule,
     OrganizationModule,
     StorageModule,
+
+    SeedModule,
   ],
 })
 export class AppModule {}
