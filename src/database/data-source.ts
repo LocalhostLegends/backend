@@ -2,7 +2,7 @@ import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
 
 dotenv.config({
-  path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development.local',
+  path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development',
 });
 
 const isProduction = process.env.NODE_ENV === 'production';

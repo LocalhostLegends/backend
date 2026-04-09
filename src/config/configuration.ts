@@ -46,4 +46,14 @@ export default () => ({
     publicUrl: process.env.STORAGE_PUBLIC_URL,
     endpoint: process.env.STORAGE_ENDPOINT,
   },
+
+  smtp: {
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    secure: process.env.SMTP_SECURE,
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+    fromEmail: process.env.SMTP_FROM_EMAIL,
+    fromName: process.env.SMTP_FROM_NAME,
+  },
 });

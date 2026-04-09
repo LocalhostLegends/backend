@@ -1,106 +1,39 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 
-import configuration from './config/configuration';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { UsersModule } from './modules/users/users.module';
-import { DepartmentsModule } from './modules/departments/departments.module';
-import { PositionsModule } from './modules/positions/positions.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { SeedModule } from './database/seed/seed.module';
-import { StorageModule } from './modules/storage/storage.module';
-import { HealthModule } from './modules/health/health.module';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
-
-interface DatabaseConfig {
-  url?: string;
-  ssl?: boolean | { rejectUnauthorized: boolean };
-  host?: string;
-  port?: number;
-  username?: string;
-  password?: string;
-  database?: string;
-}
+import { CoreModule } from '@modules/core/core.module';
+import { StorageModule } from '@modules/storage/storage.module';
+import { OrganizationModule } from '@modules/organization/organization.module';
+import { SeedModule } from '@database/seed/seed.module';
+import configuration from '@config/configuration';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 100,
-      },
-    ]),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
       load: [configuration],
+      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
     }),
-
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('DB_HOST'),
+        port: configService.get('DB_PORT'),
+        username: configService.get('DB_USERNAME'),
+        password: configService.get('DB_PASSWORD'),
+        database: configService.get('DB_DATABASE'),
+        entities: [__dirname + '/database/entities/**/*.entity{.ts,.js}'],
+        synchronize: false,
+        logging: configService.get('NODE_ENV') === 'development',
+      }),
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const databaseConfig = configService.get<DatabaseConfig>('database') ?? {};
-        const isProduction = configService.get<string>('nodeEnv') === 'production';
-
-        return {
-          type: 'postgres' as const,
-          ...(databaseConfig.url
-            ? {
-                url: databaseConfig.url,
-                ssl: databaseConfig.ssl,
-              }
-            : {
-                host: databaseConfig?.host,
-                port: databaseConfig?.port,
-                username: databaseConfig?.username,
-                password: databaseConfig?.password,
-                database: databaseConfig?.database,
-                ssl: isProduction ? { rejectUnauthorized: false } : false,
-              }),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: false,
-          migrationsRun: false,
-          migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-        };
-      },
     }),
+    CoreModule,
+    OrganizationModule,
     StorageModule,
 
-    UsersModule,
-
-    DepartmentsModule,
-
-    PositionsModule,
-
-    AuthModule,
-
     SeedModule,
-
-    HealthModule,
-  ],
-  controllers: [],
-  providers: [
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: ResponseInterceptor,
-    },
-    {
-      provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}
