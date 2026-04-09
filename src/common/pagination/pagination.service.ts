@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { SelectQueryBuilder, ObjectLiteral } from 'typeorm';
+
 import { PaginatedResult } from './pagination.interface';
 
 @Injectable()

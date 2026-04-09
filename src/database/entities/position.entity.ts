@@ -4,22 +4,56 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+  Index,
 } from 'typeorm';
 
+import { Company } from './company.entity';
+import { User } from './user.entity';
+
 @Entity('positions')
+@Index(['company', 'title'], { unique: true })
 export class Position {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 100, unique: true })
+  @Column({ type: 'varchar', length: 100 })
   title: string;
 
-  @Column({ nullable: true })
-  description: string;
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  code: string | null;
+
+  @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'company_id' })
+  company: Company;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  minSalary: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  maxSalary: number | null;
+
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  gradeLevel: string | null;
+
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
+  @OneToMany(() => User, (user) => user.position)
+  users: User[];
+
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date | null;
 }
