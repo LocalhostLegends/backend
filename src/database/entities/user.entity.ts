@@ -55,4 +55,19 @@ export class User {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date | null;
+
+  @Column({ name: 'last_login_ip', type: 'varchar', length: 255, nullable: true })
+  lastLoginIp?: string | null;
+
+  @Column({ name: 'last_login_user_agent', type: 'text', nullable: true })
+  lastLoginUserAgent?: string | null;
+
+  @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
+  lastLoginAt?: Date | null;
+
+  @Column({ name: 'last_failed_login_at', type: 'timestamp', nullable: true })
+  lastFailedLoginAt?: Date | null;
+
+  @Column({ name: 'failed_login_attempts', type: 'int', default: 0 })
+  failedLoginAttempts: number;
 }
