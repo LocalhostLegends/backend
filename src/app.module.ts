@@ -1,19 +1,17 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
-import configuration from './config/configuration';
+import { CoreModule } from '@modules/core/core.module';
+import { StorageModule } from '@modules/storage/storage.module';
+import { OrganizationModule } from '@modules/organization/organization.module';
+import { SeedModule } from '@database/seed/seed.module';
+import configuration from '@config/configuration';
+
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { UsersModule } from './modules/users/users.module';
-import { DepartmentsModule } from './modules/departments/departments.module';
-import { PositionsModule } from './modules/positions/positions.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { SeedModule } from './database/seed/seed.module';
-import { StorageModule } from './modules/storage/storage.module';
-import { HealthModule } from './modules/health/health.module';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
 
@@ -37,10 +35,9 @@ interface DatabaseConfig {
     ]),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
       load: [configuration],
+      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
     }),
-
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -56,35 +53,26 @@ interface DatabaseConfig {
                 ssl: databaseConfig.ssl,
               }
             : {
-                host: databaseConfig?.host,
-                port: databaseConfig?.port,
-                username: databaseConfig?.username,
-                password: databaseConfig?.password,
-                database: databaseConfig?.database,
+                host: databaseConfig.host,
+                port: databaseConfig.port,
+                username: databaseConfig.username,
+                password: databaseConfig.password,
+                database: databaseConfig.database,
                 ssl: isProduction ? { rejectUnauthorized: false } : false,
               }),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          entities: [__dirname + '/database/entities/**/*.entity{.ts,.js}'],
           synchronize: false,
           migrationsRun: false,
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+          logging: configService.get<string>('nodeEnv') === 'development',
         };
       },
     }),
+    CoreModule,
+    OrganizationModule,
     StorageModule,
-
-    UsersModule,
-
-    DepartmentsModule,
-
-    PositionsModule,
-
-    AuthModule,
-
     SeedModule,
-
-    HealthModule,
   ],
-  controllers: [],
   providers: [
     {
       provide: APP_INTERCEPTOR,
