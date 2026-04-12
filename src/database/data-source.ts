@@ -8,6 +8,9 @@ dotenv.config({
 const isProduction = process.env.NODE_ENV === 'production';
 const hasDatabaseUrl = !!process.env.DATABASE_URL;
 
+const rootDir = isProduction ? 'dist' : 'src';
+const fileExtension = isProduction ? 'js' : 'ts';
+
 export default new DataSource({
   type: 'postgres',
   ...(hasDatabaseUrl
@@ -23,7 +26,7 @@ export default new DataSource({
         database: process.env.DB_DATABASE,
         ssl: false,
       }),
-  entities: ['src/**/*.entity{.ts,.js}'],
-  migrations: ['src/database/migrations/*{.ts,.js}'],
+  entities: [`${rootDir}/**/*.entity.${fileExtension}`],
+  migrations: [`${rootDir}/database/migrations/*.${fileExtension}`],
   synchronize: false,
 });
