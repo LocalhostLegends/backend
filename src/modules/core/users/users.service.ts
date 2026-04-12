@@ -76,9 +76,7 @@ export class UsersService {
       email: createUserDto.email,
       company,
       department,
-      departmentId: department?.id || null,
       position,
-      positionId: position?.id || null,
       phone: createUserDto.phone || null,
       role,
       status: hasPassword ? UserStatus.ACTIVE : UserStatus.INVITED,
@@ -276,28 +274,24 @@ export class UsersService {
       if (updateUserDto.departmentId !== undefined) {
         if (updateUserDto.departmentId === null) {
           updateData.department = null;
-          updateData.departmentId = null;
         } else {
           const department = await this._findDepartmentById(
             updateUserDto.departmentId,
             currentUser.companyId,
           );
           updateData.department = department;
-          updateData.departmentId = department.id;
         }
       }
 
       if (updateUserDto.positionId !== undefined) {
         if (updateUserDto.positionId === null) {
           updateData.position = null;
-          updateData.positionId = null;
         } else {
           const position = await this._findPositionById(
             updateUserDto.positionId,
             currentUser.companyId,
           );
           updateData.position = position;
-          updateData.positionId = position.id;
         }
       }
     }
