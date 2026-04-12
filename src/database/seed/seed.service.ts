@@ -136,9 +136,7 @@ export class SeedService implements OnModuleInit {
             status: userData.status,
             company,
             department,
-            departmentId: department?.id ?? null,
             position,
-            positionId: position?.id ?? null,
             phone: userData.phone ?? null,
             avatar: userData.avatar ?? null,
             lastLoginAt: userData.status === UserStatus.ACTIVE ? now : null,
@@ -186,9 +184,7 @@ export class SeedService implements OnModuleInit {
           : null;
 
         department.parentDepartment = parentDepartment;
-        department.parentDepartmentId = parentDepartment?.id ?? null;
         department.manager = managerUser;
-        department.managerId = managerUser?.id ?? null;
 
         await departmentRepository.save(department);
       }

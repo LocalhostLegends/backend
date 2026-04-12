@@ -20,13 +20,13 @@ export class Department {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 100, name: 'name' })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, name: 'description' })
   description: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true, name: 'code' })
   code: string | null;
 
   @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
@@ -36,9 +36,6 @@ export class Department {
   @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'parent_department_id' })
   parentDepartment: Department | null;
-
-  @Column({ type: 'uuid', nullable: true })
-  parentDepartmentId: string | null;
 
   @OneToMany(() => Department, (department) => department.parentDepartment)
   subDepartments: Department[];
@@ -50,21 +47,18 @@ export class Department {
   @JoinColumn({ name: 'manager_id' })
   manager: User | null;
 
-  @Column({ type: 'uuid', nullable: true })
-  managerId: string | null;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, name: 'budget' })
   budget: number | null;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date | null;
 }

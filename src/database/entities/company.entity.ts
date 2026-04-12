@@ -22,25 +22,25 @@ export class Company {
   @Index()
   name: string;
 
-  @Column({ type: 'varchar', length: 100, unique: true, nullable: true })
+  @Column({ type: 'varchar', length: 100, unique: true, nullable: true, name: 'subdomain' })
   subdomain: string | null;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({ type: 'varchar', length: 500, nullable: true, name: 'logo_url' })
   logoUrl: string | null;
 
-  @Column({ type: 'varchar', length: 50, default: 'UTC' })
+  @Column({ type: 'varchar', length: 50, default: 'UTC', name: 'timezone' })
   timezone: string;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive: boolean;
 
-  @Column({ type: 'varchar', length: 50, default: 'free' })
+  @Column({ type: 'varchar', length: 50, default: 'free', name: 'subscription_plan' })
   subscriptionPlan: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: true, name: 'subscription_expires_at' })
   subscriptionExpiresAt: Date | null;
 
-  @Column({ type: 'jsonb', default: {} })
+  @Column({ type: 'jsonb', default: {}, name: 'settings' })
   settings: {
     email?: string;
     phone?: string;
@@ -64,12 +64,12 @@ export class Company {
   @OneToMany(() => Position, (position) => position.company)
   positions: Position[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date | null;
 }
