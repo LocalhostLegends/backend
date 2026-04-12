@@ -24,7 +24,7 @@ export default new DataSource({
         username: process.env.DB_USERNAME,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_DATABASE,
-        ssl: false,
+        ssl: isProduction ? { rejectUnauthorized: false } : false,
       }),
   entities: [`${rootDir}/**/*.entity.${fileExtension}`],
   migrations: [`${rootDir}/database/migrations/*.${fileExtension}`],
