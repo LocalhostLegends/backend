@@ -82,10 +82,10 @@ export class AuthService {
         userId: null,
         emailAttempted: loginDto.email,
         ip: loginDto.ipAddress,
-        userAgent: undefined,
-        requestId: undefined,
-        method: undefined,
-        path: undefined,
+        userAgent: loginDto.userAgent,
+        requestId: loginDto.requestId,
+        method: loginDto.method,
+        path: loginDto.path,
         success: false,
         failureReason: 'user_not_found',
       });
@@ -112,10 +112,10 @@ export class AuthService {
         userId: user.id,
         emailAttempted: loginDto.email,
         ip: loginDto.ipAddress,
-        userAgent: undefined,
-        requestId: undefined,
-        method: undefined,
-        path: undefined,
+        userAgent: loginDto.userAgent,
+        requestId: loginDto.requestId,
+        method: loginDto.method,
+        path: loginDto.path,
         success: false,
         failureReason: 'account_locked',
       });
@@ -125,36 +125,36 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password!);
 
     if (!isPasswordValid) {
-      await this._usersService.incrementFailedLoginAttempts(user.id);
-
       await this.auditLogService.createAuthLog({
         eventType: 'auth.login.failed',
         userId: user.id,
         emailAttempted: loginDto.email,
         ip: loginDto.ipAddress,
-        userAgent: undefined,
-        requestId: undefined,
-        method: undefined,
-        path: undefined,
+        userAgent: loginDto.userAgent,
+        requestId: loginDto.requestId,
+        method: loginDto.method,
+        path: loginDto.path,
         success: false,
         failureReason: 'wrong_password',
       });
+
+      await this._usersService.incrementFailedLoginAttempts(user.id);
       throw new UnauthorizedException(ErrorMessages.INVALID_CREDENTIALS);
     }
 
-    await this._usersService.updateLastLogin(user.id, loginDto.ipAddress || 'unknown');
     await this.auditLogService.createAuthLog({
       eventType: 'auth.login.success',
       userId: user.id,
       emailAttempted: loginDto.email,
       ip: loginDto.ipAddress,
-      userAgent: undefined,
-      requestId: undefined,
-      method: undefined,
-      path: undefined,
+      userAgent: loginDto.userAgent,
+      requestId: loginDto.requestId,
+      method: loginDto.method,
+      path: loginDto.path,
       success: true,
       failureReason: null,
     });
+    await this._usersService.updateLastLogin(user.id, loginDto.ipAddress, loginDto.userAgent);
 
     const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);

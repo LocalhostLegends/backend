@@ -60,6 +60,7 @@ interface DatabaseConfig {
                 database: databaseConfig.database,
                 ssl: isProduction ? { rejectUnauthorized: false } : false,
               }),
+          autoLoadEntities: true,
           entities: [__dirname + '/database/entities/**/*.entity{.ts,.js}'],
           synchronize: false,
           migrationsRun: false,
