@@ -11,6 +11,8 @@ import { randomUUID } from 'crypto';
 import { Invite } from '@database/entities/invite.entity';
 import { Company } from '@database/entities/company.entity';
 import { User } from '@database/entities/user.entity';
+import { Department } from '@database/entities/department.entity';
+import { Position } from '@database/entities/position.entity';
 import { UserStatus } from '@database/enums/user-status.enum';
 import { TokenType } from '@database/enums/token-type.enum';
 import { InviteStatus } from '@database/enums/invite-status.enum';
@@ -31,6 +33,10 @@ export class InviteService {
     private readonly _inviteRepository: Repository<Invite>,
     @InjectRepository(Company)
     private readonly _companyRepository: Repository<Company>,
+    @InjectRepository(Department)
+    private readonly _departmentRepository: Repository<Department>,
+    @InjectRepository(Position)
+    private readonly _positionRepository: Repository<Position>,
     private readonly _emailService: EmailService,
     private readonly _usersService: UsersService,
     private readonly _tokenService: TokenService,
@@ -67,6 +73,14 @@ export class InviteService {
 
     if (!company) {
       throw new NotFoundException(ErrorMessages.COMPANY_NOT_FOUND);
+    }
+
+    if (dto.departmentId) {
+      await this._ensureDepartmentInCompany(dto.departmentId, currentUser.companyId);
+    }
+
+    if (dto.positionId) {
+      await this._ensurePositionInCompany(dto.positionId, currentUser.companyId);
     }
 
     const token = randomUUID();
@@ -187,12 +201,18 @@ export class InviteService {
   async resendInvite(inviteId: string, currentUser: AuthorizedUser): Promise<Invite> {
     // ✅ используем company: { id: ... }
     const invite = await this._inviteRepository.findOne({
-      where: { id: inviteId, company: { id: currentUser.companyId } },
+      where: { id: inviteId },
       relations: ['company', 'invitedBy'],
     });
 
     if (!invite) {
       throw new NotFoundException(ErrorMessages.INVITE_NOT_FOUND);
+    }
+
+    if (invite.company.id !== currentUser.companyId) {
+      throw new ForbiddenException(
+        ErrorMessages.INVITE_NOT_IN_COMPANY(invite.id, currentUser.companyId),
+      );
     }
 
     if (invite.status !== InviteStatus.PENDING) {
@@ -218,11 +238,18 @@ export class InviteService {
   async cancelInvite(inviteId: string, currentUser: AuthorizedUser): Promise<void> {
     // ✅ используем company: { id: ... }
     const invite = await this._inviteRepository.findOne({
-      where: { id: inviteId, company: { id: currentUser.companyId } },
+      where: { id: inviteId },
+      relations: ['company'],
     });
 
     if (!invite) {
       throw new NotFoundException(ErrorMessages.INVITE_NOT_FOUND);
+    }
+
+    if (invite.company.id !== currentUser.companyId) {
+      throw new ForbiddenException(
+        ErrorMessages.INVITE_NOT_IN_COMPANY(invite.id, currentUser.companyId),
+      );
     }
 
     if (invite.status !== InviteStatus.PENDING) {
@@ -265,5 +292,37 @@ export class InviteService {
       .execute();
 
     return result.affected || 0;
+  }
+
+  private async _ensureDepartmentInCompany(departmentId: string, companyId: string) {
+    const department = await this._departmentRepository.findOne({
+      where: { id: departmentId },
+      relations: ['company'],
+    });
+
+    if (!department) {
+      throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(departmentId));
+    }
+
+    if (department.company.id !== companyId) {
+      throw new ForbiddenException(
+        ErrorMessages.DEPARTMENT_NOT_IN_COMPANY(departmentId, companyId),
+      );
+    }
+  }
+
+  private async _ensurePositionInCompany(positionId: string, companyId: string) {
+    const position = await this._positionRepository.findOne({
+      where: { id: positionId },
+      relations: ['company'],
+    });
+
+    if (!position) {
+      throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(positionId));
+    }
+
+    if (position.company.id !== companyId) {
+      throw new ForbiddenException(ErrorMessages.POSITION_NOT_IN_COMPANY(positionId, companyId));
+    }
   }
 }

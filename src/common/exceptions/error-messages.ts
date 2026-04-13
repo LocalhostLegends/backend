@@ -13,10 +13,14 @@ export const ErrorMessages = {
     `User with email "${email}" already exists and invited`,
 
   // Department errors
+  DEPARTMENT_NOT_IN_COMPANY: (departmentId: string, companyId: string) =>
+    `Department with id "${departmentId}" is not in company with id "${companyId}"`,
   DEPARTMENT_NOT_FOUND: (id: string) => `Department with id "${id}" not found`,
   DEPARTMENT_NAME_EXISTS: (name: string) => `Department with name "${name}" already exists`,
 
   // Position errors
+  POSITION_NOT_IN_COMPANY: (positionId: string, companyId: string) =>
+    `Position with id "${positionId}" is not in company with id "${companyId}"`,
   POSITION_NOT_FOUND: (id: string) => `Position with id "${id}" not found`,
   POSITION_TITLE_EXISTS: (title: string) => `Position with title "${title}" already exists`,
 
@@ -42,6 +46,8 @@ export const ErrorMessages = {
   INVITE_HAS_EXPIRED: 'Invite has expired',
   INVALID_INVITE_TOKEN: 'Invalid invite token',
   FORBIDDEN_INVITE_ADMIN: 'Cannot invite ADMIN users',
+  INVITE_NOT_IN_COMPANY: (inviteId: string, companyId: string) =>
+    `Invite with id "${inviteId}" is not in company with id "${companyId}"`,
   FORBIDDEN_RESEND_INVITE: (status: string) => `Cannot resend ${status} invite`,
   FORBIDDEN_CANCEL_INVITE: (status: string) => `Cannot cancel ${status} invite`,
   ACTIVE_INVITE_EXISTS: (email: string) => `An active invite already exists for email $${email}`,
