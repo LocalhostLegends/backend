@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddAuthTrackingToUsers1712000000000 implements MigrationInterface {
-  name = 'AddAuthTrackingToUsers1712000000000';
+export class AddAuthTrackingToUsers1775982960725 implements MigrationInterface {
+  name = 'AddAuthTrackingToUsers1775982960725';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
