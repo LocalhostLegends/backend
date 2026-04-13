@@ -88,7 +88,7 @@ export class UsersService {
     };
 
     if (hasPassword) {
-      userData.password = await bcrypt.hash(createUserDto.password!, 10);
+      userData.password = await this._hashPassword(createUserDto.password!);
       userData.emailVerifiedAt = new Date();
     }
 
@@ -326,6 +326,14 @@ export class UsersService {
       throw new BadRequestException('Invalid activation token');
     }
 
+    const department = invite.departmentId
+      ? await this._findDepartmentById(invite.departmentId, invite.company.id)
+      : null;
+
+    const position = invite.positionId
+      ? await this._findPositionById(invite.positionId, invite.company.id)
+      : null;
+
     let user = await this._usersRepository.findOne({
       where: { email: invite.email, company: { id: invite.company.id } },
     });
@@ -333,8 +341,8 @@ export class UsersService {
     if (!user) {
       user = this._usersRepository.create({
         email: invite.email,
-        firstName: invite.email.split('@')[0],
-        lastName: 'User',
+        firstName: 'Firstname',
+        lastName: 'Lastname',
         role: invite.role as UserRole,
         status: UserStatus.INVITED,
         company: invite.company,
@@ -347,7 +355,15 @@ export class UsersService {
       user = await this._usersRepository.save(user);
     }
 
-    user.password = await bcrypt.hash(password, 10);
+    if (department) {
+      user.department = department;
+    }
+
+    if (position) {
+      user.position = position;
+    }
+
+    user.password = await this._hashPassword(password);
     user.status = UserStatus.ACTIVE;
     user.emailVerifiedAt = new Date();
 
@@ -359,7 +375,7 @@ export class UsersService {
 
     await this._tokenService.revokeToken(token);
 
-    return savedUser;
+    return this.findById(savedUser.id);
   }
 
   async blockUser(id: string, currentUser: AuthorizedUser): Promise<User> {
@@ -493,5 +509,9 @@ export class UsersService {
       user.firstName, // invitedByName (who invite)
       activationLink, // inviteLink
     );
+  }
+
+  private async _hashPassword(password: string): Promise<string> {
+    return await bcrypt.hash(password, 10);
   }
 }

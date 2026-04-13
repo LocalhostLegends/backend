@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsUUID, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsEnum, IsUUID, IsOptional } from 'class-validator';
 
 import { UserRole } from '@common/enums/user-role.enum';
 
@@ -21,14 +21,4 @@ export class CreateInviteDto {
   @IsOptional()
   @IsUUID()
   positionId?: string;
-
-  @ApiPropertyOptional({ example: 'John' })
-  @IsOptional()
-  @IsString()
-  firstName?: string;
-
-  @ApiPropertyOptional({ example: 'Doe' })
-  @IsOptional()
-  @IsString()
-  lastName?: string;
 }

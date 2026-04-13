@@ -130,8 +130,6 @@ export class AuthService {
       {
         email: createHrDto.email,
         role: UserRole.HR,
-        firstName: createHrDto.firstName,
-        lastName: createHrDto.lastName,
       },
       currentUser,
     );
@@ -161,8 +159,6 @@ export class AuthService {
       {
         email: createEmployeeDto.email,
         role: UserRole.EMPLOYEE,
-        firstName: createEmployeeDto.firstName,
-        lastName: createEmployeeDto.lastName,
       },
       currentUser,
     );
