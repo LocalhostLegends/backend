@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, MinLength } from 'class-validator';
 
 export class ActivateUserDto {
   @ApiProperty({ description: 'Activation token from email' })
   @IsNotEmpty()
-  @IsString()
+  @IsUUID()
   token: string;
 
   @ApiProperty({ example: 'strongPassword123' })
