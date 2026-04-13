@@ -15,6 +15,8 @@ import { plainToInstance } from 'class-transformer';
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { UserRolesGuard } from '@common/guards/user-roles.guard';
 import { RequireRole } from '@common/decorators/require-role.decorator';
+import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
+import { type AuthorizedUser } from '@common/types/authorized-user.type';
 
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
@@ -32,28 +34,38 @@ export class DepartmentsController {
 
   @Post()
   @DepartmentSwagger.create()
-  async create(@Body() createDepartmentDto: CreateDepartmentDto) {
+  async create(
+    @Body() createDepartmentDto: CreateDepartmentDto,
+    @CurrentUser() currentUser: AuthorizedUser,
+  ) {
     return plainToInstance(
       DepartmentResponseDto,
-      await this.departmentsService.create(createDepartmentDto),
+      await this.departmentsService.create(createDepartmentDto, currentUser),
       { excludeExtraneousValues: true },
     );
   }
 
   @Get()
   @DepartmentSwagger.findAll()
-  async findAll() {
-    return plainToInstance(DepartmentResponseDto, await this.departmentsService.findAll(), {
-      excludeExtraneousValues: true,
-    });
+  async findAll(@CurrentUser() currentUser: AuthorizedUser) {
+    return plainToInstance(
+      DepartmentResponseDto,
+      await this.departmentsService.findAll(currentUser),
+      { excludeExtraneousValues: true },
+    );
   }
 
   @Get(':id')
   @DepartmentSwagger.findOne()
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return plainToInstance(DepartmentResponseDto, await this.departmentsService.findOne(id), {
-      excludeExtraneousValues: true,
-    });
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: AuthorizedUser,
+  ) {
+    return plainToInstance(
+      DepartmentResponseDto,
+      await this.departmentsService.findOne(id, currentUser),
+      { excludeExtraneousValues: true },
+    );
   }
 
   @Patch(':id')
@@ -61,17 +73,18 @@ export class DepartmentsController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
+    @CurrentUser() currentUser: AuthorizedUser,
   ) {
     return plainToInstance(
       DepartmentResponseDto,
-      await this.departmentsService.update(id, updateDepartmentDto),
+      await this.departmentsService.update(id, updateDepartmentDto, currentUser),
       { excludeExtraneousValues: true },
     );
   }
 
   @Delete(':id')
   @DepartmentSwagger.delete()
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.departmentsService.remove(id);
+  async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() currentUser: AuthorizedUser) {
+    return this.departmentsService.remove(id, currentUser);
   }
 }

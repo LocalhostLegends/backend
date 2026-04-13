@@ -58,9 +58,6 @@ export class AuthService {
 
     const user = await this._usersService.create(userData);
 
-    const loginLink = `${this._configService.get('FRONTEND_URL')}/login`;
-    await this._emailService.sendWelcome(user.email, user.firstName, loginLink);
-
     const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
 

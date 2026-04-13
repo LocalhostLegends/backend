@@ -15,6 +15,8 @@ import { plainToInstance } from 'class-transformer';
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { RequireRole } from '@common/decorators/require-role.decorator';
 import { UserRolesGuard } from '@common/guards/user-roles.guard';
+import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
+import { type AuthorizedUser } from '@common/types/authorized-user.type';
 
 import { PositionsService } from './positions.service';
 import { CreatePositionDto } from './dto/create-position.dto';
@@ -32,28 +34,36 @@ export class PositionsController {
 
   @Post()
   @PositionSwagger.create()
-  async create(@Body() createPositionDto: CreatePositionDto) {
+  async create(
+    @Body() createPositionDto: CreatePositionDto,
+    @CurrentUser() currentUser: AuthorizedUser,
+  ) {
     return plainToInstance(
       PositionResponseDto,
-      await this.positionsService.create(createPositionDto),
+      await this.positionsService.create(createPositionDto, currentUser),
       { excludeExtraneousValues: true },
     );
   }
 
   @Get()
   @PositionSwagger.findAll()
-  async findAll() {
-    return plainToInstance(PositionResponseDto, await this.positionsService.findAll(), {
+  async findAll(@CurrentUser() currentUser: AuthorizedUser) {
+    return plainToInstance(PositionResponseDto, await this.positionsService.findAll(currentUser), {
       excludeExtraneousValues: true,
     });
   }
 
   @Get(':id')
   @PositionSwagger.findOne()
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return plainToInstance(PositionResponseDto, await this.positionsService.findOne(id), {
-      excludeExtraneousValues: true,
-    });
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: AuthorizedUser,
+  ) {
+    return plainToInstance(
+      PositionResponseDto,
+      await this.positionsService.findOne(id, currentUser),
+      { excludeExtraneousValues: true },
+    );
   }
 
   @Patch(':id')
@@ -61,17 +71,18 @@ export class PositionsController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updatePositionDto: UpdatePositionDto,
+    @CurrentUser() currentUser: AuthorizedUser,
   ) {
     return plainToInstance(
       PositionResponseDto,
-      await this.positionsService.update(id, updatePositionDto),
+      await this.positionsService.update(id, updatePositionDto, currentUser),
       { excludeExtraneousValues: true },
     );
   }
 
   @Delete(':id')
   @PositionSwagger.delete()
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.positionsService.remove(id);
+  async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() currentUser: AuthorizedUser) {
+    return this.positionsService.remove(id, currentUser);
   }
 }

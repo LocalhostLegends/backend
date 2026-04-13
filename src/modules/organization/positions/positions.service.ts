@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { Position } from '@database/entities/position.entity';
 import { ErrorMessages } from '@common/exceptions/error-messages';
+import { AuthorizedUser } from '@common/types/authorized-user.type';
 
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
@@ -15,36 +16,60 @@ export class PositionsService {
     private positionsRepository: Repository<Position>,
   ) {}
 
-  async create(createPositionDto: CreatePositionDto): Promise<Position> {
+  async create(
+    createPositionDto: CreatePositionDto,
+    currentUser: AuthorizedUser,
+  ): Promise<Position> {
     const existing = await this.positionsRepository.findOne({
-      where: { title: createPositionDto.title },
+      where: {
+        title: createPositionDto.title,
+        company: { id: currentUser.companyId },
+      },
     });
 
     if (existing) {
       throw new ConflictException(ErrorMessages.POSITION_TITLE_EXISTS(createPositionDto.title));
     }
 
-    const position = this.positionsRepository.create(createPositionDto);
+    const position = this.positionsRepository.create({
+      ...createPositionDto,
+      company: { id: currentUser.companyId },
+    });
+
     return this.positionsRepository.save(position);
   }
 
-  async findAll(): Promise<Position[]> {
-    return this.positionsRepository.find();
+  async findAll(currentUser: AuthorizedUser): Promise<Position[]> {
+    return this.positionsRepository.find({
+      where: { company: { id: currentUser.companyId } },
+    });
   }
 
-  async findOne(id: string): Promise<Position> {
-    const position = await this.positionsRepository.findOne({ where: { id } });
-    if (!position) throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
+  async findOne(id: string, currentUser: AuthorizedUser): Promise<Position> {
+    const position = await this.positionsRepository.findOne({
+      where: {
+        id,
+        company: { id: currentUser.companyId },
+      },
+    });
 
+    if (!position) throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
     return position;
   }
 
-  async update(id: string, updatePositionDto: UpdatePositionDto): Promise<Position> {
-    const position = await this.findOne(id);
+  async update(
+    id: string,
+    updatePositionDto: UpdatePositionDto,
+    currentUser: AuthorizedUser,
+  ): Promise<Position> {
+    const position = await this.findOne(id, currentUser);
 
-    if (updatePositionDto.title) {
+    if (updatePositionDto.title && updatePositionDto.title !== position.title) {
       const existing = await this.positionsRepository.findOne({
-        where: { title: updatePositionDto.title },
+        where: {
+          title: updatePositionDto.title,
+          company: { id: currentUser.companyId },
+        },
       });
 
       if (existing && existing.id !== id) {
@@ -56,8 +81,8 @@ export class PositionsService {
     return this.positionsRepository.save(position);
   }
 
-  async remove(id: string): Promise<void> {
-    const position = await this.findOne(id);
+  async remove(id: string, currentUser: AuthorizedUser): Promise<void> {
+    const position = await this.findOne(id, currentUser);
     await this.positionsRepository.remove(position);
   }
 }

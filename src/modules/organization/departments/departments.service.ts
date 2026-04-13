@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { Department } from '@database/entities/department.entity';
 import { ErrorMessages } from '@common/exceptions/error-messages';
+import { AuthorizedUser } from '@common/types/authorized-user.type';
 
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
@@ -15,38 +16,60 @@ export class DepartmentsService {
     private departmentsRepository: Repository<Department>,
   ) {}
 
-  async create(createDepartmentDto: CreateDepartmentDto): Promise<Department> {
+  async create(
+    createDepartmentDto: CreateDepartmentDto,
+    currentUser: AuthorizedUser,
+  ): Promise<Department> {
     const existing = await this.departmentsRepository.findOne({
-      where: { name: createDepartmentDto.name },
+      where: {
+        name: createDepartmentDto.name,
+        company: { id: currentUser.companyId },
+      },
     });
 
     if (existing) {
       throw new ConflictException(ErrorMessages.DEPARTMENT_NAME_EXISTS(createDepartmentDto.name));
     }
 
-    const department = this.departmentsRepository.create(createDepartmentDto);
+    const department = this.departmentsRepository.create({
+      ...createDepartmentDto,
+      company: { id: currentUser.companyId },
+    });
+
     return this.departmentsRepository.save(department);
   }
 
-  async findAll(): Promise<Department[]> {
-    return this.departmentsRepository.find();
+  async findAll(currentUser: AuthorizedUser): Promise<Department[]> {
+    return this.departmentsRepository.find({
+      where: { company: { id: currentUser.companyId } },
+    });
   }
 
-  async findOne(id: string): Promise<Department> {
+  async findOne(id: string, currentUser: AuthorizedUser): Promise<Department> {
     const department = await this.departmentsRepository.findOne({
-      where: { id },
+      where: {
+        id,
+        company: { id: currentUser.companyId },
+      },
     });
-    if (!department) throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(id));
 
+    if (!department) throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(id));
     return department;
   }
 
-  async update(id: string, updateDepartmentDto: UpdateDepartmentDto): Promise<Department> {
-    const department = await this.findOne(id);
+  async update(
+    id: string,
+    updateDepartmentDto: UpdateDepartmentDto,
+    currentUser: AuthorizedUser,
+  ): Promise<Department> {
+    const department = await this.findOne(id, currentUser);
 
-    if (updateDepartmentDto.name) {
+    if (updateDepartmentDto.name && updateDepartmentDto.name !== department.name) {
       const existing = await this.departmentsRepository.findOne({
-        where: { name: updateDepartmentDto.name },
+        where: {
+          name: updateDepartmentDto.name,
+          company: { id: currentUser.companyId },
+        },
       });
 
       if (existing && existing.id !== id) {
@@ -58,8 +81,8 @@ export class DepartmentsService {
     return this.departmentsRepository.save(department);
   }
 
-  async remove(id: string): Promise<void> {
-    const department = await this.findOne(id);
+  async remove(id: string, currentUser: AuthorizedUser): Promise<void> {
+    const department = await this.findOne(id, currentUser);
     await this.departmentsRepository.remove(department);
   }
 }
