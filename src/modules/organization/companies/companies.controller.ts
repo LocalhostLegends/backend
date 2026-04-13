@@ -23,6 +23,7 @@ import type { AuthorizedUser } from '@common/types/authorized-user.type';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
+import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { CompanyResponseDto } from './dto/company-response.dto';
 
 @ApiTags('Companies')
@@ -112,8 +113,12 @@ export class CompaniesController {
   @ApiOperation({ summary: 'Update company subscription' })
   async updateSubscription(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: { plan: string; expiresAt: Date },
+    @Body(ValidationPipe) updateSubscriptionDto: UpdateSubscriptionDto,
   ) {
-    return this._companiesService.updateSubscription(id, body.plan, body.expiresAt);
+    return this._companiesService.updateSubscription(
+      id,
+      updateSubscriptionDto.plan,
+      updateSubscriptionDto.expiresAt,
+    );
   }
 }
