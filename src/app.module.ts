@@ -25,7 +25,7 @@ import configuration from '@config/configuration';
         database: configService.get('DB_DATABASE'),
         entities: [__dirname + '/database/entities/**/*.entity{.ts,.js}'],
         synchronize: false,
-        logging: configService.get('NODE_ENV') === 'development',
+        logging: ['error'],
       }),
       inject: [ConfigService],
     }),

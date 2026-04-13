@@ -15,7 +15,6 @@ import { ActivateUserDto } from './dto/activate-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { CreateHrDto } from './dto/create-hr.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
-import type { AuthResponse } from './auth.types';
 
 import { UserRolesGuard } from '../users/guards/user-roles.guard';
 import { UserRoles } from '../users/decorators/user-roles.decorator';
@@ -39,10 +38,10 @@ export class AuthController {
   async registerCompany(
     @Body() registerDto: RegisterCompanyDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponse> {
+  ): Promise<{ accessToken: string }> {
     const { accessToken, refreshToken } = await this._authService.registerCompany(registerDto);
     this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken, refreshToken };
+    return { accessToken };
   }
 
   @Post('login')
@@ -53,11 +52,11 @@ export class AuthController {
     @Body() loginDto: LoginDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponse> {
+  ): Promise<{ accessToken: string }> {
     loginDto.ipAddress = req.ip || req.socket.remoteAddress;
     const { accessToken, refreshToken } = await this._authService.login(loginDto);
     this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken, refreshToken };
+    return { accessToken };
   }
 
   @Post('activate')
@@ -67,10 +66,10 @@ export class AuthController {
   async activateUser(
     @Body() activateDto: ActivateUserDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponse> {
+  ): Promise<{ accessToken: string }> {
     const { accessToken, refreshToken } = await this._authService.activateUser(activateDto);
     this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken, refreshToken };
+    return { accessToken };
   }
 
   @Post('hr')
@@ -107,24 +106,25 @@ export class AuthController {
   async refresh(
     @CurrentUser() user: AuthorizedUser,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<AuthResponse> {
+  ): Promise<{ accessToken: string }> {
     const { accessToken, refreshToken } = await this._authService.refresh(user.id);
     this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken, refreshToken };
+    return { accessToken };
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout user' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Logged out successfully' })
-  async logout(@Res({ passthrough: true }) res: Response): Promise<{ message: string }> {
+  logout(@Res({ passthrough: true }) res: Response): { message: string } {
     res.clearCookie('refresh_token', {
       httpOnly: true,
       secure: this._configService.get('NODE_ENV') === 'production',
       sameSite: 'strict',
+      path: '/',
     });
-    return this._authService.logout();
+
+    return { message: 'Logged out successfully' };
   }
 
   private _setRefreshTokenCookie(res: Response, token: string): void {

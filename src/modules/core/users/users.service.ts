@@ -19,7 +19,7 @@ import { InviteStatus } from '@database/enums/invite-status.enum';
 import { Invite } from '@database/entities/invite.entity';
 import { ErrorMessages } from '@common/exceptions/error-messages';
 import { UserRole } from '@common/enums/user-role.enum';
-import type { AuthorizedUser } from '@common/types/authorized-user.type';
+import { type AuthorizedUser } from '@common/types/authorized-user.type';
 import { PaginationService } from '@common/pagination/pagination.service';
 import { PaginatedResult } from '@common/pagination/pagination.interface';
 
@@ -35,7 +35,6 @@ import { TokenService } from '../token/token.service';
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly _usersRepository: Repository<User>,
-    // @InjectRepository(Token) private readonly _tokenRepository: Repository<Token>,
     @InjectRepository(Company) private readonly _companyRepository: Repository<Company>,
     @InjectRepository(Department) private readonly _departmentRepository: Repository<Department>,
     @InjectRepository(Position) private readonly _positionRepository: Repository<Position>,
