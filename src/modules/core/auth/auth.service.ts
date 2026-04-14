@@ -27,6 +27,7 @@ import { EmailService } from '../email/email.service';
 import { UsersService } from '../users/users.service';
 import { InviteService } from '../invite/invite.service';
 import { AuditLogService } from '../../audit/audit-log.service';
+import type { RequestContext } from '@common/middleware/request-context.middleware';
 
 @Injectable()
 export class AuthService {
@@ -73,7 +74,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponse> {
+  async login(loginDto: LoginDto, context?: RequestContext): Promise<AuthResponse> {
     const userWithPassword = await this._usersService.findByEmail(loginDto.email, undefined, true);
 
     if (!userWithPassword) {
@@ -81,11 +82,11 @@ export class AuthService {
         eventType: 'auth.login.failed',
         userId: null,
         emailAttempted: loginDto.email,
-        ip: loginDto.ipAddress,
-        userAgent: loginDto.userAgent,
-        requestId: loginDto.requestId,
-        method: loginDto.method,
-        path: loginDto.path,
+        ip: context?.ip,
+        userAgent: context?.userAgent,
+        requestId: context?.requestId,
+        method: context?.method,
+        path: context?.path,
         success: false,
         failureReason: 'user_not_found',
       });
@@ -105,17 +106,17 @@ export class AuthService {
     if (user.deletedAt) {
       throw new UnauthorizedException(ErrorMessages.USER_DELETED);
     }
-    /////////////////////////////////////////////////////////////
+
     if (user.isLocked()) {
       await this.auditLogService.createAuthLog({
         eventType: 'auth.login.failed',
         userId: user.id,
         emailAttempted: loginDto.email,
-        ip: loginDto.ipAddress,
-        userAgent: loginDto.userAgent,
-        requestId: loginDto.requestId,
-        method: loginDto.method,
-        path: loginDto.path,
+        ip: context?.ip,
+        userAgent: context?.userAgent,
+        requestId: context?.requestId,
+        method: context?.method,
+        path: context?.path,
         success: false,
         failureReason: 'account_locked',
       });
@@ -129,11 +130,11 @@ export class AuthService {
         eventType: 'auth.login.failed',
         userId: user.id,
         emailAttempted: loginDto.email,
-        ip: loginDto.ipAddress,
-        userAgent: loginDto.userAgent,
-        requestId: loginDto.requestId,
-        method: loginDto.method,
-        path: loginDto.path,
+        ip: context?.ip,
+        userAgent: context?.userAgent,
+        requestId: context?.requestId,
+        method: context?.method,
+        path: context?.path,
         success: false,
         failureReason: 'wrong_password',
       });
@@ -146,15 +147,15 @@ export class AuthService {
       eventType: 'auth.login.success',
       userId: user.id,
       emailAttempted: loginDto.email,
-      ip: loginDto.ipAddress,
-      userAgent: loginDto.userAgent,
-      requestId: loginDto.requestId,
-      method: loginDto.method,
-      path: loginDto.path,
+      ip: context?.ip,
+      userAgent: context?.userAgent,
+      requestId: context?.requestId,
+      method: context?.method,
+      path: context?.path,
       success: true,
       failureReason: null,
     });
-    await this._usersService.updateLastLogin(user.id, loginDto.ipAddress, loginDto.userAgent);
+    await this._usersService.updateLastLogin(user.id, context?.ip, context?.userAgent);
 
     const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);

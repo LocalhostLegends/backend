@@ -57,14 +57,7 @@ export class AuthController {
     @Req() req: RequestWithContext,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponse> {
-    loginDto.ipAddress = req.ip || req.socket.remoteAddress || undefined;
-    loginDto.userAgent =
-      typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined;
-    loginDto.requestId = req.context?.requestId;
-    loginDto.method = req.method;
-    loginDto.path = req.originalUrl || req.url;
-
-    const { accessToken, refreshToken } = await this._authService.login(loginDto);
+    const { accessToken, refreshToken } = await this._authService.login(loginDto, req.context);
     this._setRefreshTokenCookie(res, refreshToken);
     return { accessToken, refreshToken };
   }
