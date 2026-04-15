@@ -407,10 +407,15 @@ export class UsersService {
     });
   }
 
-  async updateLastLogin(userId: string, ipAddress: string): Promise<void> {
+  async updateLastLogin(
+    userId: string,
+    ipAddress?: string,
+    userAgent?: string | null,
+  ): Promise<void> {
     await this._usersRepository.update(userId, {
       lastLoginAt: new Date(),
-      lastLoginIp: ipAddress,
+      lastLoginIp: ipAddress ?? null,
+      lastLoginUserAgent: userAgent ?? null,
       failedLoginAttempts: 0,
       lockedUntil: null,
     });
@@ -419,6 +424,7 @@ export class UsersService {
   async incrementFailedLoginAttempts(userId: string): Promise<void> {
     const user = await this.findById(userId);
     user.incrementFailedLoginAttempts();
+    user.lastFailedLoginAt = new Date();
     await this._usersRepository.save(user);
   }
 

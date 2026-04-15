@@ -81,8 +81,14 @@ export class User {
   @Column({ type: 'varchar', length: 45, nullable: true })
   lastLoginIp: string | null;
 
+  @Column({ type: 'text', nullable: true })
+  lastLoginUserAgent: string | null;
+
   @Column({ type: 'int', default: 0 })
   failedLoginAttempts: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastFailedLoginAt: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
   lockedUntil: Date | null;
@@ -168,6 +174,8 @@ export class User {
 
   incrementFailedLoginAttempts(): void {
     this.failedLoginAttempts += 1;
+    this.lastFailedLoginAt = new Date();
+
     if (this.failedLoginAttempts >= 5) {
       this.lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
     }
@@ -175,6 +183,7 @@ export class User {
 
   resetFailedLoginAttempts(): void {
     this.failedLoginAttempts = 0;
+    this.lastFailedLoginAt = null;
     this.lockedUntil = null;
   }
 

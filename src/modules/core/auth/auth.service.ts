@@ -26,6 +26,8 @@ import { TokenService } from '../token/token.service';
 import { EmailService } from '../email/email.service';
 import { UsersService } from '../users/users.service';
 import { InviteService } from '../invite/invite.service';
+import { AuditLogService } from '../../audit/audit-log.service';
+import type { RequestContext } from '@common/middleware/request-context.middleware';
 
 @Injectable()
 export class AuthService {
@@ -37,6 +39,7 @@ export class AuthService {
     private readonly _tokenService: TokenService,
     private readonly _jwtService: JwtService,
     private readonly _configService: ConfigService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   async registerCompany(registerDto: RegisterCompanyDto): Promise<AuthResponse> {
@@ -71,10 +74,22 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponse> {
+  async login(loginDto: LoginDto, context?: RequestContext): Promise<AuthResponse> {
     const userWithPassword = await this._usersService.findByEmail(loginDto.email, undefined, true);
 
     if (!userWithPassword) {
+      await this.auditLogService.createAuthLog({
+        eventType: 'auth.login.failed',
+        userId: null,
+        emailAttempted: loginDto.email,
+        ip: context?.ip,
+        userAgent: context?.userAgent,
+        requestId: context?.requestId,
+        method: context?.method,
+        path: context?.path,
+        success: false,
+        failureReason: 'user_not_found',
+      });
       throw new UnauthorizedException(ErrorMessages.INVALID_CREDENTIALS);
     }
 
@@ -92,14 +107,55 @@ export class AuthService {
       throw new UnauthorizedException(ErrorMessages.USER_DELETED);
     }
 
+    if (user.isLocked()) {
+      await this.auditLogService.createAuthLog({
+        eventType: 'auth.login.failed',
+        userId: user.id,
+        emailAttempted: loginDto.email,
+        ip: context?.ip,
+        userAgent: context?.userAgent,
+        requestId: context?.requestId,
+        method: context?.method,
+        path: context?.path,
+        success: false,
+        failureReason: 'account_locked',
+      });
+      throw new UnauthorizedException(ErrorMessages.USER_BLOCKED);
+    }
+
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password!);
 
     if (!isPasswordValid) {
+      await this.auditLogService.createAuthLog({
+        eventType: 'auth.login.failed',
+        userId: user.id,
+        emailAttempted: loginDto.email,
+        ip: context?.ip,
+        userAgent: context?.userAgent,
+        requestId: context?.requestId,
+        method: context?.method,
+        path: context?.path,
+        success: false,
+        failureReason: 'wrong_password',
+      });
+
       await this._usersService.incrementFailedLoginAttempts(user.id);
       throw new UnauthorizedException(ErrorMessages.INVALID_CREDENTIALS);
     }
 
-    await this._usersService.updateLastLogin(user.id, loginDto.ipAddress || 'unknown');
+    await this.auditLogService.createAuthLog({
+      eventType: 'auth.login.success',
+      userId: user.id,
+      emailAttempted: loginDto.email,
+      ip: context?.ip,
+      userAgent: context?.userAgent,
+      requestId: context?.requestId,
+      method: context?.method,
+      path: context?.path,
+      success: true,
+      failureReason: null,
+    });
+    await this._usersService.updateLastLogin(user.id, context?.ip, context?.userAgent);
 
     const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);

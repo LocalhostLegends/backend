@@ -1,10 +1,12 @@
 import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Res, Req } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import type { Response, Request } from 'express';
+import type { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 
 import { UserRole } from '@common/enums/user-role.enum';
 import type { AuthorizedUser } from '@common/types/authorized-user.type';
+import type { RequestWithContext } from '@common/middleware/request-context.middleware';
 import { User } from '@database/entities/user.entity';
 
 import { AuthService } from './auth.service';
@@ -45,17 +47,17 @@ export class AuthController {
     return { accessToken, refreshToken };
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Login successful' })
   async login(
     @Body() loginDto: LoginDto,
-    @Req() req: Request,
+    @Req() req: RequestWithContext,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponse> {
-    loginDto.ipAddress = req.ip || req.socket.remoteAddress;
-    const { accessToken, refreshToken } = await this._authService.login(loginDto);
+    const { accessToken, refreshToken } = await this._authService.login(loginDto, req.context);
     this._setRefreshTokenCookie(res, refreshToken);
     return { accessToken, refreshToken };
   }
@@ -99,6 +101,7 @@ export class AuthController {
     return this._authService.createEmployee(createEmployeeDto, currentUser);
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('refresh')
   @UseGuards(JwtRefreshGuard)
   @HttpCode(HttpStatus.OK)
@@ -128,7 +131,7 @@ export class AuthController {
   }
 
   private _setRefreshTokenCookie(res: Response, token: string): void {
-    const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+    const maxAge = 30 * 24 * 60 * 60 * 1000;
     const isProduction = this._configService.get('NODE_ENV') === 'production';
 
     res.cookie('refresh_token', token, {

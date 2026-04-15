@@ -42,6 +42,9 @@ import { HealthController } from './health/health.controller';
 // Organization
 import { OrganizationModule } from '../organization/organization.module';
 
+//Audit
+import { AuditModule } from '../audit/audit.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Token, Invite, Company, Department, Position]),
@@ -55,7 +58,7 @@ import { OrganizationModule } from '../organization/organization.module';
       }),
       inject: [ConfigService],
     }),
-
+    AuditModule,
     OrganizationModule,
   ],
   controllers: [HealthController, UsersController, AuthController, InviteController],
