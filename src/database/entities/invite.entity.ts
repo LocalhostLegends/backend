@@ -11,28 +11,26 @@ import {
 
 import { Company } from './company.entity';
 import { User } from './user.entity';
-
 import { InviteStatus } from '../enums/invite-status.enum';
 
 @Entity('invites')
 @Index(['email', 'company', 'status'])
 @Index(['token'])
-@Index(['expiresAt'])
 export class Invite {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, name: 'email' })
   @Index()
   email: string;
 
-  @Column({ type: 'uuid', unique: true })
+  @Column({ type: 'uuid', unique: true, name: 'token' })
   token: string;
 
-  @Column({ type: 'enum', enum: InviteStatus, default: InviteStatus.PENDING })
+  @Column({ type: 'enum', enum: InviteStatus, default: InviteStatus.PENDING, name: 'status' })
   status: InviteStatus;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: 50, name: 'role' })
   role: string;
 
   @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
@@ -43,24 +41,24 @@ export class Invite {
   @JoinColumn({ name: 'invited_by' })
   invitedBy: User;
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ type: 'uuid', nullable: true, name: 'department_id' })
   departmentId: string | null;
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ type: 'uuid', nullable: true, name: 'position_id' })
   positionId: string | null;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamp', name: 'expires_at' })
   expiresAt: Date;
 
-  @Column({ type: 'int', default: 1 })
+  @Column({ type: 'int', default: 1, name: 'sent_count' })
   sentCount: number;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: true, name: 'accepted_at' })
   acceptedAt: Date | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

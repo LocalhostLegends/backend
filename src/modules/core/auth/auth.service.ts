@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
@@ -11,6 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { UserRole } from '@common/enums/user-role.enum';
 import { AuthorizedUser } from '@common/types/authorized-user.type';
 import { ErrorMessages } from '@common/exceptions/error-messages';
+import { UserExistsException } from '@common/exceptions/user-exists.exception';
 import { UserStatus } from '@database/enums/user-status.enum';
 import { User } from '@database/entities/user.entity';
 import { CompaniesService } from '@modules/organization/companies/companies.service';
@@ -43,10 +39,10 @@ export class AuthService {
   ) {}
 
   async registerCompany(registerDto: RegisterCompanyDto): Promise<AuthResponse> {
-    const existingAdmin = await this._usersService.findFirstAdmin();
+    const existingUser = await this._usersService.findByEmail(registerDto.email);
 
-    if (existingAdmin) {
-      throw new ConflictException(ErrorMessages.HAS_ADMIN);
+    if (existingUser) {
+      throw new UserExistsException(registerDto.email, existingUser.status);
     }
 
     const company = await this._companiesService.create({
@@ -64,9 +60,6 @@ export class AuthService {
     };
 
     const user = await this._usersService.create(userData);
-
-    const loginLink = `${this._configService.get('FRONTEND_URL')}/login`;
-    await this._emailService.sendWelcome(user.email, user.firstName, loginLink);
 
     const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
@@ -164,7 +157,6 @@ export class AuthService {
   }
 
   async activateUser(activateDto: ActivateUserDto, ip?: string): Promise<AuthResponse> {
-    // Activate the user via UsersService (works with TokenService)
     const user = await this._usersService.activateUser(activateDto.token, activateDto.password, ip);
 
     const loginLink = `${this._configService.get('FRONTEND_URL')}/login`;
@@ -181,18 +173,23 @@ export class AuthService {
       throw new ForbiddenException(ErrorMessages.FORBIDDEN_CREATE_HR);
     }
 
-    // Use InviteService to create an invitation
+    const existingUser = await this._usersService.findByEmail(
+      createHrDto.email,
+      currentUser.companyId,
+    );
+
+    if (existingUser) {
+      throw new UserExistsException(createHrDto.email, existingUser.status);
+    }
+
     await this._inviteService.createInvite(
       {
         email: createHrDto.email,
         role: UserRole.HR,
-        firstName: createHrDto.firstName,
-        lastName: createHrDto.lastName,
       },
       currentUser,
     );
 
-    // Return the created user (still in INVITED status)
     const user = await this._usersService.findByEmail(createHrDto.email, currentUser.companyId);
     return user!;
   }
@@ -205,18 +202,23 @@ export class AuthService {
       throw new ForbiddenException(ErrorMessages.FORBIDDEN_CREATE_EMPLOYEE);
     }
 
-    // Use InviteService to create an invitation
+    const existingUser = await this._usersService.findByEmail(
+      createEmployeeDto.email,
+      currentUser.companyId,
+    );
+
+    if (existingUser) {
+      throw new UserExistsException(createEmployeeDto.email, existingUser.status);
+    }
+
     await this._inviteService.createInvite(
       {
         email: createEmployeeDto.email,
         role: UserRole.EMPLOYEE,
-        firstName: createEmployeeDto.firstName,
-        lastName: createEmployeeDto.lastName,
       },
       currentUser,
     );
 
-    // Return the created user (still in INVITED status)
     const user = await this._usersService.findByEmail(
       createEmployeeDto.email,
       currentUser.companyId,

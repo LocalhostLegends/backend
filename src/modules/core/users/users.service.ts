@@ -19,7 +19,7 @@ import { InviteStatus } from '@database/enums/invite-status.enum';
 import { Invite } from '@database/entities/invite.entity';
 import { ErrorMessages } from '@common/exceptions/error-messages';
 import { UserRole } from '@common/enums/user-role.enum';
-import type { AuthorizedUser } from '@common/types/authorized-user.type';
+import { type AuthorizedUser } from '@common/types/authorized-user.type';
 import { PaginationService } from '@common/pagination/pagination.service';
 import { PaginatedResult } from '@common/pagination/pagination.interface';
 
@@ -35,7 +35,6 @@ import { TokenService } from '../token/token.service';
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly _usersRepository: Repository<User>,
-    // @InjectRepository(Token) private readonly _tokenRepository: Repository<Token>,
     @InjectRepository(Company) private readonly _companyRepository: Repository<Company>,
     @InjectRepository(Department) private readonly _departmentRepository: Repository<Department>,
     @InjectRepository(Position) private readonly _positionRepository: Repository<Position>,
@@ -76,9 +75,7 @@ export class UsersService {
       email: createUserDto.email,
       company,
       department,
-      departmentId: department?.id || null,
       position,
-      positionId: position?.id || null,
       phone: createUserDto.phone || null,
       role,
       status: hasPassword ? UserStatus.ACTIVE : UserStatus.INVITED,
@@ -91,7 +88,7 @@ export class UsersService {
     };
 
     if (hasPassword) {
-      userData.password = await bcrypt.hash(createUserDto.password!, 10);
+      userData.password = await this._hashPassword(createUserDto.password!);
       userData.emailVerifiedAt = new Date();
     }
 
@@ -276,28 +273,24 @@ export class UsersService {
       if (updateUserDto.departmentId !== undefined) {
         if (updateUserDto.departmentId === null) {
           updateData.department = null;
-          updateData.departmentId = null;
         } else {
           const department = await this._findDepartmentById(
             updateUserDto.departmentId,
             currentUser.companyId,
           );
           updateData.department = department;
-          updateData.departmentId = department.id;
         }
       }
 
       if (updateUserDto.positionId !== undefined) {
         if (updateUserDto.positionId === null) {
           updateData.position = null;
-          updateData.positionId = null;
         } else {
           const position = await this._findPositionById(
             updateUserDto.positionId,
             currentUser.companyId,
           );
           updateData.position = position;
-          updateData.positionId = position.id;
         }
       }
     }
@@ -333,6 +326,14 @@ export class UsersService {
       throw new BadRequestException('Invalid activation token');
     }
 
+    const department = invite.departmentId
+      ? await this._findDepartmentById(invite.departmentId, invite.company.id)
+      : null;
+
+    const position = invite.positionId
+      ? await this._findPositionById(invite.positionId, invite.company.id)
+      : null;
+
     let user = await this._usersRepository.findOne({
       where: { email: invite.email, company: { id: invite.company.id } },
     });
@@ -340,8 +341,8 @@ export class UsersService {
     if (!user) {
       user = this._usersRepository.create({
         email: invite.email,
-        firstName: invite.email.split('@')[0],
-        lastName: 'User',
+        firstName: 'Firstname',
+        lastName: 'Lastname',
         role: invite.role as UserRole,
         status: UserStatus.INVITED,
         company: invite.company,
@@ -354,7 +355,15 @@ export class UsersService {
       user = await this._usersRepository.save(user);
     }
 
-    user.password = await bcrypt.hash(password, 10);
+    if (department) {
+      user.department = department;
+    }
+
+    if (position) {
+      user.position = position;
+    }
+
+    user.password = await this._hashPassword(password);
     user.status = UserStatus.ACTIVE;
     user.emailVerifiedAt = new Date();
 
@@ -366,7 +375,7 @@ export class UsersService {
 
     await this._tokenService.revokeToken(token);
 
-    return savedUser;
+    return this.findById(savedUser.id);
   }
 
   async blockUser(id: string, currentUser: AuthorizedUser): Promise<User> {
@@ -506,5 +515,9 @@ export class UsersService {
       user.firstName, // invitedByName (who invite)
       activationLink, // inviteLink
     );
+  }
+
+  private async _hashPassword(password: string): Promise<string> {
+    return await bcrypt.hash(password, 10);
   }
 }

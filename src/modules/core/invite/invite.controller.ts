@@ -10,6 +10,7 @@ import {
   HttpStatus,
   Query,
   Req,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
@@ -22,6 +23,7 @@ import { InviteService } from './invite.service';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { ResendInviteDto } from './dto/resend-invite.dto';
 import { ValidateInviteDto } from './dto/validate-invite.dto';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { InviteResponseDto } from './dto/invite-response.dto';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -63,10 +65,7 @@ export class InviteController {
   @Post('accept')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Accept invite and create user' })
-  async acceptInvite(
-    @Body() body: { token: string; password: string; firstName?: string; lastName?: string },
-    @Req() req: Request,
-  ): Promise<{ message: string; accessToken?: string; refreshToken?: string }> {
+  async acceptInvite(@Body() body: AcceptInviteDto, @Req() req: Request): Promise<void> {
     await this._inviteService.acceptInvite(
       body.token,
       body.password,
@@ -74,9 +73,6 @@ export class InviteController {
       body.lastName,
       req.ip,
     );
-
-    // TODO: Generate tokens and return
-    return { message: 'Account activated successfully' };
   }
 
   @Post('resend')
@@ -102,7 +98,7 @@ export class InviteController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Cancel invite' })
   async cancelInvite(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<void> {
     await this._inviteService.cancelInvite(id, currentUser);

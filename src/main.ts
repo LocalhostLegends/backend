@@ -7,10 +7,13 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { swaggerConfig, swaggerOptions } from './config/swagger.config';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const configService = app.get<ConfigService>(ConfigService);
+
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   app.use(helmet());
   app.use(cookieParser());
