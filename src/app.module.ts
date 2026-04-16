@@ -65,7 +65,7 @@ interface DatabaseConfig {
           synchronize: false,
           migrationsRun: false,
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-          logging: configService.get<string>('nodeEnv') === 'development',
+          logging: false,
         };
       },
     }),
