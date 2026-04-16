@@ -17,7 +17,8 @@ import { PaginationService } from '@common/pagination/pagination.service';
 
 // Users
 import { UsersService } from './users/users.service';
-import { UsersController } from './users/users.controller';
+import { UsersController } from './users/controllers/users.controller';
+import { AvatarController } from './users/controllers/avatar.controller';
 import { UserFilterBuilder } from './users/user-filter.builder';
 
 // Auth
@@ -61,7 +62,13 @@ import { AuditModule } from '../audit/audit.module';
     AuditModule,
     OrganizationModule,
   ],
-  controllers: [HealthController, UsersController, AuthController, InviteController],
+  controllers: [
+    HealthController,
+    UsersController,
+    AvatarController,
+    AuthController,
+    InviteController,
+  ],
   providers: [
     // Services
     UsersService,

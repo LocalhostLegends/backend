@@ -1,7 +1,6 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # PostgreSQL database
   postgres:
     image: postgres:15-alpine
     container_name: market-postgres
@@ -11,18 +10,17 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_DATABASE:-db_postgres}
     ports:
-      - '${DB_PORT:-5432}:5432'
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - market-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-postgres}']
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # pgAdmin
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: market-pgadmin
@@ -30,9 +28,9 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PG_ADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PG_ADMIN_PASSWORD:-admin}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:
-      - '${PGADMIN_PORT:-5050}:80'
+      - "${PGADMIN_PORT:-5050}:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     networks:
@@ -41,7 +39,6 @@ services:
       postgres:
         condition: service_healthy
 
-  # MinIO (S3-compatible storage)
   minio:
     image: quay.io/minio/minio:latest
     container_name: market-minio
@@ -51,14 +48,40 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     ports:
-      - '${MINIO_PORT:-9000}:9000'
-      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio_data:/data
     networks:
       - market-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
-# Volumes
+  minio-init:
+    image: minio/mc:latest
+    container_name: market-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - market-network
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      STORAGE_BUCKET_NAME: ${STORAGE_BUCKET_NAME:-hr-tech-dev}
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD > /dev/null 2>&1; do
+        sleep 2;
+      done;
+      mc mb local/$$STORAGE_BUCKET_NAME --ignore-existing > /dev/null 2>&1;
+      mc anonymous set download local/$$STORAGE_BUCKET_NAME > /dev/null 2>&1;
+      exit 0;
+      "
+
 volumes:
   postgres_data:
     name: market-postgres-data
@@ -67,7 +90,6 @@ volumes:
   minio_data:
     name: market-minio-data
 
-# net
 networks:
   market-network:
     name: market-network

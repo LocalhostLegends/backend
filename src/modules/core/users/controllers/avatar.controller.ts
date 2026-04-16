@@ -26,7 +26,7 @@ import { CurrentUser } from '@modules/core/users/decorators/current-user.decorat
 import { UsersService } from '@modules/core/users/users.service';
 import type { AuthorizedUser } from '@common/types/authorized-user.type';
 
-import { StorageService } from '../storage.service';
+import { StorageService } from '../../../storage/storage.service';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')

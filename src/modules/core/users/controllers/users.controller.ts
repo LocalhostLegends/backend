@@ -21,15 +21,15 @@ import type { AuthorizedUser } from '@common/types/authorized-user.type';
 import { PaginatedResult } from '@common/pagination/pagination.interface';
 import { UserStatus } from '@database/enums/user-status.enum';
 
-import { UserRolesGuard } from './guards/user-roles.guard';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { UserRoles } from './decorators/user-roles.decorator';
-import { UsersService } from './users.service';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { UserFilterDto } from './dto/user-filter.dto';
-import { UserResponseDto } from './dto/user-response.dto';
+import { UserRolesGuard } from '../guards/user-roles.guard';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { UserRoles } from '../decorators/user-roles.decorator';
+import { UsersService } from '../users.service';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { UserFilterDto } from '../dto/user-filter.dto';
+import { UserResponseDto } from '../dto/user-response.dto';
 
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')

@@ -71,16 +71,16 @@ export class User {
   @Column({ type: 'varchar', length: 45, nullable: true, name: 'last_login_ip' })
   lastLoginIp: string | null;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, name: 'last_login_user_agent' })
   lastLoginUserAgent: string | null;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ type: 'int', default: 0, name: 'failed_login_attempts' })
   failedLoginAttempts: number;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: true, name: 'last_failed_login_at' })
   lastFailedLoginAt: Date | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: true, name: 'locked_until' })
   lockedUntil: Date | null;
 
   @Column({ type: 'timestamp', nullable: true, name: 'email_verified_at' })
