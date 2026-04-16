@@ -31,11 +31,6 @@ export class UpdateToSnakeCase1775991868775 implements MigrationInterface {
 
     await queryRunner.query(`ALTER TABLE "users" RENAME COLUMN "firstName" TO "first_name"`);
     await queryRunner.query(`ALTER TABLE "users" RENAME COLUMN "lastName" TO "last_name"`);
-    await queryRunner.query(`ALTER TABLE "users" RENAME COLUMN "lastLoginAt" TO "last_login_at"`);
-    await queryRunner.query(`ALTER TABLE "users" RENAME COLUMN "lastLoginIp" TO "last_login_ip"`);
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "failedLoginAttempts" TO "failed_login_attempts"`,
-    );
     await queryRunner.query(`ALTER TABLE "users" RENAME COLUMN "lockedUntil" TO "locked_until"`);
     await queryRunner.query(
       `ALTER TABLE "users" RENAME COLUMN "emailVerifiedAt" TO "email_verified_at"`,
@@ -61,22 +56,13 @@ export class UpdateToSnakeCase1775991868775 implements MigrationInterface {
       `ALTER TABLE "invites" RENAME COLUMN "departmentId" TO "department_id"`,
     );
     await queryRunner.query(`ALTER TABLE "invites" RENAME COLUMN "positionId" TO "position_id"`);
-
     await queryRunner.query(`ALTER TABLE "departments" DROP COLUMN IF EXISTS "parentDepartmentId"`);
     await queryRunner.query(`ALTER TABLE "departments" DROP COLUMN IF EXISTS "managerId"`);
     await queryRunner.query(`ALTER TABLE "users" DROP COLUMN IF EXISTS "departmentId"`);
     await queryRunner.query(`ALTER TABLE "users" DROP COLUMN IF EXISTS "positionId"`);
-
-    await queryRunner.query(
-      `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "last_login_user_agent" TEXT`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "last_failed_login_at" TIMESTAMP`,
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "last_failed_login_at"`);
     await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "last_login_user_agent"`);
     await queryRunner.query(`ALTER TABLE "users" ADD COLUMN "positionId" uuid`);
     await queryRunner.query(`ALTER TABLE "users" ADD COLUMN "departmentId" uuid`);
@@ -108,11 +94,7 @@ export class UpdateToSnakeCase1775991868775 implements MigrationInterface {
       `ALTER TABLE "users" RENAME COLUMN "email_verified_at" TO "emailVerifiedAt"`,
     );
     await queryRunner.query(`ALTER TABLE "users" RENAME COLUMN "locked_until" TO "lockedUntil"`);
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "failed_login_attempts" TO "failedLoginAttempts"`,
-    );
-    await queryRunner.query(`ALTER TABLE "users" RENAME COLUMN "last_login_ip" TO "lastLoginIp"`);
-    await queryRunner.query(`ALTER TABLE "users" RENAME COLUMN "last_login_at" TO "lastLoginAt"`);
+
     await queryRunner.query(`ALTER TABLE "users" RENAME COLUMN "last_name" TO "lastName"`);
     await queryRunner.query(`ALTER TABLE "users" RENAME COLUMN "first_name" TO "firstName"`);
 
