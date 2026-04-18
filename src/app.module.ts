@@ -1,5 +1,4 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -8,22 +7,11 @@ import { CoreModule } from '@modules/core/core.module';
 import { StorageModule } from '@modules/storage/storage.module';
 import { OrganizationModule } from '@modules/organization/organization.module';
 import { SeedModule } from '@database/seed/seed.module';
-import configuration from '@config/configuration';
-
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
-import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
-
-interface DatabaseConfig {
-  url?: string;
-  ssl?: boolean | { rejectUnauthorized: boolean };
-  host?: string;
-  port?: number;
-  username?: string;
-  password?: string;
-  database?: string;
-}
+import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
+import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
+import { RequestLoggerMiddleware } from '@common/middleware/request-logger.middleware';
+import { RequestContextMiddleware } from '@common/middleware/request-context.middleware';
+import config from '@config/app.config';
 
 @Module({
   imports: [
@@ -33,41 +21,18 @@ interface DatabaseConfig {
         limit: 100,
       },
     ]),
-    ConfigModule.forRoot({
-      isGlobal: true,
-      load: [configuration],
-      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
-    }),
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const databaseConfig = configService.get<DatabaseConfig>('database') ?? {};
-        const isProduction = configService.get<string>('nodeEnv') === 'production';
+      useFactory: () => ({
+        type: 'postgres',
+        ...config.database,
 
-        return {
-          type: 'postgres' as const,
-          ...(databaseConfig.url
-            ? {
-                url: databaseConfig.url,
-                ssl: databaseConfig.ssl,
-              }
-            : {
-                host: databaseConfig.host,
-                port: databaseConfig.port,
-                username: databaseConfig.username,
-                password: databaseConfig.password,
-                database: databaseConfig.database,
-                ssl: isProduction ? { rejectUnauthorized: false } : false,
-              }),
-          autoLoadEntities: true,
-          entities: [__dirname + '/database/entities/**/*.entity{.ts,.js}'],
-          synchronize: false,
-          migrationsRun: false,
-          migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-          logging: false,
-        };
-      },
+        autoLoadEntities: true,
+        entities: [__dirname + '/database/entities/**/*.entity{.ts,.js}'],
+        synchronize: false,
+        migrationsRun: false,
+        migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+        logging: false,
+      }),
     }),
     CoreModule,
     OrganizationModule,

@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Transporter, createTransport } from 'nodemailer';
 import { SentMessageInfo } from 'nodemailer/lib/smtp-transport';
+
+import config from '@config/app.config';
 
 import { getInviteEmailTemplate } from './templates/invite-email.template';
 import { getWelcomeEmailTemplate } from './templates/welcome-email.template';
@@ -10,36 +11,20 @@ import { getWelcomeEmailTemplate } from './templates/welcome-email.template';
 export class EmailService {
   private readonly _logger = new Logger(EmailService.name);
 
-  private readonly _fromEmail: string;
-  private readonly _fromName: string;
-
   private _transporter: Transporter<SentMessageInfo>;
 
-  constructor(private readonly _configService: ConfigService) {
-    this._fromEmail = this._configService.get<string>('smtp.fromEmail')!;
-    this._fromName = this._configService.get<string>('smtp.fromName') || 'SaaS Platform';
-
+  constructor() {
     this._initializeTransporter();
   }
 
   private _initializeTransporter(): void {
-    const host = this._configService.get<string>('smtp.host');
-    const port = this._configService.get<string>('smtp.port');
-    const user = this._configService.get<string>('smtp.user');
-    const pass = this._configService.get<string>('smtp.pass');
-
-    if (!host || !port || !user || !pass) {
-      this._logger.warn('SMTP credentials not configured. Email service will be disabled.');
-      return;
-    }
-
     this._transporter = createTransport({
-      host,
-      port: parseInt(port) || 587,
-      secure: this._configService.get('smtp.secure') === 'true',
+      host: config.smtp.host,
+      port: config.smtp.port,
+      secure: config.smtp.secure,
       auth: {
-        user,
-        pass,
+        user: config.smtp.user,
+        pass: config.smtp.password,
       },
       tls: {
         rejectUnauthorized: false,
@@ -88,7 +73,7 @@ export class EmailService {
 
     try {
       const info = await this._transporter.sendMail({
-        from: `"${this._fromName}" <${this._fromEmail}>`,
+        from: `"${config.smtp.sender.name}" <${config.smtp.sender.email}>`,
         to: dto.to,
         subject: dto.subject,
         html: dto.html,

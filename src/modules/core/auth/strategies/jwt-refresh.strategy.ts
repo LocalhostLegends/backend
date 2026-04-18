@@ -1,9 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 
+import config from '@config/app.config';
 import { UserStatus } from '@database/enums/user-status.enum';
 import { ErrorMessages } from '@common/exceptions/error-messages';
 import { AuthorizedUser } from '@common/types/authorized-user.type';
@@ -19,20 +19,11 @@ type RequestWithRefreshCookie = Request & {
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
-  constructor(
-    configService: ConfigService,
-    private readonly _usersService: UsersService,
-  ) {
-    const secret = configService.get<string>('JWT_REFRESH_SECRET');
-
-    if (!secret) {
-      throw new Error('JWT_REFRESH_SECRET is not defined');
-    }
-
+  constructor(private readonly _usersService: UsersService) {
     super({
       jwtFromRequest: (req: RequestWithRefreshCookie): string | null =>
         req.cookies?.refresh_token ?? null,
-      secretOrKey: secret,
+      secretOrKey: config.jwt.refreshSecret,
     });
   }
 

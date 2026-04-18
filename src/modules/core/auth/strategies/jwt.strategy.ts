@@ -1,8 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
 
+import config from '@config/app.config';
 import { AuthorizedUser } from '@common/types/authorized-user.type';
 import { ErrorMessages } from '@common/exceptions/error-messages';
 import { UserStatus } from '@database/enums/user-status.enum';
@@ -18,20 +18,11 @@ export interface JwtPayloadWithCompany {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(
-    configService: ConfigService,
-    private readonly _usersService: UsersService,
-  ) {
-    const secret = configService.get<string>('JWT_SECRET');
-
-    if (!secret) {
-      throw new Error('JWT_SECRET is not defined');
-    }
-
+  constructor(private readonly _usersService: UsersService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: secret,
+      secretOrKey: config.jwt.secret,
     });
   }
 

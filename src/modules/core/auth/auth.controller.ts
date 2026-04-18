@@ -1,9 +1,9 @@
 import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Res, Req } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 
+import config from '@config/app.config';
 import { UserRole } from '@common/enums/user-role.enum';
 import type { AuthorizedUser } from '@common/types/authorized-user.type';
 import type { RequestWithContext } from '@common/middleware/request-context.middleware';
@@ -25,10 +25,7 @@ import { CurrentUser } from '../users/decorators/current-user.decorator';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly _authService: AuthService,
-    private readonly _configService: ConfigService,
-  ) {}
+  constructor(private readonly _authService: AuthService) {}
 
   @Post('register-company')
   @HttpCode(HttpStatus.CREATED)
@@ -122,7 +119,7 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response): { message: string } {
     res.clearCookie('refresh_token', {
       httpOnly: true,
-      secure: this._configService.get('NODE_ENV') === 'production',
+      secure: config.isProduction,
       sameSite: 'strict',
       path: '/',
     });
@@ -132,11 +129,10 @@ export class AuthController {
 
   private _setRefreshTokenCookie(res: Response, token: string): void {
     const maxAge = 30 * 24 * 60 * 60 * 1000;
-    const isProduction = this._configService.get('NODE_ENV') === 'production';
 
     res.cookie('refresh_token', token, {
       httpOnly: true,
-      secure: isProduction,
+      secure: config.isProduction,
       sameSite: 'strict',
       maxAge,
       path: '/',

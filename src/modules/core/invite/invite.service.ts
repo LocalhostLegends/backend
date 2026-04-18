@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 
+import config from '@config/app.config';
 import { Invite } from '@database/entities/invite.entity';
 import { Company } from '@database/entities/company.entity';
 import { User } from '@database/entities/user.entity';
@@ -109,7 +110,7 @@ export class InviteService {
 
     await this._tokenService.createToken(null, TokenType.ACTIVATION, 48, token);
 
-    const inviteLink = `${process.env.FRONTEND_URL}/auth/accept-invite?token=${token}`;
+    const inviteLink = `${config.frontend.url}/auth/accept-invite?token=${token}`;
     await this._emailService.sendInviteEmail(
       dto.email,
       dto.role,
@@ -223,7 +224,7 @@ export class InviteService {
     invite.sentCount += 1;
     await this._inviteRepository.save(invite);
 
-    const inviteLink = `${process.env.FRONTEND_URL}/auth/accept-invite?token=${invite.token}`;
+    const inviteLink = `${config.frontend.url}/auth/accept-invite?token=${invite.token}`;
     await this._emailService.sendInviteEmail(
       invite.email,
       invite.role,
