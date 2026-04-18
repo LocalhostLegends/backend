@@ -1,37 +1,34 @@
+import '@common/init/env';
+
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 
+import config from '@config/app.config';
+import { swaggerConfig, swaggerOptions } from '@config/swagger.config';
+import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
+
 import { AppModule } from './app.module';
-import { swaggerConfig, swaggerOptions } from './config/swagger.config';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
-async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
-  const configService = app.get<ConfigService>(ConfigService);
-
-  app.useGlobalFilters(new HttpExceptionFilter());
-
+function setupMiddleware(app: INestApplication) {
   app.use(helmet());
   app.use(cookieParser());
+}
 
-  const corsOrigins = configService.get<string[]>('cors.origins') ?? [];
-
+function setupCors(app: INestApplication) {
   app.enableCors({
-    origin: corsOrigins,
+    origin: config.cors,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
+}
 
-  const apiPrefix = configService.get<string>('apiPrefix') ?? 'api';
-  app.setGlobalPrefix(apiPrefix, { exclude: ['health'] });
-
+function setupPipes(app: INestApplication) {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -39,40 +36,47 @@ async function bootstrap(): Promise<void> {
       transform: true,
     }),
   );
+}
 
+function setupSwagger(app: INestApplication) {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup(`${apiPrefix}/docs`, app, document, swaggerOptions);
 
-  const port = process.env.PORT ?? configService.get<number>('port') ?? 3175;
-  await app.listen(port);
+  SwaggerModule.setup(`${config.apiPrefix}/docs`, app, document, swaggerOptions);
+}
 
-  const pgAdminEmail = configService.get<string>('pgAdmin.email') ?? 'not set';
-  const pgAdminPassword = configService.get<string>('pgAdmin.password') ?? 'not set';
-  const pgAdminPort = configService.get<number>('pgAdmin.port') ?? 5050;
-  const storageAccountId = configService.get<string>('storage.accountId');
-  const storageEndpoint =
-    configService.get<string>('storage.endpoint') ??
-    (storageAccountId !== undefined
-      ? `https://${storageAccountId}.r2.cloudflarestorage.com`
-      : 'unknown endpoint');
-  const storageUsername = configService.get<string>('storage.accessKeyId') ?? 'not set';
-  const storagePassword = configService.get<string>('storage.secretAccessKey') ?? 'not set';
-  const nodeEnv = configService.get<string>('nodeEnv') ?? 'development';
-
+function logStartup() {
   console.log('\n');
   console.log(' ==================================');
-  console.log(`✅ Application is running on: http://localhost:${port}/${apiPrefix}`);
-  console.log(`✅ Swagger docs: http://localhost:${port}/${apiPrefix}/docs`);
+  console.log(`✅ Application is running on: http://localhost:${config.port}/${config.apiPrefix}`);
+  console.log(`✅ Swagger docs: http://localhost:${config.port}/${config.apiPrefix}/docs`);
   console.log(
-    `✅ pgAdmin: http://localhost:${pgAdminPort} (email: ${pgAdminEmail} / password: ${pgAdminPassword})`,
+    `✅ pgAdmin: http://localhost:${config.pgAdmin.port} (user: ${config.pgAdmin.user} / password: ${config.pgAdmin.password})`,
   );
   console.log(
-    `✅ Storage: ${storageEndpoint} (username: ${storageUsername} / password: ${storagePassword})`,
+    `✅ Storage: ${config.storage.endpoint} (username: ${config.storage.accessKeyId} / password: ${config.storage.secretAccessKey})`,
   );
-  console.log(`✅ Environment: ${nodeEnv}`);
-  console.log(`✅ CORS: ${corsOrigins[0] === '*' ? 'all origins' : corsOrigins.join(', ')}`);
+  console.log(`✅ Environment: ${config.nodeEnv}`);
+  console.log(`✅ CORS: ${config.cors.origins.join(', ')}`);
   console.log(' ==================================');
   console.log('\n');
+}
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule);
+
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  setupMiddleware(app);
+  setupCors(app);
+
+  app.setGlobalPrefix(config.apiPrefix, { exclude: ['health'] });
+
+  setupPipes(app);
+  setupSwagger(app);
+
+  await app.listen(config.port);
+
+  logStartup();
 }
 
 bootstrap().catch((error: unknown) => {

@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
+import config from '@config/app.config';
+
 import { companyData } from './data/company.data';
 import { departmentsData } from './data/departments.data';
 import { positionsData } from './data/positions.data';
@@ -25,7 +27,7 @@ export class SeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    if (process.env.NODE_ENV === 'production') {
+    if (config.isProduction) {
       return;
     }
 

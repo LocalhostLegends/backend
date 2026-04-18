@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, SelectQueryBuilder } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
+import config from '@config/app.config';
 import { User } from '@database/entities/user.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
@@ -506,7 +507,7 @@ export class UsersService {
       8, // 8 hours
     );
 
-    const activationLink = `${process.env.FRONTEND_URL}/activate?token=${token.token}`;
+    const activationLink = `${config.frontend.url}/activate?token=${token.token}`;
 
     await this._emailService.sendInviteEmail(
       user.email,

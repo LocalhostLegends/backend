@@ -1,57 +1,30 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import * as crypto from 'crypto';
+
+import config from '@config/app.config';
 
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
-  private readonly isUsedCloudflare: boolean;
-  private s3Client: S3Client;
-  private bucket: string;
-  private publicUrl: string;
+  private readonly s3Client: S3Client;
 
-  constructor(configService: ConfigService) {
-    const accountId = configService.get<string>('STORAGE_ACCOUNT_ID');
-    const accessKeyId = configService.get<string>('STORAGE_ACCESS_KEY_ID');
-    const secretAccessKey = configService.get<string>('STORAGE_SECRET_ACCESS_KEY');
-    const bucket = configService.get<string>('STORAGE_BUCKET_NAME');
-    const publicUrl = configService.get<string>('STORAGE_PUBLIC_URL');
-    const endpoint = configService.get<string>('STORAGE_ENDPOINT');
-
+  constructor() {
     this.logger.log(
-      `Storage config: bucket=${bucket}, publicUrl=${publicUrl}, endpoint=${endpoint}`,
+      `Storage config: bucket=${config.storage.bucketName}, publicUrl=${config.storage.publicUrl}, endpoint=${config.storage.endpoint}`,
     );
 
-    if (!accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
-      this.logger.error('Missing Storage configuration');
-      throw new Error('Missing Storage configuration');
-    }
-
-    if (!accountId && !endpoint) {
-      this.logger.error(
-        'Incorrect Storage configuration. Storage account id or storage endpoint must be provided',
-      );
-      throw new Error(
-        'Incorrect Storage configuration. Storage account id or storage endpoint must be provided',
-      );
-    }
-
-    this.bucket = bucket;
-    this.publicUrl = publicUrl;
-
-    this.isUsedCloudflare = !endpoint;
-
     this.s3Client = new S3Client({
-      endpoint: this.isUsedCloudflare ? `https://${accountId}.r2.cloudflarestorage.com` : endpoint,
+      endpoint: config.storage.endpoint,
       region: 'auto',
-      credentials: { accessKeyId, secretAccessKey },
+      credentials: {
+        accessKeyId: config.storage.accessKeyId,
+        secretAccessKey: config.storage.secretAccessKey,
+      },
       forcePathStyle: true,
     });
 
-    this.logger.log(
-      `✅ Storage initialized with ${this.isUsedCloudflare ? 'Cloudflare R2' : 'MinIO'}`,
-    );
+    this.logger.log(`✅ Storage initialized with ${config.storage.provider}`);
   }
 
   private sanitizeEmail(email: string): string {
@@ -74,7 +47,7 @@ export class StorageService {
       if (oldKey) {
         await this.s3Client.send(
           new DeleteObjectCommand({
-            Bucket: this.bucket,
+            Bucket: config.storage.bucketName,
             Key: oldKey,
           }),
         );
@@ -86,7 +59,7 @@ export class StorageService {
 
     await this.s3Client.send(
       new PutObjectCommand({
-        Bucket: this.bucket,
+        Bucket: config.storage.bucketName,
         Key: key,
         Body: file.buffer,
         ContentType: file.mimetype,
@@ -95,13 +68,13 @@ export class StorageService {
 
     this.logger.log(`✅ Avatar uploaded: ${key}`);
 
-    return { url: `${this.publicUrl}/${key}` };
+    return { url: `${config.storage.publicUrl}/${key}` };
   }
 
   async deleteFile(key: string): Promise<void> {
     await this.s3Client.send(
       new DeleteObjectCommand({
-        Bucket: this.bucket,
+        Bucket: config.storage.bucketName,
         Key: key,
       }),
     );
@@ -113,7 +86,7 @@ export class StorageService {
       const parsed = new URL(url);
       const parts = parsed.pathname.split('/').filter(Boolean);
 
-      if (!this.isUsedCloudflare) {
+      if (config.storage.provider === 'minio') {
         parts.shift();
       }
 

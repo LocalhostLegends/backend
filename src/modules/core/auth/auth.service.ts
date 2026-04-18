@@ -1,8 +1,8 @@
 import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 
+import config from '@config/app.config';
 import { UserRole } from '@common/enums/user-role.enum';
 import { AuthorizedUser } from '@common/types/authorized-user.type';
 import { ErrorMessages } from '@common/exceptions/error-messages';
@@ -34,7 +34,6 @@ export class AuthService {
     private readonly _inviteService: InviteService,
     private readonly _tokenService: TokenService,
     private readonly _jwtService: JwtService,
-    private readonly _configService: ConfigService,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -159,7 +158,7 @@ export class AuthService {
   async activateUser(activateDto: ActivateUserDto, ip?: string): Promise<AuthResponse> {
     const user = await this._usersService.activateUser(activateDto.token, activateDto.password, ip);
 
-    const loginLink = `${this._configService.get('FRONTEND_URL')}/login`;
+    const loginLink = `${config.frontend.url}/login`;
     await this._emailService.sendWelcome(user.email, user.firstName, loginLink);
 
     const accessToken = this._generateAccessToken(user);
@@ -255,8 +254,8 @@ export class AuthService {
     };
 
     return this._jwtService.sign(payload, {
-      secret: this._configService.get('JWT_SECRET'),
-      expiresIn: this._configService.get('JWT_EXPIRES_IN') || '7d',
+      secret: config.jwt.secret,
+      expiresIn: config.jwt.expiresIn,
     });
   }
 
@@ -267,8 +266,8 @@ export class AuthService {
     };
 
     return this._jwtService.sign(payload, {
-      secret: this._configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: this._configService.get('JWT_REFRESH_EXPIRES_IN') || '30d',
+      secret: config.jwt.refreshSecret,
+      expiresIn: config.jwt.refreshExpiresIn,
     });
   }
 }

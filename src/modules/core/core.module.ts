@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ConfigService } from '@nestjs/config';
 
 // Entities
 import { User } from '@database/entities/user.entity';
@@ -14,6 +13,9 @@ import { Position } from '@database/entities/position.entity';
 
 // Common
 import { PaginationService } from '@common/pagination/pagination.service';
+
+// Config
+import config from '@config/app.config';
 
 // Users
 import { UsersService } from './users/users.service';
@@ -51,13 +53,12 @@ import { AuditModule } from '../audit/audit.module';
     TypeOrmModule.forFeature([User, Token, Invite, Company, Department, Position]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get('JWT_SECRET'),
+      useFactory: () => ({
+        secret: config.jwt.secret,
         signOptions: {
-          expiresIn: configService.get('JWT_EXPIRES_IN') || '7d',
+          expiresIn: config.jwt.expiresIn,
         },
       }),
-      inject: [ConfigService],
     }),
     AuditModule,
     OrganizationModule,
