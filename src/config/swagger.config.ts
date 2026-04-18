@@ -16,7 +16,7 @@ export const swaggerConfig = new DocumentBuilder()
     'JWT-auth',
   )
   .addServer('http://localhost:3175', 'Development server')
-  .addServer('https://api.hr-tech-platform.com', 'Production server')
+  .addServer('https://backend-pcz4.onrender.com', 'Production server')
   .build();
 
 export const swaggerOptions = {};
