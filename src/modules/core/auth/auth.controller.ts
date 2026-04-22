@@ -17,6 +17,7 @@ import { ActivateUserDto } from './dto/activate-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { CreateHrDto } from './dto/create-hr.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { AccessTokenResponseDto } from './dto/access-token-response.dto';
 
 import { UserRolesGuard } from '../users/guards/user-roles.guard';
 import { UserRoles } from '../users/decorators/user-roles.decorator';
@@ -33,11 +34,12 @@ export class AuthController {
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Company and admin created successfully',
+    type: AccessTokenResponseDto,
   })
   async registerCompany(
     @Body() registerDto: RegisterCompanyDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ accessToken: string }> {
+  ): Promise<AccessTokenResponseDto> {
     const { accessToken, refreshToken } = await this._authService.registerCompany(registerDto);
     this._setRefreshTokenCookie(res, refreshToken);
     return { accessToken };
@@ -47,12 +49,16 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login user' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Login successful' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Login successful',
+    type: AccessTokenResponseDto,
+  })
   async login(
     @Body() loginDto: LoginDto,
     @Req() req: RequestWithContext,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ accessToken: string }> {
+  ): Promise<AccessTokenResponseDto> {
     const { accessToken, refreshToken } = await this._authService.login(loginDto, req.context);
     this._setRefreshTokenCookie(res, refreshToken);
     return { accessToken };
@@ -61,11 +67,15 @@ export class AuthController {
   @Post('activate')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Activate user account' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Account activated successfully' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Account activated successfully',
+    type: AccessTokenResponseDto,
+  })
   async activateUser(
     @Body() activateDto: ActivateUserDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ accessToken: string }> {
+  ): Promise<AccessTokenResponseDto> {
     const { accessToken, refreshToken } = await this._authService.activateUser(activateDto);
     this._setRefreshTokenCookie(res, refreshToken);
     return { accessToken };
@@ -102,11 +112,15 @@ export class AuthController {
   @UseGuards(JwtRefreshGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Tokens refreshed successfully' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Tokens refreshed successfully',
+    type: AccessTokenResponseDto,
+  })
   async refresh(
     @CurrentUser() user: AuthorizedUser,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ accessToken: string }> {
+  ): Promise<AccessTokenResponseDto> {
     const { accessToken, refreshToken } = await this._authService.refresh(user.id);
     this._setRefreshTokenCookie(res, refreshToken);
     return { accessToken };

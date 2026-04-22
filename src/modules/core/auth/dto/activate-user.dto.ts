@@ -1,15 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUUID, MinLength } from 'class-validator';
+import { IsUUID } from 'class-validator';
+
+import { IsPassword } from '@common/decorators/common-fields.decorators';
+import { CommonFields } from '@common/swagger/common.fields';
+import { AuthFields } from '@modules/core/auth/swagger/auth.fields';
 
 export class ActivateUserDto {
-  @ApiProperty({ description: 'Activation token from email' })
-  @IsNotEmpty()
+  @ApiProperty(AuthFields.activationToken)
   @IsUUID()
   token: string;
 
-  @ApiProperty({ example: 'strongPassword123' })
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(6)
+  @ApiProperty(CommonFields.password)
+  @IsPassword()
   password: string;
 }

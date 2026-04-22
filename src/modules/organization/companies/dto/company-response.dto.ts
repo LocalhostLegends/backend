@@ -1,76 +1,79 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 
+import { CommonFields } from '@common/swagger/common.fields';
+import { CompanyFields } from '@modules/organization/companies/swagger/company.fields';
+
 export class CompanyResponseDto {
   @Expose()
-  @ApiProperty()
+  @ApiProperty(CompanyFields.id)
   id: string;
 
   @Expose()
-  @ApiProperty()
+  @ApiProperty(CompanyFields.name)
   name: string;
 
   @Expose()
-  @ApiPropertyOptional()
+  @ApiPropertyOptional(CompanyFields.subdomain)
   subdomain: string | null;
 
   @Expose()
-  @ApiPropertyOptional()
+  @ApiPropertyOptional(CompanyFields.logoUrl)
   logoUrl: string | null;
 
   @Expose()
-  @ApiProperty()
+  @ApiProperty(CommonFields.timezone)
   timezone: string;
 
   @Expose()
-  @ApiPropertyOptional()
+  @ApiPropertyOptional(CommonFields.country)
   country: string | null;
 
   @Expose()
-  @ApiPropertyOptional()
+  @ApiPropertyOptional(CommonFields.city)
   city: string | null;
 
   @Expose()
-  @ApiPropertyOptional()
+  @ApiPropertyOptional(CommonFields.address)
   address: string | null;
 
   @Expose()
-  @ApiPropertyOptional()
+  @ApiPropertyOptional(CommonFields.phone)
   phone: string | null;
 
   @Expose()
-  @ApiPropertyOptional()
+  @ApiPropertyOptional(CommonFields.email)
   email: string | null;
 
   @Expose()
-  @ApiPropertyOptional()
+  @ApiPropertyOptional(CommonFields.website)
   website: string | null;
 
   @Expose()
-  @ApiPropertyOptional()
+  @ApiPropertyOptional(CommonFields.taxId)
   taxId: string | null;
 
   @Expose()
-  @ApiProperty()
+  @ApiProperty(CompanyFields.employeeCount)
   employeeCount: number;
 
   @Expose()
-  @ApiProperty()
+  @ApiProperty(CompanyFields.isActive)
   isActive: boolean;
 
   @Expose()
-  @ApiProperty()
+  @ApiProperty(CompanyFields.subscriptionPlan)
   subscriptionPlan: string;
 
   @Expose()
-  @ApiPropertyOptional()
+  @ApiPropertyOptional(CompanyFields.subscriptionExpiresAt)
   subscriptionExpiresAt: Date | null;
 
   @Expose()
-  @ApiProperty()
+  @ApiProperty(CommonFields.createdAt)
   createdAt: Date;
 
   @Expose()
-  @ApiProperty()
+  @ApiProperty(CommonFields.updatedAt)
   updatedAt: Date;
 }

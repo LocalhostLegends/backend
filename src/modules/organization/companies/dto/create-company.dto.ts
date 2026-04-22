@@ -1,57 +1,60 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEmail, IsUrl } from 'class-validator';
 
+import { CommonFields } from '@common/swagger/common.fields';
+import { CompanyFields } from '@modules/organization/companies/swagger/company.fields';
+
 export class CreateCompanyDto {
-  @ApiProperty({ example: 'Tech Corp', description: 'Company name' })
+  @ApiProperty(CompanyFields.name)
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({ example: 'techcorp', description: 'Unique subdomain' })
+  @ApiPropertyOptional(CompanyFields.subdomain)
   @IsOptional()
   @IsString()
   subdomain?: string;
 
-  @ApiPropertyOptional({ example: 'https://logo.com/logo.png' })
+  @ApiPropertyOptional(CompanyFields.logoUrl)
   @IsOptional()
   @IsUrl()
   logoUrl?: string;
 
-  @ApiPropertyOptional({ example: 'UTC' })
+  @ApiPropertyOptional(CommonFields.timezone)
   @IsOptional()
   @IsString()
   timezone?: string;
 
-  @ApiPropertyOptional({ example: 'USA' })
+  @ApiPropertyOptional(CommonFields.country)
   @IsOptional()
   @IsString()
   country?: string;
 
-  @ApiPropertyOptional({ example: 'New York' })
+  @ApiPropertyOptional(CommonFields.city)
   @IsOptional()
   @IsString()
   city?: string;
 
-  @ApiPropertyOptional({ example: '123 Main St' })
+  @ApiPropertyOptional(CommonFields.address)
   @IsOptional()
   @IsString()
   address?: string;
 
-  @ApiPropertyOptional({ example: '+1234567890' })
+  @ApiPropertyOptional(CommonFields.phone)
   @IsOptional()
   @IsString()
   phone?: string;
 
-  @ApiPropertyOptional({ example: 'info@techcorp.com' })
+  @ApiPropertyOptional(CommonFields.email)
   @IsOptional()
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ example: 'https://techcorp.com' })
+  @ApiPropertyOptional(CommonFields.website)
   @IsOptional()
   @IsUrl()
   website?: string;
 
-  @ApiPropertyOptional({ example: '123-45-6789' })
+  @ApiPropertyOptional(CommonFields.taxId)
   @IsOptional()
   @IsString()
   taxId?: string;

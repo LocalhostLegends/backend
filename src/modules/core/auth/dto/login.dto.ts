@@ -1,14 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, IsNotEmpty } from 'class-validator';
+import { IsEmail } from 'class-validator';
+
+import { IsPassword } from '@common/decorators/common-fields.decorators';
+import { CommonFields } from '@common/swagger/common.fields';
 
 export class LoginDto {
-  @ApiProperty({ example: 'john@example.com', description: 'Email address' })
-  @IsNotEmpty()
+  @ApiProperty(CommonFields.email)
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'strongPassword123' })
-  @IsNotEmpty()
-  @IsString()
+  @ApiProperty(CommonFields.password)
+  @IsPassword()
   password: string;
 }

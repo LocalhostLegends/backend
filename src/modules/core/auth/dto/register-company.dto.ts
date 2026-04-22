@@ -1,33 +1,34 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, MaxLength, IsNotEmpty } from 'class-validator';
+import { IsEmail } from 'class-validator';
+
+import { IsPassword } from '@common/decorators/common-fields.decorators';
+import { CommonFields } from '@common/swagger/common.fields';
+import {
+  IsUserFirstName,
+  IsUserLastName,
+} from '@modules/core/users/decorators/user-fields.decorators';
+import { UserFields } from '@modules/core/users/swagger/user.fields';
+import { IsCompanyName } from '@modules/organization/companies/decorators/company-fields.decorators';
+import { CompanyFields } from '@modules/organization/companies/swagger/company.fields';
 
 export class RegisterCompanyDto {
-  @ApiProperty({ example: 'Tech Corp', description: 'Company name' })
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(200)
+  @ApiProperty(CompanyFields.name)
+  @IsCompanyName()
   companyName: string;
 
-  @ApiProperty({ example: 'John', description: 'First name' })
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(100)
+  @ApiProperty(UserFields.firstName)
+  @IsUserFirstName()
   firstName: string;
 
-  @ApiProperty({ example: 'Doe', description: 'Last name' })
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(100)
+  @ApiProperty(UserFields.lastName)
+  @IsUserLastName()
   lastName: string;
 
-  @ApiProperty({ example: 'admin@techcorp.com', description: 'Email address' })
-  @IsNotEmpty()
+  @ApiProperty(CommonFields.email)
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'strongPassword123' })
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(6)
+  @ApiProperty(CommonFields.password)
+  @IsPassword()
   password: string;
 }

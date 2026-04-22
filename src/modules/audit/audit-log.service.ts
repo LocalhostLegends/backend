@@ -1,21 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AuthAuditLogEntity } from './entities/auth-audit-log.entity';
 
-export interface CreateAuthAuditLogInput {
-  eventType: string;
-  userId?: string | null;
-  emailAttempted?: string | null;
-  ip?: string | null;
-  userAgent?: string | null;
-  requestId?: string | null;
-  method?: string | null;
-  path?: string | null;
-  success: boolean;
-  failureReason?: string | null;
-  enrichmentStatus?: string;
-}
+import { AuthAuditLogEntity } from './entities/auth-audit-log.entity';
+import { CreateAuthAuditLogInput } from './audit.types';
 
 @Injectable()
 export class AuditLogService {

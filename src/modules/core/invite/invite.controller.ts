@@ -13,11 +13,11 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 import type { Request } from 'express';
 
 import { UserRole } from '@common/enums/user-role.enum';
 import type { AuthorizedUser } from '@common/types/authorized-user.type';
+import { transformToDto } from '@common/utils/app.utils';
 
 import { InviteService } from './invite.service';
 import { CreateInviteDto } from './dto/create-invite.dto';
@@ -46,20 +46,17 @@ export class InviteController {
     @Body() dto: CreateInviteDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<InviteResponseDto> {
-    const invite = await this._inviteService.createInvite(dto, currentUser);
-    return plainToInstance(InviteResponseDto, invite, {
-      excludeExtraneousValues: true,
-    });
+    return transformToDto(
+      InviteResponseDto,
+      await this._inviteService.createInvite(dto, currentUser),
+    );
   }
 
   @Get('validate')
   @ApiOperation({ summary: 'Validate invite token' })
   @ApiResponse({ status: HttpStatus.OK, type: InviteResponseDto })
   async validateInvite(@Query() query: ValidateInviteDto): Promise<InviteResponseDto> {
-    const invite = await this._inviteService.validateInvite(query.token);
-    return plainToInstance(InviteResponseDto, invite, {
-      excludeExtraneousValues: true,
-    });
+    return transformToDto(InviteResponseDto, await this._inviteService.validateInvite(query.token));
   }
 
   @Post('accept')
@@ -85,17 +82,17 @@ export class InviteController {
     @Body() dto: ResendInviteDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<InviteResponseDto> {
-    const invite = await this._inviteService.resendInvite(dto.inviteId, currentUser);
-    return plainToInstance(InviteResponseDto, invite, {
-      excludeExtraneousValues: true,
-    });
+    return transformToDto(
+      InviteResponseDto,
+      await this._inviteService.resendInvite(dto.inviteId, currentUser),
+    );
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, UserRolesGuard)
   @UserRoles(UserRole.ADMIN, UserRole.HR)
-  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Cancel invite' })
   async cancelInvite(
     @Param('id', ParseUUIDPipe) id: string,
@@ -113,10 +110,10 @@ export class InviteController {
   async getCompanyInvites(
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<InviteResponseDto[]> {
-    const invites = await this._inviteService.getCompanyInvites(currentUser.companyId);
-    return plainToInstance(InviteResponseDto, invites, {
-      excludeExtraneousValues: true,
-    });
+    return transformToDto(
+      InviteResponseDto,
+      await this._inviteService.getCompanyInvites(currentUser.companyId),
+    );
   }
 
   @Get('pending')
@@ -128,9 +125,9 @@ export class InviteController {
   async getPendingInvites(
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<InviteResponseDto[]> {
-    const invites = await this._inviteService.getPendingInvites(currentUser.companyId);
-    return plainToInstance(InviteResponseDto, invites, {
-      excludeExtraneousValues: true,
-    });
+    return transformToDto(
+      InviteResponseDto,
+      await this._inviteService.getPendingInvites(currentUser.companyId),
+    );
   }
 }

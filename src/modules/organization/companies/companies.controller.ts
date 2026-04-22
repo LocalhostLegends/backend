@@ -11,13 +11,13 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
 import { UserRoles } from '@modules/core/users/decorators/user-roles.decorator';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import { UserRole } from '@common/enums/user-role.enum';
+import { transformToDto } from '@common/utils/app.utils';
 import type { AuthorizedUser } from '@common/types/authorized-user.type';
 
 import { CompaniesService } from './companies.service';
@@ -40,10 +40,10 @@ export class CompaniesController {
   async create(
     @Body(ValidationPipe) createCompanyDto: CreateCompanyDto,
   ): Promise<CompanyResponseDto> {
-    const company = await this._companiesService.create(createCompanyDto);
-    return plainToInstance(CompanyResponseDto, company, {
-      excludeExtraneousValues: true,
-    });
+    return transformToDto(
+      CompanyResponseDto,
+      await this._companiesService.create(createCompanyDto),
+    );
   }
 
   @Get()
@@ -51,10 +51,7 @@ export class CompaniesController {
   @ApiOperation({ summary: 'Get all companies' })
   @ApiResponse({ status: 200, type: [CompanyResponseDto] })
   async findAll(): Promise<CompanyResponseDto[]> {
-    const companies = await this._companiesService.findAll();
-    return plainToInstance(CompanyResponseDto, companies, {
-      excludeExtraneousValues: true,
-    });
+    return transformToDto(CompanyResponseDto, await this._companiesService.findAll());
   }
 
   @Get('my-company')
@@ -62,10 +59,10 @@ export class CompaniesController {
   @ApiOperation({ summary: 'Get current user company' })
   @ApiResponse({ status: 200, type: CompanyResponseDto })
   async getMyCompany(@CurrentUser() currentUser: AuthorizedUser): Promise<CompanyResponseDto> {
-    const company = await this._companiesService.findById(currentUser.companyId);
-    return plainToInstance(CompanyResponseDto, company, {
-      excludeExtraneousValues: true,
-    });
+    return transformToDto(
+      CompanyResponseDto,
+      await this._companiesService.findById(currentUser.companyId),
+    );
   }
 
   @Get('stats')
@@ -80,10 +77,7 @@ export class CompaniesController {
   @ApiOperation({ summary: 'Get company by ID' })
   @ApiResponse({ status: 200, type: CompanyResponseDto })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<CompanyResponseDto> {
-    const company = await this._companiesService.findById(id);
-    return plainToInstance(CompanyResponseDto, company, {
-      excludeExtraneousValues: true,
-    });
+    return transformToDto(CompanyResponseDto, await this._companiesService.findById(id));
   }
 
   @Patch(':id')
@@ -94,10 +88,10 @@ export class CompaniesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body(ValidationPipe) updateCompanyDto: UpdateCompanyDto,
   ): Promise<CompanyResponseDto> {
-    const company = await this._companiesService.update(id, updateCompanyDto);
-    return plainToInstance(CompanyResponseDto, company, {
-      excludeExtraneousValues: true,
-    });
+    return transformToDto(
+      CompanyResponseDto,
+      await this._companiesService.update(id, updateCompanyDto),
+    );
   }
 
   @Delete(':id')
@@ -115,10 +109,13 @@ export class CompaniesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body(ValidationPipe) updateSubscriptionDto: UpdateSubscriptionDto,
   ) {
-    return this._companiesService.updateSubscription(
-      id,
-      updateSubscriptionDto.plan,
-      updateSubscriptionDto.expiresAt,
+    return transformToDto(
+      CompanyResponseDto,
+      await this._companiesService.updateSubscription(
+        id,
+        updateSubscriptionDto.plan,
+        updateSubscriptionDto.expiresAt,
+      ),
     );
   }
 }
