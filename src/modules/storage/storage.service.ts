@@ -10,7 +10,7 @@ export class StorageService {
   private readonly s3Client: S3Client;
 
   constructor() {
-    if (process.env.NODE_ENV !== 'production') {
+    if (!config.isProduction) {
       this.logger.log(
         `Storage config: bucket=${config.storage.bucketName}, publicUrl=${config.storage.publicUrl}, endpoint=${config.storage.endpoint}`,
       );

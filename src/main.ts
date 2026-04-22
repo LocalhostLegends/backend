@@ -46,14 +46,13 @@ function setupSwagger(app: INestApplication) {
 }
 
 function logStartup() {
-  const isProduction = config.nodeEnv === 'production';
   const localAppUrl = `http://localhost:${config.port}`;
   const apiUrl = `${localAppUrl}/${config.apiPrefix}`;
 
   console.log('\n');
   console.log(' ==================================');
 
-  if (isProduction) {
+  if (config.isProduction) {
     console.log('✅ Application started successfully');
     console.log(`✅ Environment: ${config.nodeEnv}`);
     console.log(`✅ API prefix: /${config.apiPrefix}`);
