@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty } from 'class-validator';
+import { IsEmail } from 'class-validator';
+
+import { CommonFields } from '@common/swagger/common.fields';
 
 export class CreateHrDto {
-  @ApiProperty({ example: 'hr@techcorp.com', description: 'Email address' })
-  @IsNotEmpty()
+  @ApiProperty(CommonFields.email)
   @IsEmail()
   email: string;
 }

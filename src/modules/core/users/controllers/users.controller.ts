@@ -14,11 +14,11 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 
 import { UserRole } from '@common/enums/user-role.enum';
 import type { AuthorizedUser } from '@common/types/authorized-user.type';
 import { PaginatedResult } from '@common/pagination/pagination.interface';
+import { transformToDto } from '@common/utils/app.utils';
 import { UserStatus } from '@database/enums/user-status.enum';
 
 import { UserRolesGuard } from '../guards/user-roles.guard';
@@ -48,13 +48,7 @@ export class UsersController {
   ): Promise<PaginatedResult<UserResponseDto>> {
     const result = await this._usersService.findAllPaginated(filters, currentUser);
 
-    return {
-      ...result,
-      data: plainToInstance(UserResponseDto, result.data, {
-        excludeExtraneousValues: true,
-        enableImplicitConversion: true,
-      }),
-    };
+    return { ...result, data: transformToDto(UserResponseDto, result.data) };
   }
 
   @Get('me')
@@ -62,11 +56,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
   async getCurrentUser(@CurrentUser() currentUser: AuthorizedUser): Promise<UserResponseDto> {
-    const user = await this._usersService.findById(currentUser.id);
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-      enableImplicitConversion: true,
-    });
+    return transformToDto(UserResponseDto, await this._usersService.findById(currentUser.id));
   }
 
   @Get('role/:role')
@@ -77,11 +67,10 @@ export class UsersController {
     @Param('role') role: UserRole,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto[]> {
-    const users = await this._usersService.getUsersByRole(currentUser.companyId, role);
-    return plainToInstance(UserResponseDto, users, {
-      excludeExtraneousValues: true,
-      enableImplicitConversion: true,
-    });
+    return transformToDto(
+      UserResponseDto,
+      await this._usersService.getUsersByRole(currentUser.companyId, role),
+    );
   }
 
   @Get('status/:status')
@@ -92,12 +81,10 @@ export class UsersController {
     @Param('status') status: UserStatus,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto[]> {
-    const filters: UserFilterDto = { status };
+    const filters = { status };
     const result = await this._usersService.findAllPaginated(filters, currentUser);
-    return plainToInstance(UserResponseDto, result.data, {
-      excludeExtraneousValues: true,
-      enableImplicitConversion: true,
-    });
+
+    return transformToDto(UserResponseDto, result.data);
   }
 
   @Get(':id')
@@ -108,11 +95,7 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto> {
-    const user = await this._usersService.findOne(id, currentUser);
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-      enableImplicitConversion: true,
-    });
+    return transformToDto(UserResponseDto, await this._usersService.findOne(id, currentUser));
   }
 
   @Patch(':id')
@@ -124,11 +107,10 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto> {
-    const user = await this._usersService.update(id, updateUserDto, currentUser);
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-      enableImplicitConversion: true,
-    });
+    return transformToDto(
+      UserResponseDto,
+      await this._usersService.update(id, updateUserDto, currentUser),
+    );
   }
 
   @Post(':id/block')
@@ -140,11 +122,7 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto> {
-    const user = await this._usersService.blockUser(id, currentUser);
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-      enableImplicitConversion: true,
-    });
+    return transformToDto(UserResponseDto, await this._usersService.blockUser(id, currentUser));
   }
 
   @Post(':id/unblock')
@@ -156,11 +134,7 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto> {
-    const user = await this._usersService.unblockUser(id, currentUser);
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-      enableImplicitConversion: true,
-    });
+    return transformToDto(UserResponseDto, await this._usersService.unblockUser(id, currentUser));
   }
 
   @Delete(':id')

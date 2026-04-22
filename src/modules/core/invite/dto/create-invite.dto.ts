@@ -1,23 +1,28 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsUUID, IsOptional } from 'class-validator';
+import { IsOptional, IsEmail, IsUUID } from 'class-validator';
 
 import { UserRole } from '@common/enums/user-role.enum';
+import { CommonFields } from '@common/swagger/common.fields';
+import { IsUserRole } from '@modules/core/users/decorators/user-fields.decorators';
+import { UserFields } from '@modules/core/users/swagger/user.fields';
+import { DepartmentFields } from '@modules/organization/departments/swagger/department.fields';
+import { PositionFields } from '@modules/organization/positions/swagger/position.fields';
 
 export class CreateInviteDto {
-  @ApiProperty({ example: 'hr@company.com' })
+  @ApiProperty(CommonFields.email)
   @IsEmail()
   email: string;
 
-  @ApiProperty({ enum: UserRole, example: UserRole.HR })
-  @IsEnum(UserRole)
+  @ApiProperty(UserFields.role)
+  @IsUserRole()
   role: UserRole;
 
-  @ApiPropertyOptional({ example: 'uuid-of-department' })
+  @ApiPropertyOptional(DepartmentFields.id)
   @IsOptional()
   @IsUUID()
   departmentId?: string;
 
-  @ApiPropertyOptional({ example: 'uuid-of-position' })
+  @ApiPropertyOptional(PositionFields.id)
   @IsOptional()
   @IsUUID()
   positionId?: string;

@@ -1,131 +1,126 @@
 import {
   IsOptional,
-  IsInt,
-  Min,
-  Max,
   IsString,
   IsEnum,
   IsUUID,
   IsEmail,
-  IsIn,
-  IsBoolean,
   IsDateString,
   IsArray,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 import { UserRole } from '@common/enums/user-role.enum';
 import { UserStatus } from '@database/enums/user-status.enum';
+import {
+  IsBooleanQuery,
+  IsPaginationLimit,
+  IsPaginationPage,
+  IsPaginationSortOrder,
+} from '@common/decorators/common-fields.decorators';
+import { SortOrder } from '@common/enums/sort-order.enum';
+import { CommonFields } from '@common/swagger/common.fields';
+import { PaginationQueryFields } from '@common/swagger/pagination-query.fields';
+import { IsUserRole, IsUserStatus } from '@modules/core/users/decorators/user-fields.decorators';
+import { UserFields } from '@modules/core/users/swagger/user.fields';
+import { UserFilterFields } from '@modules/core/users/swagger/user-filter.fields';
+import { CompanyFields } from '@modules/organization/companies/swagger/company.fields';
+import { DepartmentFields } from '@modules/organization/departments/swagger/department.fields';
+import { PositionFields } from '@modules/organization/positions/swagger/position.fields';
 
 export class UserFilterDto {
-  @ApiPropertyOptional({ description: 'Page number', example: 1 })
+  @ApiPropertyOptional(PaginationQueryFields.page)
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
+  @IsPaginationPage()
   page?: number = 1;
 
-  @ApiPropertyOptional({ description: 'Items per page', example: 10 })
+  @ApiPropertyOptional(PaginationQueryFields.limit)
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
+  @IsPaginationLimit()
   limit?: number = 10;
 
-  @ApiPropertyOptional({
-    description: 'Sort field',
-    example: 'createdAt',
-    enum: ['firstName', 'lastName', 'email', 'role', 'status', 'createdAt', 'updatedAt'],
-  })
+  @ApiPropertyOptional(PaginationQueryFields.sortBy)
   @IsOptional()
   @IsString()
-  @IsIn(['firstName', 'lastName', 'email', 'role', 'status', 'createdAt', 'updatedAt'])
   sortBy?: string = 'createdAt';
 
-  @ApiPropertyOptional({ description: 'Sort order', example: 'DESC', enum: ['ASC', 'DESC'] })
+  @ApiPropertyOptional(PaginationQueryFields.sortOrder)
   @IsOptional()
-  @IsEnum(['ASC', 'DESC'])
-  sortOrder?: 'ASC' | 'DESC' = 'DESC';
+  @IsPaginationSortOrder()
+  sortOrder?: SortOrder = SortOrder.DESC;
 
-  @ApiPropertyOptional({ description: 'Search by name or email', example: 'John' })
+  @ApiPropertyOptional(UserFilterFields.search)
   @IsOptional()
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by role', enum: UserRole })
+  @ApiPropertyOptional(UserFields.role)
   @IsOptional()
-  @IsEnum(UserRole)
+  @IsUserRole()
   role?: UserRole;
 
-  @ApiPropertyOptional({ description: 'Filter by status', enum: UserStatus })
+  @ApiPropertyOptional(UserFields.status)
   @IsOptional()
-  @IsEnum(UserStatus)
+  @IsUserStatus()
   status?: UserStatus;
 
-  @ApiPropertyOptional({ description: 'Filter by department ID' })
+  @ApiPropertyOptional(DepartmentFields.id)
   @IsOptional()
   @IsUUID()
   departmentId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by position ID' })
+  @ApiPropertyOptional(PositionFields.id)
   @IsOptional()
   @IsUUID()
   positionId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by exact email' })
+  @ApiPropertyOptional(CommonFields.email)
   @IsOptional()
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by multiple statuses', isArray: true })
+  @ApiPropertyOptional(UserFilterFields.statuses)
   @IsOptional()
   @IsArray()
   @IsEnum(UserStatus, { each: true })
   statuses?: UserStatus[];
 
-  @ApiPropertyOptional({ description: 'Filter by multiple roles', isArray: true })
+  @ApiPropertyOptional(UserFilterFields.roles)
   @IsOptional()
   @IsArray()
   @IsEnum(UserRole, { each: true })
   roles?: UserRole[];
 
-  @ApiPropertyOptional({ description: 'Filter users created after date' })
+  @ApiPropertyOptional(UserFilterFields.createdAfter)
   @IsOptional()
   @IsDateString()
   createdAfter?: string;
 
-  @ApiPropertyOptional({ description: 'Filter users created before date' })
+  @ApiPropertyOptional(UserFilterFields.createdBefore)
   @IsOptional()
   @IsDateString()
   createdBefore?: string;
 
-  @ApiPropertyOptional({ description: 'Show only invited users' })
+  @ApiPropertyOptional(UserFilterFields.pendingOnly)
   @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
+  @IsBooleanQuery()
   pendingOnly?: boolean;
 
-  @ApiPropertyOptional({ description: 'Show only active users' })
+  @ApiPropertyOptional(UserFilterFields.activeOnly)
   @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
+  @IsBooleanQuery()
   activeOnly?: boolean;
 
-  @ApiPropertyOptional({ description: 'Show only blocked users' })
+  @ApiPropertyOptional(UserFilterFields.blockedOnly)
   @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
+  @IsBooleanQuery()
   blockedOnly?: boolean;
 
-  @ApiPropertyOptional({ description: 'Include soft-deleted users', default: false })
+  @ApiPropertyOptional(UserFilterFields.withDeleted)
   @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
+  @IsBooleanQuery()
   withDeleted?: boolean = false;
 
-  @ApiPropertyOptional({ description: 'Filter by company ID (admin only)' })
+  @ApiPropertyOptional(CompanyFields.id)
   @IsOptional()
   @IsUUID()
   companyId?: string;

@@ -1,70 +1,63 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEmail,
-  IsString,
-  IsOptional,
-  MinLength,
-  MaxLength,
-  IsUUID,
-  Matches,
-  IsEnum,
-  IsBoolean,
-} from 'class-validator';
+import { IsOptional, IsBoolean, IsEmail, IsUUID } from 'class-validator';
 
 import { UserRole } from '@common/enums/user-role.enum';
+import { IsPassword, IsPhone } from '@common/decorators/common-fields.decorators';
+import { CommonFields } from '@common/swagger/common.fields';
+import {
+  IsUserFirstName,
+  IsUserLastName,
+  IsUserRole,
+} from '@modules/core/users/decorators/user-fields.decorators';
+import { UserFields } from '@modules/core/users/swagger/user.fields';
+import { CompanyFields } from '@modules/organization/companies/swagger/company.fields';
+import { DepartmentFields } from '@modules/organization/departments/swagger/department.fields';
+import { PositionFields } from '@modules/organization/positions/swagger/position.fields';
 
 export class CreateUserDto {
-  @ApiProperty({ example: 'John', minLength: 2, maxLength: 100 })
-  @IsString()
-  @MinLength(2)
-  @MaxLength(100)
+  @ApiProperty(UserFields.firstName)
+  @IsUserFirstName()
   firstName: string;
 
-  @ApiProperty({ example: 'Doe', minLength: 2, maxLength: 100 })
-  @IsString()
-  @MinLength(2)
-  @MaxLength(100)
+  @ApiProperty(UserFields.lastName)
+  @IsUserLastName()
   lastName: string;
 
-  @ApiProperty({ example: 'john@example.com' })
+  @ApiProperty(CommonFields.email)
   @IsEmail()
   email: string;
 
-  @ApiPropertyOptional({ example: 'strongPassword123', minLength: 6 })
+  @ApiPropertyOptional(CommonFields.password)
   @IsOptional()
-  @IsString()
-  @MinLength(6)
+  @IsPassword()
   password?: string;
 
-  @ApiPropertyOptional({ enum: UserRole, default: UserRole.EMPLOYEE })
+  @ApiPropertyOptional(UserFields.role)
   @IsOptional()
-  @IsEnum(UserRole)
+  @IsUserRole()
   role?: UserRole;
 
-  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174330' })
+  @ApiPropertyOptional(CompanyFields.id)
   @IsOptional()
   @IsUUID()
   companyId?: string;
 
-  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  @ApiPropertyOptional(DepartmentFields.id)
   @IsOptional()
   @IsUUID()
   departmentId?: string;
 
-  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  @ApiPropertyOptional(PositionFields.id)
   @IsOptional()
   @IsUUID()
   positionId?: string;
 
-  @ApiPropertyOptional({ example: '+380501234567' })
+  @ApiPropertyOptional(CommonFields.phone)
   @IsOptional()
-  @IsString()
-  @Matches(/^[+0-9\s()-]+$/, {
-    message: 'Phone number can only contain +, digits, spaces, hyphens, and parentheses',
-  })
+  @IsPhone()
   phone?: string;
 
-  @ApiPropertyOptional({ example: false, description: 'Send invitation email' })
+  @ApiPropertyOptional(UserFields.sendInvitation)
   @IsOptional()
   @IsBoolean()
   sendInvitation?: boolean = true;

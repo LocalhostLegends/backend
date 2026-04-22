@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsUUID } from 'class-validator';
+import { IsUUID } from 'class-validator';
+
+import { InviteFields } from '@modules/core/invite/swagger/invite.fields';
 
 export class ValidateInviteDto {
-  @ApiProperty({ example: 'token-from-email' })
-  @IsNotEmpty()
+  @ApiProperty(InviteFields.token)
   @IsUUID()
   token: string;
 }

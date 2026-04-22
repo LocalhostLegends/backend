@@ -1,25 +1,31 @@
-import { IsOptional, IsInt, Min, Max, IsString, IsEnum } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsOptional, IsString } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsPaginationLimit,
+  IsPaginationPage,
+  IsPaginationSortOrder,
+} from '@common/decorators/common-fields.decorators';
+import { SortOrder } from '@/common/enums/sort-order.enum';
+import { PaginationQueryFields } from '@common/swagger/pagination-query.fields';
 
 export class PaginationQueryDto {
+  @ApiPropertyOptional(PaginationQueryFields.page)
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
+  @IsPaginationPage()
   page?: number = 1;
 
+  @ApiPropertyOptional(PaginationQueryFields.limit)
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
+  @IsPaginationLimit()
   limit?: number = 10;
 
+  @ApiPropertyOptional(PaginationQueryFields.sortBy)
   @IsOptional()
   @IsString()
   sortBy?: string = 'createdAt';
 
+  @ApiPropertyOptional(PaginationQueryFields.sortOrder)
   @IsOptional()
-  @IsEnum(['ASC', 'DESC'])
-  sortOrder?: 'ASC' | 'DESC' = 'DESC';
+  @IsPaginationSortOrder()
+  sortOrder?: SortOrder = SortOrder.DESC;
 }

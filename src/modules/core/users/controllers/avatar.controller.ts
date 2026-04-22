@@ -23,6 +23,8 @@ import {
 
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
+import { AvatarDeleteResponseDto } from '@modules/core/users/dto/avatar-delete-response.dto';
+import { AvatarUploadResponseDto } from '@modules/core/users/dto/avatar-upload-response.dto';
 import { UsersService } from '@modules/core/users/users.service';
 import type { AuthorizedUser } from '@common/types/authorized-user.type';
 
@@ -40,7 +42,11 @@ export class AvatarController {
 
   @Post()
   @ApiOperation({ summary: 'Upload user avatar' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Avatar uploaded successfully' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Avatar uploaded successfully',
+    type: AvatarUploadResponseDto,
+  })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'No file uploaded or invalid file' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -67,7 +73,7 @@ export class AvatarController {
     )
     file: Express.Multer.File,
     @CurrentUser() currentUser: AuthorizedUser,
-  ) {
+  ): Promise<AvatarUploadResponseDto> {
     const user = await this._usersService.findById(currentUser.id);
 
     const { url } = await this._storageService.uploadAvatar(
@@ -88,10 +94,12 @@ export class AvatarController {
   @Delete()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete user avatar' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Avatar deleted successfully' })
-  async delete(
-    @CurrentUser() currentUser: AuthorizedUser,
-  ): Promise<{ success: boolean; message: string }> {
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Avatar deleted successfully',
+    type: AvatarDeleteResponseDto,
+  })
+  async delete(@CurrentUser() currentUser: AuthorizedUser): Promise<AvatarDeleteResponseDto> {
     const user = await this._usersService.findById(currentUser.id);
 
     if (user.avatar) {
