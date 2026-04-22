@@ -3,6 +3,7 @@ import '@common/init/env';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { Express, Request, Response } from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 
@@ -45,24 +46,48 @@ function setupSwagger(app: INestApplication) {
 }
 
 function logStartup() {
+  const isProduction = config.nodeEnv === 'production';
+  const localAppUrl = `http://localhost:${config.port}`;
+  const apiUrl = `${localAppUrl}/${config.apiPrefix}`;
+
   console.log('\n');
   console.log(' ==================================');
-  console.log(`✅ Application is running on: http://localhost:${config.port}/${config.apiPrefix}`);
-  console.log(`✅ Swagger docs: http://localhost:${config.port}/${config.apiPrefix}/docs`);
-  console.log(
-    `✅ pgAdmin: http://localhost:${config.pgAdmin.port} (user: ${config.pgAdmin.user} / password: ${config.pgAdmin.password})`,
-  );
-  console.log(
-    `✅ Storage: ${config.storage.endpoint} (username: ${config.storage.accessKeyId} / password: ${config.storage.secretAccessKey})`,
-  );
-  console.log(`✅ Environment: ${config.nodeEnv}`);
-  console.log(`✅ CORS: ${config.cors.origins.join(', ')}`);
+
+  if (isProduction) {
+    console.log('✅ Application started successfully');
+    console.log(`✅ Environment: ${config.nodeEnv}`);
+    console.log(`✅ API prefix: /${config.apiPrefix}`);
+    console.log('✅ Health: /health');
+  } else {
+    console.log(`✅ Application is running on: ${apiUrl}`);
+    console.log(`✅ Swagger docs: ${apiUrl}/docs`);
+    console.log(`✅ pgAdmin: http://localhost:${config.pgAdmin.port}`);
+    console.log(`✅ Storage provider: configured`);
+    console.log(`✅ Environment: ${config.nodeEnv}`);
+    console.log(`✅ CORS: ${config.cors.origins.join(', ')}`);
+  }
+
   console.log(' ==================================');
   console.log('\n');
 }
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+
+  const httpAdapter = app.getHttpAdapter();
+  const instance = httpAdapter.getInstance() as Express;
+
+  instance.get('/', (_req: Request, res: Response) => {
+    res.status(200).json({
+      success: true,
+      service: 'hrtech-backend',
+      status: 'ok',
+    });
+  });
+
+  instance.head('/', (_req: Request, res: Response) => {
+    res.status(200).send();
+  });
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
@@ -75,7 +100,6 @@ async function bootstrap(): Promise<void> {
   setupSwagger(app);
 
   await app.listen(config.port);
-
   logStartup();
 }
 
