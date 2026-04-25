@@ -8,7 +8,7 @@ async function bootstrap(): Promise<void> {
 
   console.log(`Current NODE_ENV: ${nodeEnv}`);
 
-  if (nodeEnv === 'production') {
+  if (nodeEnv === 'production' && process.env.ALLOW_PROD_SEED !== 'true') {
     console.log('Production environment detected');
     console.log('Seed skipped in production for safety');
     return;
