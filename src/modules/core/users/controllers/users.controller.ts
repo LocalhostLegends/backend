@@ -39,7 +39,7 @@ export class UsersController {
   constructor(private readonly _usersService: UsersService) {}
 
   @Get()
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.EMPLOYEE)
+  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER, UserRole.EMPLOYEE)
   @ApiOperation({ summary: 'Get all users with pagination and filters' })
   @ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] })
   async findAll(
@@ -52,7 +52,7 @@ export class UsersController {
   }
 
   @Get('me')
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.EMPLOYEE)
+  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER, UserRole.EMPLOYEE)
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
   async getCurrentUser(@CurrentUser() currentUser: AuthorizedUser): Promise<UserResponseDto> {
@@ -60,7 +60,7 @@ export class UsersController {
   }
 
   @Get('role/:role')
-  @UserRoles(UserRole.ADMIN, UserRole.HR)
+  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get users by role' })
   @ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] })
   async getUsersByRole(
@@ -74,7 +74,7 @@ export class UsersController {
   }
 
   @Get('status/:status')
-  @UserRoles(UserRole.ADMIN, UserRole.HR)
+  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get users by status' })
   @ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] })
   async getUsersByStatus(
@@ -88,7 +88,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.EMPLOYEE)
+  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER, UserRole.EMPLOYEE)
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
   async findOne(
@@ -99,7 +99,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @UserRoles(UserRole.ADMIN, UserRole.HR)
+  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Update user' })
   @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
   async update(

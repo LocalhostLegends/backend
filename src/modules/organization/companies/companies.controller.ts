@@ -55,7 +55,7 @@ export class CompaniesController {
   }
 
   @Get('my-company')
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.EMPLOYEE)
+  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER, UserRole.EMPLOYEE)
   @ApiOperation({ summary: 'Get current user company' })
   @ApiResponse({ status: 200, type: CompanyResponseDto })
   async getMyCompany(@CurrentUser() currentUser: AuthorizedUser): Promise<CompanyResponseDto> {
