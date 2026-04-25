@@ -10,6 +10,7 @@ import { Reflector } from '@nestjs/core';
 import { UserRole } from '../enums/user-role.enum';
 import { RequestWithUser } from '../types/request-with-user.type';
 import { ErrorMessages } from '../exceptions/error-messages';
+import { ROLES_KEY } from '../decorators/require-role.decorator';
 
 @Injectable()
 export class UserRolesGuard implements CanActivate {
@@ -18,33 +19,40 @@ export class UserRolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    let requiredRole = this.reflector.get<UserRole>('role', context.getHandler());
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
-    if (!requiredRole) {
-      requiredRole = this.reflector.get<UserRole>('role', context.getClass());
-    }
+    const requiredRolesStr = requiredRoles?.length ? requiredRoles.join(', ') : 'none';
+    this.logger.debug(`Required roles: ${requiredRolesStr}`);
 
-    this.logger.log(`Required role: ${requiredRole}`);
-
-    if (!requiredRole) {
+    if (!requiredRoles?.length) {
       return true;
     }
 
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const { user } = request;
 
-    this.logger.log(`User from request: ${JSON.stringify(user)}`);
-
     if (!user) {
+      this.logger.warn('Access denied: No user in request');
       throw new ForbiddenException(ErrorMessages.USER_NOT_FOUND);
     }
 
-    this.logger.log(`User role: ${user.role}`);
+    this.logger.debug(`User: ${user.email || user.id}, Role: ${user.role}`);
 
-    if (user.role !== requiredRole) {
-      throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(requiredRole, false));
+    const hasRequiredRole = requiredRoles.includes(user.role);
+
+    if (!hasRequiredRole) {
+      this.logger.warn(
+        `Access denied for user ${user.email || user.id}. Required: ${requiredRolesStr}, Got: ${user.role}`,
+      );
+      throw new ForbiddenException(
+        ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(requiredRolesStr, false),
+      );
     }
 
+    this.logger.debug(`Access granted for user ${user.email || user.id}`);
     return true;
   }
 }

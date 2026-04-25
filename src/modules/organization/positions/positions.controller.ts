@@ -17,6 +17,7 @@ import { UserRolesGuard } from '@common/guards/user-roles.guard';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import { transformToDto } from '@common/utils/app.utils';
 import { type AuthorizedUser } from '@common/types/authorized-user.type';
+import { UserRole } from '@common/enums/user-role.enum';
 
 import { PositionsService } from './positions.service';
 import { CreatePositionDto } from './dto/create-position.dto';
@@ -27,11 +28,12 @@ import { PositionResponseDto } from './dto/position-response.dto';
 @ApiBearerAuth('JWT-auth')
 @Controller('positions')
 @UseGuards(JwtAuthGuard, UserRolesGuard)
-@RequireRole('hr')
+@RequireRole(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
 export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
+  @RequireRole(UserRole.ADMIN, UserRole.HR)
   @ApiOperation({ summary: 'Create a new position in the current company' })
   @ApiResponse({
     status: 201,
@@ -118,6 +120,7 @@ export class PositionsController {
   }
 
   @Patch(':id')
+  @RequireRole(UserRole.ADMIN, UserRole.HR)
   @ApiOperation({ summary: 'Update position' })
   @ApiParam({ name: 'id', description: 'Position UUID', type: String })
   @ApiResponse({
@@ -157,6 +160,7 @@ export class PositionsController {
   }
 
   @Delete(':id')
+  @RequireRole(UserRole.ADMIN, UserRole.HR)
   @ApiOperation({ summary: 'Delete position' })
   @ApiParam({ name: 'id', description: 'Position UUID', type: String })
   @ApiResponse({
