@@ -31,7 +31,13 @@ export class SeedService implements OnModuleInit {
       return;
     }
 
+    if (process.env.RUN_SEED !== 'true') {
+      this.logger.log('RUN_SEED is not enabled, skipping seed');
+      return;
+    }
+
     try {
+      this.logger.log('RUN_SEED enabled, starting seed...');
       await this.seed();
     } catch (error) {
       this.logger.error('Seeding failed', error instanceof Error ? error.stack : String(error));
