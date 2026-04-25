@@ -29,8 +29,6 @@
     "migration:revert": "npm run typeorm -- -d ./src/database/data-source.ts migration:revert",
     "migration:create": "npm run typeorm -- migration:create",
     "migration:show": "npm run typeorm -- -d ./src/database/data-source.ts migration:show",
-    "seed:dev": "NODE_ENV=development DOTENV_CONFIG_PATH=.env.development ts-node -r dotenv/config -r tsconfig-paths/register src/database/seed-run.ts",
-    "seed:prod": "NODE_ENV=production node dist/database/seed-run.js",
     "db:drop": "npm run typeorm -- -d ./src/database/data-source.ts schema:drop",
     "db:clear": "npm run typeorm -- -d ./src/database/data-source.ts query \"TRUNCATE TABLE information_schema.tables CASCADE\"",
     "db:reset": "npm run db:drop && npm run migration:run"
