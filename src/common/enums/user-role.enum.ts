@@ -5,3 +5,5 @@ export enum UserRole {
   MANAGER = 'manager',
   EMPLOYEE = 'employee',
 }
+
+export const ALL_ROLES = Object.values(UserRole);

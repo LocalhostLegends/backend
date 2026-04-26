@@ -17,7 +17,7 @@ import { UserRolesGuard } from '@common/guards/user-roles.guard';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import { transformToDto } from '@common/utils/app.utils';
 import { type AuthorizedUser } from '@common/types/authorized-user.type';
-import { UserRole } from '@common/enums/user-role.enum';
+import { UserRole, ALL_ROLES } from '@common/enums/user-role.enum';
 
 import { PositionsService } from './positions.service';
 import { CreatePositionDto } from './dto/create-position.dto';
@@ -28,7 +28,7 @@ import { PositionResponseDto } from './dto/position-response.dto';
 @ApiBearerAuth('JWT-auth')
 @Controller('positions')
 @UseGuards(JwtAuthGuard, UserRolesGuard)
-@RequireRole(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+@RequireRole(...ALL_ROLES)
 export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 

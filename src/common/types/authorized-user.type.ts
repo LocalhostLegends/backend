@@ -5,6 +5,7 @@ export interface AuthorizedUser {
   email: string;
   role: UserRole;
   companyId: string;
+  departmentId?: string | null;
   firstName?: string;
   lastName?: string;
 }

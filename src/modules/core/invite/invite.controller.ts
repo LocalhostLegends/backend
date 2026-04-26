@@ -27,8 +27,8 @@ import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { InviteResponseDto } from './dto/invite-response.dto';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { UserRolesGuard } from '../users/guards/user-roles.guard';
-import { UserRoles } from '../users/decorators/user-roles.decorator';
+import { UserRolesGuard } from '@common/guards/user-roles.guard';
+import { RequireRole } from '@common/decorators/require-role.decorator';
 import { CurrentUser } from '../users/decorators/current-user.decorator';
 
 @ApiTags('Invites')
@@ -38,7 +38,7 @@ export class InviteController {
 
   @Post()
   @UseGuards(JwtAuthGuard, UserRolesGuard)
-  @UserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequireRole(UserRole.ADMIN, UserRole.HR)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create a new invite' })
   @ApiResponse({ status: HttpStatus.CREATED, type: InviteResponseDto })
@@ -74,7 +74,7 @@ export class InviteController {
 
   @Post('resend')
   @UseGuards(JwtAuthGuard, UserRolesGuard)
-  @UserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequireRole(UserRole.ADMIN, UserRole.HR)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Resend invite email' })
   @ApiResponse({ status: HttpStatus.OK, type: InviteResponseDto })
@@ -90,7 +90,7 @@ export class InviteController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, UserRolesGuard)
-  @UserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequireRole(UserRole.ADMIN, UserRole.HR)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Cancel invite' })
@@ -103,7 +103,7 @@ export class InviteController {
 
   @Get('company')
   @UseGuards(JwtAuthGuard, UserRolesGuard)
-  @UserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequireRole(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all company invites' })
   @ApiResponse({ status: HttpStatus.OK, type: [InviteResponseDto] })
@@ -112,13 +112,13 @@ export class InviteController {
   ): Promise<InviteResponseDto[]> {
     return transformToDto(
       InviteResponseDto,
-      await this._inviteService.getCompanyInvites(currentUser.companyId),
+      await this._inviteService.getCompanyInvites(currentUser),
     );
   }
 
   @Get('pending')
   @UseGuards(JwtAuthGuard, UserRolesGuard)
-  @UserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequireRole(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get pending invites' })
   @ApiResponse({ status: HttpStatus.OK, type: [InviteResponseDto] })
@@ -127,7 +127,7 @@ export class InviteController {
   ): Promise<InviteResponseDto[]> {
     return transformToDto(
       InviteResponseDto,
-      await this._inviteService.getPendingInvites(currentUser.companyId),
+      await this._inviteService.getPendingInvites(currentUser),
     );
   }
 }

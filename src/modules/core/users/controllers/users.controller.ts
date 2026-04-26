@@ -15,15 +15,15 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-import { UserRole } from '@common/enums/user-role.enum';
+import { UserRole, ALL_ROLES } from '@common/enums/user-role.enum';
 import type { AuthorizedUser } from '@common/types/authorized-user.type';
 import { PaginatedResult } from '@common/pagination/pagination.interface';
 import { transformToDto } from '@common/utils/app.utils';
 import { UserStatus } from '@database/enums/user-status.enum';
 
-import { UserRolesGuard } from '../guards/user-roles.guard';
+import { UserRolesGuard } from '@common/guards/user-roles.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
-import { UserRoles } from '../decorators/user-roles.decorator';
+import { RequireRole } from '@common/decorators/require-role.decorator';
 import { UsersService } from '../users.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserFilterDto } from '../dto/user-filter.dto';
@@ -39,7 +39,7 @@ export class UsersController {
   constructor(private readonly _usersService: UsersService) {}
 
   @Get()
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER, UserRole.EMPLOYEE)
+  @RequireRole(...ALL_ROLES)
   @ApiOperation({ summary: 'Get all users with pagination and filters' })
   @ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] })
   async findAll(
@@ -52,15 +52,18 @@ export class UsersController {
   }
 
   @Get('me')
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER, UserRole.EMPLOYEE)
+  @RequireRole(...ALL_ROLES)
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
   async getCurrentUser(@CurrentUser() currentUser: AuthorizedUser): Promise<UserResponseDto> {
-    return transformToDto(UserResponseDto, await this._usersService.findById(currentUser.id));
+    return transformToDto(
+      UserResponseDto,
+      await this._usersService.findOne(currentUser.id, currentUser),
+    );
   }
 
   @Get('role/:role')
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequireRole(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get users by role' })
   @ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] })
   async getUsersByRole(
@@ -69,12 +72,12 @@ export class UsersController {
   ): Promise<UserResponseDto[]> {
     return transformToDto(
       UserResponseDto,
-      await this._usersService.getUsersByRole(currentUser.companyId, role),
+      await this._usersService.getUsersByRole(currentUser, role),
     );
   }
 
   @Get('status/:status')
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequireRole(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get users by status' })
   @ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] })
   async getUsersByStatus(
@@ -88,7 +91,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER, UserRole.EMPLOYEE)
+  @RequireRole(...ALL_ROLES)
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
   async findOne(
@@ -99,7 +102,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequireRole(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Update user' })
   @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
   async update(
@@ -114,7 +117,7 @@ export class UsersController {
   }
 
   @Post(':id/block')
-  @UserRoles(UserRole.ADMIN)
+  @RequireRole(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Block user (ADMIN only)' })
   @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
@@ -126,7 +129,7 @@ export class UsersController {
   }
 
   @Post(':id/unblock')
-  @UserRoles(UserRole.ADMIN)
+  @RequireRole(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unblock user (ADMIN only)' })
   @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
@@ -138,7 +141,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @UserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequireRole(UserRole.ADMIN, UserRole.HR)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete user (soft delete)' })
   async remove(

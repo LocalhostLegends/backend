@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ForbiddenException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 
@@ -29,6 +35,7 @@ import type { RequestContext } from '@common/middleware/request-context.middlewa
 export class AuthService {
   constructor(
     private readonly _usersService: UsersService,
+    @Inject(forwardRef(() => CompaniesService))
     private readonly _companiesService: CompaniesService,
     private readonly _emailService: EmailService,
     private readonly _inviteService: InviteService,

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -45,6 +45,9 @@ import { HealthController } from './health/health.controller';
 // Organization
 import { OrganizationModule } from '../organization/organization.module';
 
+// Permissions
+import { PermissionsModule } from '../permissions/permissions.module';
+
 //Audit
 import { AuditModule } from '../audit/audit.module';
 
@@ -61,7 +64,8 @@ import { AuditModule } from '../audit/audit.module';
       }),
     }),
     AuditModule,
-    OrganizationModule,
+    PermissionsModule,
+    forwardRef(() => OrganizationModule),
   ],
   controllers: [
     HealthController,
@@ -86,6 +90,14 @@ import { AuditModule } from '../audit/audit.module';
     JwtStrategy,
     JwtRefreshStrategy,
   ],
-  exports: [UsersService, AuthService, InviteService, TokenService, EmailService, JwtModule],
+  exports: [
+    UsersService,
+    AuthService,
+    InviteService,
+    TokenService,
+    EmailService,
+    JwtModule,
+    PermissionsModule,
+  ],
 })
 export class CoreModule {}

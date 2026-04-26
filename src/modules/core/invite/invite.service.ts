@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan, Repository } from 'typeorm';
+import { MoreThan, Repository, FindOptionsWhere } from 'typeorm';
 import { randomUUID } from 'crypto';
 
 import config from '@config/app.config';
@@ -20,6 +20,9 @@ import { InviteStatus } from '@database/enums/invite-status.enum';
 import { UserRole } from '@common/enums/user-role.enum';
 import { ErrorMessages } from '@common/exceptions/error-messages';
 import type { AuthorizedUser } from '@common/types/authorized-user.type';
+
+import { PermissionAction } from '@common/enums/permission-action.enum';
+import { PermissionsService } from '../../permissions/permissions.service';
 
 import { CreateInviteDto } from './dto/create-invite.dto';
 
@@ -41,9 +44,12 @@ export class InviteService {
     private readonly _emailService: EmailService,
     private readonly _usersService: UsersService,
     private readonly _tokenService: TokenService,
+    private readonly _permissions: PermissionsService,
   ) {}
 
   async createInvite(dto: CreateInviteDto, currentUser: AuthorizedUser): Promise<Invite> {
+    this._permissions.assertCan(currentUser, PermissionAction.INVITE_CREATE);
+
     if (currentUser.role === UserRole.HR && dto.role === UserRole.ADMIN) {
       throw new ForbiddenException(ErrorMessages.FORBIDDEN_INVITE_ADMIN);
     }
@@ -200,7 +206,6 @@ export class InviteService {
   }
 
   async resendInvite(inviteId: string, currentUser: AuthorizedUser): Promise<Invite> {
-    // ✅ используем company: { id: ... }
     const invite = await this._inviteRepository.findOne({
       where: { id: inviteId },
       relations: ['company', 'invitedBy'],
@@ -210,11 +215,7 @@ export class InviteService {
       throw new NotFoundException(ErrorMessages.INVITE_NOT_FOUND);
     }
 
-    if (invite.company.id !== currentUser.companyId) {
-      throw new ForbiddenException(
-        ErrorMessages.INVITE_NOT_IN_COMPANY(invite.id, currentUser.companyId),
-      );
-    }
+    this._permissions.assertCan(currentUser, PermissionAction.INVITE_RESEND, invite);
 
     if (invite.status !== InviteStatus.PENDING) {
       throw new BadRequestException(ErrorMessages.FORBIDDEN_RESEND_INVITE(invite.status));
@@ -237,7 +238,6 @@ export class InviteService {
   }
 
   async cancelInvite(inviteId: string, currentUser: AuthorizedUser): Promise<void> {
-    // ✅ используем company: { id: ... }
     const invite = await this._inviteRepository.findOne({
       where: { id: inviteId },
       relations: ['company'],
@@ -247,11 +247,7 @@ export class InviteService {
       throw new NotFoundException(ErrorMessages.INVITE_NOT_FOUND);
     }
 
-    if (invite.company.id !== currentUser.companyId) {
-      throw new ForbiddenException(
-        ErrorMessages.INVITE_NOT_IN_COMPANY(invite.id, currentUser.companyId),
-      );
-    }
+    this._permissions.assertCan(currentUser, PermissionAction.INVITE_CANCEL, invite);
 
     if (invite.status !== InviteStatus.PENDING) {
       throw new BadRequestException(ErrorMessages.FORBIDDEN_CANCEL_INVITE(invite.status));
@@ -261,23 +257,36 @@ export class InviteService {
     await this._inviteRepository.save(invite);
   }
 
-  async getCompanyInvites(companyId: string): Promise<Invite[]> {
-    // ✅ используем company: { id: ... }
+  async getCompanyInvites(currentUser: AuthorizedUser): Promise<Invite[]> {
+    this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
+
+    const where: FindOptionsWhere<Invite> = { company: { id: currentUser.companyId } };
+    if (currentUser.role === UserRole.MANAGER && currentUser.departmentId) {
+      where.departmentId = currentUser.departmentId;
+    }
+
     return this._inviteRepository.find({
-      where: { company: { id: companyId } },
+      where,
       relations: ['invitedBy'],
       order: { createdAt: 'DESC' },
     });
   }
 
-  async getPendingInvites(companyId: string): Promise<Invite[]> {
-    // ✅ используем company: { id: ... }
+  async getPendingInvites(currentUser: AuthorizedUser): Promise<Invite[]> {
+    this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
+
+    const where: FindOptionsWhere<Invite> = {
+      company: { id: currentUser.companyId },
+      status: InviteStatus.PENDING,
+      expiresAt: MoreThan(new Date()),
+    };
+
+    if (currentUser.role === UserRole.MANAGER && currentUser.departmentId) {
+      where.departmentId = currentUser.departmentId;
+    }
+
     return this._inviteRepository.find({
-      where: {
-        company: { id: companyId },
-        status: InviteStatus.PENDING,
-        expiresAt: MoreThan(new Date()),
-      },
+      where,
       relations: ['invitedBy'],
       order: { createdAt: 'DESC' },
     });

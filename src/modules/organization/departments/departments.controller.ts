@@ -32,7 +32,7 @@ export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
   @Post()
-  @RequireRole(UserRole.ADMIN)
+  @RequireRole(UserRole.ADMIN, UserRole.HR)
   @ApiOperation({ summary: 'Create a new department in the current company' })
   @ApiResponse({
     status: 201,
@@ -124,7 +124,7 @@ export class DepartmentsController {
   }
 
   @Patch(':id')
-  @RequireRole(UserRole.ADMIN)
+  @RequireRole(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Update department' })
   @ApiParam({ name: 'id', description: 'Department UUID', type: String })
   @ApiResponse({
@@ -164,7 +164,7 @@ export class DepartmentsController {
   }
 
   @Delete(':id')
-  @RequireRole(UserRole.ADMIN)
+  @RequireRole(UserRole.ADMIN, UserRole.HR)
   @ApiOperation({ summary: 'Delete department' })
   @ApiParam({ name: 'id', description: 'Department UUID', type: String })
   @ApiResponse({
