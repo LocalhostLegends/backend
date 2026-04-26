@@ -1,18 +1,12 @@
-name: Backend CI
+name: Backend CI/CD
 
 on:
   push:
     branches:
-      - devops/render-setup
-      - main
-  pull_request:
-    branches:
-      - devops/render-setup
       - main
 
 jobs:
-  lint-and-build:
-    name: Lint and Build
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -33,3 +27,6 @@ jobs:
 
       - name: Build backend
         run: npm run build
+
+      - name: Trigger Render Deploy
+        run: curl -X POST ${{ secrets.URL_DEPLOY_HOOK }}
