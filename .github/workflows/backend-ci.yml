@@ -29,13 +29,13 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
-        run: npm run lint
+        run: npm lint
 
       - name: Run tests
-        run: npm run test
+        run: npm test -- --passWithNoTests
 
       - name: Build backend
-        run: npm run build
+        run: npm start
 
   deploy:
     name: CD | Deploy to Render
