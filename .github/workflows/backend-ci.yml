@@ -86,7 +86,7 @@ jobs:
           echo "Expected commit: $GITHUB_SHA"
 
           for i in {1..60}; do
-            RESPONSE=$(curl -s "${{ secrets.BACKEND_URL }}/health/version" || true)
+            RESPONSE=$(curl -s "${{ secrets.BACKEND_URL }}/api/health/version" || true)
             echo "Attempt $i: $RESPONSE"
 
             DEPLOYED_COMMIT=$(echo "$RESPONSE" | node -e "
@@ -115,11 +115,11 @@ jobs:
 
       - name: Check app health
         run: |
-          curl -f "${{ secrets.BACKEND_URL }}/health"
+          curl -f "${{ secrets.BACKEND_URL }}/api/health"
 
       - name: Check database health
         run: |
-          curl -f "${{ secrets.BACKEND_URL }}/health/database"
+          curl -f "${{ secrets.BACKEND_URL }}/api/health/database"
 
       - name: Smoke summary
         if: always()
