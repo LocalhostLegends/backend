@@ -118,7 +118,7 @@ jobs:
 
       - name: Check app health
         run: |
-          curl -f "${{ secrets.BACKEND_URL }}/api/health"
+          curl -f "${{ secrets.BACKEND_URL }}/health"
 
       - name: Check database health
         run: |
