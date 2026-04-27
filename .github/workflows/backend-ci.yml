@@ -35,7 +35,7 @@ jobs:
         run: npm run test -- --passWithNoTests
 
       - name: Build backend
-        run: npm start
+        run: npm run build
 
   deploy:
     name: CD | Deploy to Render
