@@ -29,4 +29,14 @@ export class HealthController {
       };
     }
   }
+
+  @Get('version')
+  version() {
+    return {
+      status: 'ok',
+      commit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || 'unknown',
+      branch: process.env.RENDER_GIT_BRANCH || process.env.GIT_BRANCH || 'unknown',
+      environment: process.env.NODE_ENV || 'unknown',
+    };
+  }
 }
