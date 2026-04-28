@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { StorageService } from '@modules/storage/storage.service';
+import config from '@config/app.config';
 
 @Controller('health')
 export class HealthController {
@@ -53,9 +54,9 @@ export class HealthController {
   version() {
     return {
       status: 'ok',
-      commit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || 'unknown',
-      branch: process.env.RENDER_GIT_BRANCH || process.env.GIT_BRANCH || 'unknown',
-      environment: process.env.NODE_ENV || 'unknown',
+      commit: config.deploy.commit,
+      branch: config.deploy.branch,
+      environment: config.nodeEnv,
     };
   }
 }

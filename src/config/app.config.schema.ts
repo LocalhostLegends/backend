@@ -77,4 +77,9 @@ export default z.object({
   frontend: z.object({
     url: z.string(),
   }),
+
+  deploy: z.object({
+    commit: z.string(),
+    branch: z.string(),
+  }),
 });
