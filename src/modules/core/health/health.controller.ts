@@ -1,9 +1,13 @@
 import { Controller, Get } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { StorageService } from '@modules/storage/storage.service';
 
 @Controller('health')
 export class HealthController {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Get()
   health() {
@@ -25,6 +29,21 @@ export class HealthController {
       return {
         status: 'error',
         database: 'disconnected',
+        message,
+      };
+    }
+  }
+
+  @Get('storage')
+  async checkStorage() {
+    try {
+      return await this.storageService.checkHealth();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown storage error';
+
+      return {
+        status: 'error',
+        storage: 'disconnected',
         message,
       };
     }

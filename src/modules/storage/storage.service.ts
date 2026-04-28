@@ -1,5 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
 import * as crypto from 'crypto';
 
 import config from '@config/app.config';
@@ -38,6 +43,25 @@ export class StorageService {
   private generateFileName(originalName: string): string {
     const ext = originalName.split('.').pop();
     return `${crypto.randomBytes(16).toString('hex')}.${ext}`;
+  }
+
+  async checkHealth(): Promise<{
+    status: string;
+    storage: string;
+    provider: string;
+  }> {
+    await this.s3Client.send(
+      new ListObjectsV2Command({
+        Bucket: config.storage.bucketName,
+        MaxKeys: 1,
+      }),
+    );
+
+    return {
+      status: 'ok',
+      storage: 'connected',
+      provider: config.storage.provider,
+    };
   }
 
   async uploadAvatar(

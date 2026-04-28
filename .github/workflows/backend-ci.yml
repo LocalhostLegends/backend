@@ -126,6 +126,13 @@ jobs:
       - name: Check database health
         run: |
           curl -f "${{ secrets.BACKEND_URL }}/api/health/database"
+          
+      - name: Check storage health
+        run: curl -f "${{ secrets.BACKEND_URL }}/api/health/storage"
+
+      - name: Check frontend
+        run: |
+          curl -f "${{ secrets.FRONTEND_URL }}"
 
       - name: Smoke summary
         if: always()
