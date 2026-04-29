@@ -31,7 +31,7 @@ export class EmailService {
       },
     });
 
-    this._logger.log('Email service initialized with Gmail SMTP');
+    this._logger.log(`Email service initialized with SMTP host: ${config.smtp.host}`);
   }
 
   async sendInviteEmail(
