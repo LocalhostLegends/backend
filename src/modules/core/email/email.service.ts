@@ -18,6 +18,16 @@ export class EmailService {
   }
 
   private _initializeTransporter(): void {
+    this._logger.log(`SMTP env check:
+    host=${config.smtp.host}
+    port=${config.smtp.port}
+    secure=${config.smtp.secure}
+    user=${config.smtp.user}
+    passwordExists=${Boolean(config.smtp.password)}
+    senderName=${config.smtp.sender.name}
+    senderEmail=${config.smtp.sender.email}
+    `);
+
     this._transporter = createTransport({
       host: config.smtp.host,
       port: config.smtp.port,
@@ -29,6 +39,9 @@ export class EmailService {
       tls: {
         rejectUnauthorized: false,
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
 
     this._logger.log(`Email service initialized with SMTP host: ${config.smtp.host}`);
