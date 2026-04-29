@@ -1,19 +1,6 @@
 import { applyDecorators } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsDate,
-  IsEnum,
-  IsInt,
-  IsNotEmpty,
-  IsString,
-  Matches,
-  Max,
-  Min,
-  MinLength,
-} from 'class-validator';
-
-import { SortOrder } from '@common/enums/sort-order.enum';
+import { IsBoolean, IsDate, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
 
 export const IsBooleanQuery = () =>
   applyDecorators(
@@ -36,20 +23,3 @@ export const IsPhone = () =>
       message: 'Phone number can only contain +, digits, spaces, hyphens, and parentheses',
     }),
   );
-
-export const IsPaginationPage = () =>
-  applyDecorators(
-    Type(() => Number),
-    IsInt(),
-    Min(1),
-  );
-
-export const IsPaginationLimit = () =>
-  applyDecorators(
-    Type(() => Number),
-    IsInt(),
-    Min(1),
-    Max(100),
-  );
-
-export const IsPaginationSortOrder = () => applyDecorators(IsEnum(SortOrder));

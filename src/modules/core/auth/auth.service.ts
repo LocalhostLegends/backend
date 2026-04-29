@@ -10,12 +10,13 @@ import * as bcrypt from 'bcryptjs';
 
 import config from '@config/app.config';
 import { UserRole } from '@common/enums/user-role.enum';
-import { AuthorizedUser } from '@common/types/authorized-user.type';
-import { ErrorMessages } from '@common/exceptions/error-messages';
-import { UserExistsException } from '@common/exceptions/user-exists.exception';
-import { UserStatus } from '@database/enums/user-status.enum';
+import { AuthorizedUser } from '@/modules/core/users/users.types';
+import { UserExistsException } from '@/modules/core/users/exceptions/user-exists.exception';
+import { UserStatus } from '@common/enums/user-status.enum';
+import type { AppRequestContext } from '@common/types/common.types';
 import { User } from '@database/entities/user.entity';
 import { CompaniesService } from '@modules/organization/companies/companies.service';
+import { UsersErrors } from '@modules/core/users/users.errors';
 
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { ActivateUserDto } from './dto/activate-user.dto';
@@ -23,13 +24,13 @@ import { LoginDto } from './dto/login.dto';
 import { CreateHrDto } from './dto/create-hr.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { JwtPayload, JwtRefreshPayload, AuthResponse } from './auth.types';
+import { AuthErrors } from './auth.errors';
 
 import { TokenService } from '../token/token.service';
 import { EmailService } from '../email/email.service';
 import { UsersService } from '../users/users.service';
 import { InviteService } from '../invite/invite.service';
 import { AuditLogService } from '../../audit/audit-log.service';
-import type { RequestContext } from '@common/middleware/request-context.middleware';
 
 @Injectable()
 export class AuthService {
@@ -73,7 +74,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async login(loginDto: LoginDto, context?: RequestContext): Promise<AuthResponse> {
+  async login(loginDto: LoginDto, context?: AppRequestContext): Promise<AuthResponse> {
     const userWithPassword = await this._usersService.findByEmail(loginDto.email, undefined, true);
 
     if (!userWithPassword) {
@@ -89,21 +90,21 @@ export class AuthService {
         success: false,
         failureReason: 'user_not_found',
       });
-      throw new UnauthorizedException(ErrorMessages.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(AuthErrors.invalidCredentials);
     }
 
     const user = userWithPassword;
 
     if (user.status === UserStatus.INVITED) {
-      throw new UnauthorizedException(ErrorMessages.USER_INVITED);
+      throw new UnauthorizedException(UsersErrors.userInvited);
     }
 
     if (user.status === UserStatus.BLOCKED) {
-      throw new UnauthorizedException(ErrorMessages.USER_BLOCKED);
+      throw new UnauthorizedException(UsersErrors.userBlocked);
     }
 
     if (user.deletedAt) {
-      throw new UnauthorizedException(ErrorMessages.USER_DELETED);
+      throw new UnauthorizedException(UsersErrors.userDeleted);
     }
 
     if (user.isLocked()) {
@@ -119,7 +120,7 @@ export class AuthService {
         success: false,
         failureReason: 'account_locked',
       });
-      throw new UnauthorizedException(ErrorMessages.USER_BLOCKED);
+      throw new UnauthorizedException(UsersErrors.userBlocked);
     }
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password!);
@@ -139,7 +140,7 @@ export class AuthService {
       });
 
       await this._usersService.incrementFailedLoginAttempts(user.id);
-      throw new UnauthorizedException(ErrorMessages.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(AuthErrors.invalidCredentials);
     }
 
     await this.auditLogService.createAuthLog({
@@ -176,7 +177,7 @@ export class AuthService {
 
   async createHr(createHrDto: CreateHrDto, currentUser: AuthorizedUser): Promise<User> {
     if (currentUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException(ErrorMessages.FORBIDDEN_CREATE_HR);
+      throw new ForbiddenException(AuthErrors.forbiddenCreateHr);
     }
 
     const existingUser = await this._usersService.findByEmail(
@@ -205,7 +206,7 @@ export class AuthService {
     currentUser: AuthorizedUser,
   ): Promise<User> {
     if (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.HR) {
-      throw new ForbiddenException(ErrorMessages.FORBIDDEN_CREATE_EMPLOYEE);
+      throw new ForbiddenException(AuthErrors.forbiddenCreateEmployee);
     }
 
     const existingUser = await this._usersService.findByEmail(
@@ -236,7 +237,7 @@ export class AuthService {
     const user = await this._usersService.findById(userId);
 
     if (!user.isActive()) {
-      throw new UnauthorizedException(ErrorMessages.USER_NOT_ACTIVE);
+      throw new UnauthorizedException(UsersErrors.userNotActive);
     }
 
     const accessToken = this._generateAccessToken(user);

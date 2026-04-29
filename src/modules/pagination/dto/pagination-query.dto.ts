@@ -1,12 +1,13 @@
 import { IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+
+import { SortOrder } from '../enums/sort-order.enum';
+import { PaginationQueryFields } from '../swagger/pagination-query.fields';
 import {
   IsPaginationLimit,
   IsPaginationPage,
   IsPaginationSortOrder,
-} from '@common/decorators/common-fields.decorators';
-import { SortOrder } from '@/common/enums/sort-order.enum';
-import { PaginationQueryFields } from '@common/swagger/pagination-query.fields';
+} from '../decorators/pagination-fields.decorators';
 
 export class PaginationQueryDto {
   @ApiPropertyOptional(PaginationQueryFields.page)

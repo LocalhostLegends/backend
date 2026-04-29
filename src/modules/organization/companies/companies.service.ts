@@ -3,13 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Company } from '@database/entities/company.entity';
-import { ErrorMessages } from '@common/exceptions/error-messages';
-import { PermissionsService } from '../../permissions/permissions.service';
 import { PermissionAction } from '@common/enums/permission-action.enum';
-import { AuthorizedUser } from '@common/types/authorized-user.type';
+import { AuthorizedUser } from '@modules/core/users/users.types';
+import { PermissionsService } from '@modules/permissions/permissions.service';
 
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
+import { CompaniesErrors } from './companies.errors';
 
 @Injectable()
 export class CompaniesService {
@@ -51,7 +51,7 @@ export class CompaniesService {
     });
 
     if (!company) {
-      throw new NotFoundException(ErrorMessages.COMPANY_WITH_ID_NOT_FOUND(id));
+      throw new NotFoundException(CompaniesErrors.companyWithIdNotFound(id));
     }
 
     if (currentUser) {

@@ -3,11 +3,10 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import config from '@config/app.config';
-import { AuthorizedUser } from '@common/types/authorized-user.type';
-import { ErrorMessages } from '@common/exceptions/error-messages';
-import { UserStatus } from '@database/enums/user-status.enum';
-
-import { UsersService } from '../../users/users.service';
+import { AuthorizedUser } from '@/modules/core/users/users.types';
+import { UserStatus } from '@common/enums/user-status.enum';
+import { UsersService } from '@modules/core/users/users.service';
+import { UsersErrors } from '@modules/core/users/users.errors';
 
 export interface JwtPayloadWithCompany {
   sub: string;
@@ -30,15 +29,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const user = await this._usersService.findById(payload.sub);
 
     if (!user) {
-      throw new UnauthorizedException(ErrorMessages.USER_WITH_ID_NOT_FOUND(payload.sub));
+      throw new UnauthorizedException(UsersErrors.userWithIdNotFound(payload.sub));
     }
 
     if (user.status !== UserStatus.ACTIVE) {
-      throw new UnauthorizedException(ErrorMessages.USER_NOT_ACTIVE);
+      throw new UnauthorizedException(UsersErrors.userNotActive);
     }
 
     if (user.deletedAt) {
-      throw new UnauthorizedException(ErrorMessages.USER_DELETED);
+      throw new UnauthorizedException(UsersErrors.userDeleted);
     }
 
     return {

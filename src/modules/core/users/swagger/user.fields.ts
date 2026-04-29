@@ -1,7 +1,7 @@
 import { UserRole } from '@common/enums/user-role.enum';
-import { UUID_EXAMPLE } from '@/common/constants/app.constants';
-import { SwaggerFieldsMap } from '@common/types/swagger-fields-map.type';
-import { UserStatus } from '@database/enums/user-status.enum';
+import { UUID_EXAMPLE } from '@common/constants/common.constants';
+import { SwaggerFieldsMap } from '@common/types/common.types';
+import { UserStatus } from '@common/enums/user-status.enum';
 
 export const UserFields = {
   id: {

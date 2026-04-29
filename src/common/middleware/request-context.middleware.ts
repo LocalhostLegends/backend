@@ -1,23 +1,12 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { randomUUID } from 'crypto';
 
-export interface RequestContext {
-  requestId: string;
-  ip: string;
-  userAgent: string;
-  method: string;
-  path: string;
-  startedAt: number;
-}
-
-export interface RequestWithContext extends Request {
-  context?: RequestContext;
-}
+import { AppRequest } from '../types/common.types';
 
 @Injectable()
 export class RequestContextMiddleware implements NestMiddleware {
-  use(req: RequestWithContext, _res: Response, next: NextFunction) {
+  use(req: AppRequest, _res: Response, next: NextFunction) {
     const requestId = randomUUID();
 
     const forwardedFor = req.headers['x-forwarded-for'];

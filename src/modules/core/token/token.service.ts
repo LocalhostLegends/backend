@@ -4,7 +4,7 @@ import { Repository, LessThan } from 'typeorm';
 import { randomUUID } from 'crypto';
 
 import { Token } from '@database/entities/token.entity';
-import { TokenType } from '@database/enums/token-type.enum';
+import { TokenType } from '@/common/enums/token-type.enum';
 import { User } from '@database/entities/user.entity';
 
 @Injectable()

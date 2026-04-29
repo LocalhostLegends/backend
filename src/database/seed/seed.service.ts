@@ -4,6 +4,7 @@ import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
 import config from '@config/app.config';
+import { UserStatus } from '@common/enums/user-status.enum';
 
 import { companyData } from './data/company.data';
 import { departmentsData } from './data/departments.data';
@@ -14,7 +15,6 @@ import { Company } from '../entities/company.entity';
 import { Department } from '../entities/department.entity';
 import { Position } from '../entities/position.entity';
 import { User } from '../entities/user.entity';
-import { UserStatus } from '../enums/user-status.enum';
 
 @Injectable()
 export class SeedService implements OnModuleInit {

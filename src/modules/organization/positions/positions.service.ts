@@ -3,20 +3,20 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Position } from '@database/entities/position.entity';
-import { ErrorMessages } from '@common/exceptions/error-messages';
-import { AuthorizedUser } from '@common/types/authorized-user.type';
-import { PermissionsService } from '../../permissions/permissions.service';
+import { AuthorizedUser } from '@modules/core/users/users.types';
 import { PermissionAction } from '@common/enums/permission-action.enum';
+import { PermissionsService } from '@modules/permissions/permissions.service';
 
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
+import { PositionsErrors } from './positions.errors';
 
 @Injectable()
 export class PositionsService {
   constructor(
     @InjectRepository(Position)
     private positionsRepository: Repository<Position>,
-    private permissions: PermissionsService,
+    private readonly permissions: PermissionsService,
   ) {}
 
   async create(
@@ -33,7 +33,7 @@ export class PositionsService {
     });
 
     if (existing) {
-      throw new ConflictException(ErrorMessages.POSITION_TITLE_EXISTS(createPositionDto.title));
+      throw new ConflictException(PositionsErrors.positionTitleExists(createPositionDto.title));
     }
 
     const position = this.positionsRepository.create({
@@ -58,7 +58,7 @@ export class PositionsService {
       relations: ['company'],
     });
 
-    if (!position) throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
+    if (!position) throw new NotFoundException(PositionsErrors.positionNotFound(id));
 
     this.permissions.assertCan(currentUser, PermissionAction.POSITION_READ, position);
 
@@ -83,7 +83,7 @@ export class PositionsService {
       });
 
       if (existing && existing.id !== id) {
-        throw new ConflictException(ErrorMessages.POSITION_TITLE_EXISTS(updatePositionDto.title));
+        throw new ConflictException(PositionsErrors.positionTitleExists(updatePositionDto.title));
       }
     }
 

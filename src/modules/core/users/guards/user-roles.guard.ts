@@ -2,13 +2,13 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core';
 
 import { UserRole } from '@common/enums/user-role.enum';
-import { RequestWithUser } from '@common/types/request-with-user.type';
+import { getAppRequestUser } from '@/common/utils/http.utils';
 
-import { USER_ROLES_KEY } from '../decorators/user-roles.decorator';
+import { USER_ROLES_KEY } from '../decorators/require-user-roles.decorator';
 
 @Injectable()
 export class UserRolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(USER_ROLES_KEY, [
@@ -16,20 +16,15 @@ export class UserRolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (!requiredRoles || requiredRoles.length === 0) {
-      return true;
-    }
+    if (requiredRoles.length > 0) {
+      const user = getAppRequestUser(context);
+      const hasRole = requiredRoles.includes(user.role);
 
-    const { user } = context.switchToHttp().getRequest<RequestWithUser>();
-
-    if (!user) {
-      throw new ForbiddenException('User not found in request');
-    }
-
-    const hasRole = requiredRoles.includes(user.role);
-
-    if (!hasRole) {
-      throw new ForbiddenException(`Required roles: ${requiredRoles.join(', ')}`);
+      if (!hasRole) {
+        throw new ForbiddenException(
+          `User does not have any of the required roles: ${requiredRoles.join(', ')}`,
+        );
+      }
     }
 
     return true;

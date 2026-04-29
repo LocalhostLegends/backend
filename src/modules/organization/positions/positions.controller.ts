@@ -12,12 +12,13 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
-import { RequireRole } from '@common/decorators/require-role.decorator';
-import { UserRolesGuard } from '@common/guards/user-roles.guard';
+import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
+import { RequireUserRoles } from '@modules/core/users/decorators/require-user-roles.decorator';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
-import { transformToDto } from '@common/utils/app.utils';
-import { type AuthorizedUser } from '@common/types/authorized-user.type';
-import { UserRole, ALL_ROLES } from '@common/enums/user-role.enum';
+import { transformToDto } from '@/common/utils/dto.utils';
+import { type AuthorizedUser } from '@/modules/core/users/users.types';
+import { UserRole } from '@common/enums/user-role.enum';
+import { USER_ROLES } from '@/common/constants/common.constants';
 
 import { PositionsService } from './positions.service';
 import { CreatePositionDto } from './dto/create-position.dto';
@@ -28,12 +29,12 @@ import { PositionResponseDto } from './dto/position-response.dto';
 @ApiBearerAuth('JWT-auth')
 @Controller('positions')
 @UseGuards(JwtAuthGuard, UserRolesGuard)
-@RequireRole(...ALL_ROLES)
+@RequireUserRoles(...USER_ROLES)
 export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
-  @RequireRole(UserRole.ADMIN, UserRole.HR)
+  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiOperation({ summary: 'Create a new position in the current company' })
   @ApiResponse({
     status: 201,
@@ -120,7 +121,7 @@ export class PositionsController {
   }
 
   @Patch(':id')
-  @RequireRole(UserRole.ADMIN, UserRole.HR)
+  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiOperation({ summary: 'Update position' })
   @ApiParam({ name: 'id', description: 'Position UUID', type: String })
   @ApiResponse({
@@ -160,7 +161,7 @@ export class PositionsController {
   }
 
   @Delete(':id')
-  @RequireRole(UserRole.ADMIN, UserRole.HR)
+  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiOperation({ summary: 'Delete position' })
   @ApiParam({ name: 'id', description: 'Position UUID', type: String })
   @ApiResponse({

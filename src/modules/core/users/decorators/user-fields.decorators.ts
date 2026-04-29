@@ -2,7 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import { IsEnum, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
 import { UserRole } from '@common/enums/user-role.enum';
-import { UserStatus } from '@database/enums/user-status.enum';
+import { UserStatus } from '@/common/enums/user-status.enum';
 
 export const IsUserFirstName = () =>
   applyDecorators(IsNotEmpty(), IsString(), MinLength(2), MaxLength(100));

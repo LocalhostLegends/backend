@@ -1,5 +1,5 @@
-import { UUID_EXAMPLE } from '@/common/constants/app.constants';
-import { SwaggerFieldsMap } from '@common/types/swagger-fields-map.type';
+import { UUID_EXAMPLE } from '@/common/constants/common.constants';
+import { SwaggerFieldsMap } from '@common/types/common.types';
 
 export const CompanyFields = {
   id: {

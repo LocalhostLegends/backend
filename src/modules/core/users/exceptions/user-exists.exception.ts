@@ -1,16 +1,17 @@
 import { ConflictException } from '@nestjs/common';
-import { ErrorMessages } from './error-messages';
+
+import { UsersErrors } from '../users.errors';
 
 export class UserExistsException extends ConflictException {
   constructor(email: string, status?: string) {
     let message: string;
 
     if (status === 'INVITED') {
-      message = ErrorMessages.USER_EMAIL_EXISTS_AND_INVITED(email);
+      message = UsersErrors.userEmailExistsAndInvited(email);
     } else if (status === 'ACTIVE' || status === 'BLOCKED') {
-      message = ErrorMessages.USER_EMAIL_EXISTS_AND_ACTIVE(email);
+      message = UsersErrors.userEmailExistsAndActive(email);
     } else {
-      message = ErrorMessages.USER_EMAIL_EXISTS(email);
+      message = UsersErrors.userEmailExists(email);
     }
 
     super(message);

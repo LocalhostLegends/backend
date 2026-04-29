@@ -11,9 +11,6 @@ import { Company } from '@database/entities/company.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
 
-// Common
-import { PaginationService } from '@common/pagination/pagination.service';
-
 // Config
 import config from '@config/app.config';
 
@@ -45,11 +42,11 @@ import { HealthController } from './health/health.controller';
 // Organization
 import { OrganizationModule } from '../organization/organization.module';
 
-// Permissions
-import { PermissionsModule } from '../permissions/permissions.module';
-
 //Audit
 import { AuditModule } from '../audit/audit.module';
+
+// Pagination
+import { PaginationModule } from '../pagination/pagination.module';
 
 @Module({
   imports: [
@@ -64,7 +61,7 @@ import { AuditModule } from '../audit/audit.module';
       }),
     }),
     AuditModule,
-    PermissionsModule,
+    PaginationModule,
     forwardRef(() => OrganizationModule),
   ],
   controllers: [
@@ -84,20 +81,11 @@ import { AuditModule } from '../audit/audit.module';
 
     // Builders
     UserFilterBuilder,
-    PaginationService,
 
     // Strategies
     JwtStrategy,
     JwtRefreshStrategy,
   ],
-  exports: [
-    UsersService,
-    AuthService,
-    InviteService,
-    TokenService,
-    EmailService,
-    JwtModule,
-    PermissionsModule,
-  ],
+  exports: [UsersService, AuthService, InviteService, TokenService, EmailService, JwtModule],
 })
 export class CoreModule {}

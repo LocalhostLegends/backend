@@ -13,23 +13,25 @@ import { User } from '@database/entities/user.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
 import { Company } from '@database/entities/company.entity';
-import { UserStatus } from '@database/enums/user-status.enum';
-import { TokenType } from '@database/enums/token-type.enum';
-import { InviteStatus } from '@database/enums/invite-status.enum';
+import { UserStatus } from '@common/enums/user-status.enum';
+import { TokenType } from '@common/enums/token-type.enum';
+import { InviteStatus } from '@common/enums/invite-status.enum';
 import { Invite } from '@database/entities/invite.entity';
-import { ErrorMessages } from '@common/exceptions/error-messages';
 import { UserRole } from '@common/enums/user-role.enum';
-import { type AuthorizedUser } from '@common/types/authorized-user.type';
-import { PaginationService } from '@common/pagination/pagination.service';
-import { PaginatedResult } from '@common/pagination/pagination.interface';
-
+import { type AuthorizedUser } from '@modules/core/users/users.types';
+import { PaginationService } from '@modules/pagination/pagination.service';
+import { PaginatedResult } from '@modules/pagination/pagination.interfaces';
 import { PermissionAction } from '@common/enums/permission-action.enum';
-import { PermissionsService } from '../../permissions/permissions.service';
+import { CompaniesErrors } from '@modules/organization/companies/companies.errors';
+import { PositionsErrors } from '@modules/organization/positions/positions.errors';
+import { DepartmentsErrors } from '@modules/organization/departments/departments.errors';
+import { PermissionsService } from '@modules/permissions/permissions.service';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserFilterDto } from './dto/user-filter.dto';
 import { UserFilterBuilder } from './user-filter.builder';
+import { UsersErrors } from './users.errors';
 
 import { EmailService } from '../email/email.service';
 import { TokenService } from '../token/token.service';
@@ -189,7 +191,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException(ErrorMessages.USER_WITH_ID_NOT_FOUND(id));
+      throw new NotFoundException(UsersErrors.userWithIdNotFound(id));
     }
 
     return user;
@@ -448,7 +450,7 @@ export class UsersService {
     });
 
     if (user) {
-      throw new ConflictException(ErrorMessages.USER_EMAIL_EXISTS(email));
+      throw new ConflictException(UsersErrors.userEmailExists(email));
     }
   }
 
@@ -458,7 +460,7 @@ export class UsersService {
     });
 
     if (!company) {
-      throw new NotFoundException(ErrorMessages.COMPANY_WITH_ID_NOT_FOUND(id));
+      throw new NotFoundException(CompaniesErrors.companyWithIdNotFound(id));
     }
 
     return company;
@@ -470,7 +472,7 @@ export class UsersService {
     });
 
     if (!department) {
-      throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(id));
+      throw new NotFoundException(DepartmentsErrors.departmentNotFound(id));
     }
 
     return department;
@@ -482,7 +484,7 @@ export class UsersService {
     });
 
     if (!position) {
-      throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
+      throw new NotFoundException(PositionsErrors.positionNotFound(id));
     }
 
     return position;

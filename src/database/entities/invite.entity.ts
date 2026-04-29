@@ -9,9 +9,10 @@ import {
   Index,
 } from 'typeorm';
 
+import { InviteStatus } from '@common/enums/invite-status.enum';
+
 import { Company } from './company.entity';
 import { User } from './user.entity';
-import { InviteStatus } from '../enums/invite-status.enum';
 
 @Entity('invites')
 @Index(['email', 'company', 'status'])

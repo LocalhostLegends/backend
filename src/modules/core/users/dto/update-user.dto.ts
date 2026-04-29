@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsUUID, IsEmail, IsUrl } from 'class-validator';
 
-import { UserStatus } from '@database/enums/user-status.enum';
+import { UserStatus } from '@/common/enums/user-status.enum';
 import { UserRole } from '@common/enums/user-role.enum';
 import { IsPhone } from '@common/decorators/common-fields.decorators';
 import { CommonFields } from '@common/swagger/common.fields';

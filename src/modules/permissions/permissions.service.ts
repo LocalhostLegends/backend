@@ -1,13 +1,16 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { UserRole } from '@common/enums/user-role.enum';
 import { PermissionAction } from '@common/enums/permission-action.enum';
-import { AuthorizedUser } from '@common/types/authorized-user.type';
-import { ErrorMessages } from '@common/exceptions/error-messages';
 import { Company } from '@database/entities/company.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
 import { User } from '@database/entities/user.entity';
 import { Invite } from '@database/entities/invite.entity';
+import { AuthorizedUser } from '@modules/core/users/users.types';
+import { AuthErrors } from '@modules/core/auth/auth.errors';
+import { DepartmentsErrors } from '@modules/organization/departments/departments.errors';
+import { PositionsErrors } from '@modules/organization/positions/positions.errors';
+import { InviteErrors } from '@modules/core/invite/invite.errors';
 
 export type PermissionResource = Company | Department | Position | User | Invite;
 
@@ -61,24 +64,24 @@ export class PermissionsService {
     resource?: PermissionResource | null,
   ): string | null {
     if (user.role === UserRole.SUPER_ADMIN) return null;
-    if (!user.companyId) return ErrorMessages.FORBIDDEN;
+    if (!user.companyId) return AuthErrors.forbidden;
 
     if (resource) {
       const resourceCompanyId = this.getResourceCompanyId(resource);
       if (resourceCompanyId && resourceCompanyId !== user.companyId) {
         if (action.startsWith('department.'))
-          return ErrorMessages.DEPARTMENT_NOT_IN_COMPANY(resource.id, user.companyId);
+          return DepartmentsErrors.departmentNotInCompany(resource.id, user.companyId);
         if (action.startsWith('position.'))
-          return ErrorMessages.POSITION_NOT_IN_COMPANY(resource.id, user.companyId);
+          return PositionsErrors.positionNotInCompany(resource.id, user.companyId);
         if (action.startsWith('invite.'))
-          return ErrorMessages.INVITE_NOT_IN_COMPANY(resource.id, user.companyId);
-        return ErrorMessages.FORBIDDEN_NON_OWNERSHIP_ACCESS('this resource');
+          return InviteErrors.inviteNotInCompany(resource.id, user.companyId);
+        return AuthErrors.forbiddenNonOwnershipAccess('this resource');
       }
 
       // MANAGER Scope: Department level
       if (user.role === UserRole.MANAGER && user.departmentId) {
         if (action === PermissionAction.DEPARTMENT_UPDATE && resource.id !== user.departmentId) {
-          return ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('your own department');
+          return AuthErrors.forbiddenResourceAccess('your own department');
         }
 
         const resourceDeptId = this.getResourceDepartmentId(resource);
@@ -87,14 +90,14 @@ export class PermissionsService {
           resourceDeptId &&
           resourceDeptId !== user.departmentId
         ) {
-          return ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('your department employees');
+          return AuthErrors.forbiddenResourceAccess('your department employees');
         }
       }
     }
 
     const roleDenied = (requiredRoles: UserRole[]) => {
       if (!requiredRoles.includes(user.role)) {
-        return ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(requiredRoles.join(' or '));
+        return AuthErrors.forbiddenResourceAccess(requiredRoles.join(' or '));
       }
       return null;
     };
@@ -125,18 +128,18 @@ export class PermissionsService {
 
       case PermissionAction.USER_READ:
         if (user.role === UserRole.HR && resourceRole === UserRole.ADMIN) {
-          return ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(UserRole.ADMIN, false);
+          return AuthErrors.forbiddenResourceAccess(UserRole.ADMIN, false);
         }
         if (
           user.role === UserRole.MANAGER &&
           (resourceRole === UserRole.ADMIN || resourceRole === UserRole.HR)
         ) {
-          return ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('HR or ADMIN', false);
+          return AuthErrors.forbiddenResourceAccess('HR or ADMIN', false);
         }
         if (user.role === UserRole.MANAGER && user.departmentId && resource instanceof User) {
           const targetDeptId = resource.department?.id;
           if (targetDeptId && targetDeptId !== user.departmentId) {
-            return ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('employees of your department');
+            return AuthErrors.forbiddenResourceAccess('employees of your department');
           }
         }
         return null;
@@ -146,13 +149,13 @@ export class PermissionsService {
       case PermissionAction.USER_UPDATE:
       case PermissionAction.USER_DELETE:
         if (user.role === UserRole.HR && resourceRole === UserRole.ADMIN) {
-          return ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(UserRole.ADMIN, false);
+          return AuthErrors.forbiddenResourceAccess(UserRole.ADMIN, false);
         }
         if (
           user.role === UserRole.MANAGER &&
           (resourceRole === UserRole.ADMIN || resourceRole === UserRole.HR)
         ) {
-          return ErrorMessages.FORBIDDEN_RESOURCE_ACCESS('HR or ADMIN', false);
+          return AuthErrors.forbiddenResourceAccess('HR or ADMIN', false);
         }
         return roleDenied([UserRole.ADMIN, UserRole.HR, UserRole.MANAGER]);
 
@@ -163,14 +166,14 @@ export class PermissionsService {
       case PermissionAction.INVITE_RESEND:
       case PermissionAction.INVITE_CANCEL:
         if (user.role === UserRole.HR && resourceRole === UserRole.ADMIN) {
-          return ErrorMessages.FORBIDDEN_INVITE_ADMIN;
+          return InviteErrors.forbiddenInviteAdmin;
         }
         return roleDenied([UserRole.ADMIN, UserRole.HR]);
       case PermissionAction.INVITE_READ:
         return null;
 
       default:
-        return ErrorMessages.FORBIDDEN;
+        return AuthErrors.forbidden;
     }
   }
 

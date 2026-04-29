@@ -10,16 +10,16 @@ import {
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 import { UserRole } from '@common/enums/user-role.enum';
-import { UserStatus } from '@database/enums/user-status.enum';
+import { UserStatus } from '@/common/enums/user-status.enum';
+import { IsBooleanQuery } from '@common/decorators/common-fields.decorators';
 import {
-  IsBooleanQuery,
   IsPaginationLimit,
   IsPaginationPage,
   IsPaginationSortOrder,
-} from '@common/decorators/common-fields.decorators';
-import { SortOrder } from '@common/enums/sort-order.enum';
+} from '@modules/pagination/decorators/pagination-fields.decorators';
+import { SortOrder } from '@modules/pagination/enums/sort-order.enum';
 import { CommonFields } from '@common/swagger/common.fields';
-import { PaginationQueryFields } from '@common/swagger/pagination-query.fields';
+import { PaginationQueryFields } from '@modules/pagination/swagger/pagination-query.fields';
 import { IsUserRole, IsUserStatus } from '@modules/core/users/decorators/user-fields.decorators';
 import { UserFields } from '@modules/core/users/swagger/user.fields';
 import { UserFilterFields } from '@modules/core/users/swagger/user-filter.fields';
