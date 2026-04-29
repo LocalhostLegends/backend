@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 
-import { InviteStatus } from '@database/enums/invite-status.enum';
+import { InviteStatus } from '@/common/enums/invite-status.enum';
 import { UserRole } from '@common/enums/user-role.enum';
 import { CommonFields } from '@common/swagger/common.fields';
 import { InviteFields } from '@modules/core/invite/swagger/invite.fields';

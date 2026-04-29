@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -10,9 +10,6 @@ import { Invite } from '@database/entities/invite.entity';
 import { Company } from '@database/entities/company.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
-
-// Common
-import { PaginationService } from '@common/pagination/pagination.service';
 
 // Config
 import config from '@config/app.config';
@@ -48,6 +45,9 @@ import { OrganizationModule } from '../organization/organization.module';
 //Audit
 import { AuditModule } from '../audit/audit.module';
 
+// Pagination
+import { PaginationModule } from '../pagination/pagination.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Token, Invite, Company, Department, Position]),
@@ -61,7 +61,8 @@ import { AuditModule } from '../audit/audit.module';
       }),
     }),
     AuditModule,
-    OrganizationModule,
+    PaginationModule,
+    forwardRef(() => OrganizationModule),
   ],
   controllers: [
     HealthController,
@@ -80,7 +81,6 @@ import { AuditModule } from '../audit/audit.module';
 
     // Builders
     UserFilterBuilder,
-    PaginationService,
 
     // Strategies
     JwtStrategy,

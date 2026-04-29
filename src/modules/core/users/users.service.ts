@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-  ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,20 +13,25 @@ import { User } from '@database/entities/user.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
 import { Company } from '@database/entities/company.entity';
-import { UserStatus } from '@database/enums/user-status.enum';
-import { TokenType } from '@database/enums/token-type.enum';
-import { InviteStatus } from '@database/enums/invite-status.enum';
+import { UserStatus } from '@common/enums/user-status.enum';
+import { TokenType } from '@common/enums/token-type.enum';
+import { InviteStatus } from '@common/enums/invite-status.enum';
 import { Invite } from '@database/entities/invite.entity';
-import { ErrorMessages } from '@common/exceptions/error-messages';
 import { UserRole } from '@common/enums/user-role.enum';
-import { type AuthorizedUser } from '@common/types/authorized-user.type';
-import { PaginationService } from '@common/pagination/pagination.service';
-import { PaginatedResult } from '@common/pagination/pagination.interface';
+import { type AuthorizedUser } from '@modules/core/users/users.types';
+import { PaginationService } from '@modules/pagination/pagination.service';
+import { PaginatedResult } from '@modules/pagination/pagination.interfaces';
+import { PermissionAction } from '@common/enums/permission-action.enum';
+import { CompaniesErrors } from '@modules/organization/companies/companies.errors';
+import { PositionsErrors } from '@modules/organization/positions/positions.errors';
+import { DepartmentsErrors } from '@modules/organization/departments/departments.errors';
+import { PermissionsService } from '@modules/permissions/permissions.service';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserFilterDto } from './dto/user-filter.dto';
 import { UserFilterBuilder } from './user-filter.builder';
+import { UsersErrors } from './users.errors';
 
 import { EmailService } from '../email/email.service';
 import { TokenService } from '../token/token.service';
@@ -44,9 +48,13 @@ export class UsersService {
     private readonly _userFilterBuilder: UserFilterBuilder,
     private readonly _emailService: EmailService,
     private readonly _tokenService: TokenService,
+    private readonly _permissions: PermissionsService,
   ) {}
 
   async create(createUserDto: CreateUserDto, currentUser?: AuthorizedUser): Promise<User> {
+    if (currentUser) {
+      this._permissions.assertCan(currentUser, PermissionAction.USER_CREATE);
+    }
     const companyId = currentUser?.companyId || createUserDto.companyId;
 
     if (!companyId) {
@@ -168,18 +176,9 @@ export class UsersService {
   async findOne(id: string, currentUser: AuthorizedUser): Promise<User> {
     const user = await this.findById(id);
 
-    if (user.company.id !== currentUser.companyId) {
-      throw new ForbiddenException(ErrorMessages.FORBIDDEN_NON_OWNERSHIP_ACCESS('this company'));
-    }
-
-    if (currentUser.role === UserRole.EMPLOYEE && currentUser.id !== id) {
-      throw new ForbiddenException(
-        ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(`${UserRole.HR} or ${UserRole.ADMIN}`),
-      );
-    }
-
-    if (currentUser.role === UserRole.HR && user.role === UserRole.ADMIN) {
-      throw new ForbiddenException(ErrorMessages.FORBIDDEN_RESOURCE_ACCESS(UserRole.ADMIN));
+    // If it's not the user themselves, check read permission
+    if (currentUser.id !== id) {
+      this._permissions.assertCan(currentUser, PermissionAction.USER_READ, user);
     }
 
     return user;
@@ -192,7 +191,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException(ErrorMessages.USER_WITH_ID_NOT_FOUND(id));
+      throw new NotFoundException(UsersErrors.userWithIdNotFound(id));
     }
 
     return user;
@@ -238,8 +237,9 @@ export class UsersService {
   ): Promise<User> {
     const user = await this.findOne(id, currentUser);
 
-    if (currentUser.role === UserRole.HR && user.role === UserRole.ADMIN) {
-      throw new ForbiddenException('HR cannot update ADMIN users');
+    // If it's not the user themselves, check update permission
+    if (currentUser.id !== id) {
+      this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
     }
 
     if (updateUserDto.email && updateUserDto.email !== user.email) {
@@ -309,9 +309,7 @@ export class UsersService {
       throw new BadRequestException('Cannot delete yourself');
     }
 
-    if (currentUser.role === UserRole.HR && user.role === UserRole.ADMIN) {
-      throw new ForbiddenException('HR cannot delete ADMIN users');
-    }
+    this._permissions.assertCan(currentUser, PermissionAction.USER_DELETE, user);
 
     await this._tokenService.revokeUserTokens(id);
     await this._usersRepository.softDelete(id);
@@ -386,9 +384,7 @@ export class UsersService {
       throw new BadRequestException('Cannot block yourself');
     }
 
-    if (user.role === UserRole.ADMIN && currentUser.role === UserRole.HR) {
-      throw new ForbiddenException('HR cannot block ADMIN users');
-    }
+    this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
 
     user.status = UserStatus.BLOCKED;
 
@@ -398,16 +394,26 @@ export class UsersService {
 
   async unblockUser(id: string, currentUser: AuthorizedUser): Promise<User> {
     const user = await this.findOne(id, currentUser);
+    this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
     user.status = UserStatus.ACTIVE;
     user.resetFailedLoginAttempts();
     return this._usersRepository.save(user);
   }
 
-  async getUsersByRole(companyId: string, role: UserRole): Promise<User[]> {
-    return this._usersRepository.find({
-      where: { company: { id: companyId }, role, status: UserStatus.ACTIVE, deletedAt: IsNull() },
-      relations: ['department', 'position'],
-    });
+  async getUsersByRole(currentUser: AuthorizedUser, role: UserRole): Promise<User[]> {
+    this._permissions.assertCan(currentUser, PermissionAction.USER_READ);
+    const queryBuilder = this._usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.department', 'department')
+      .leftJoinAndSelect('user.position', 'position')
+      .where('user.company_id = :companyId', { companyId: currentUser.companyId })
+      .andWhere('user.role = :role', { role })
+      .andWhere('user.status = :status', { status: UserStatus.ACTIVE })
+      .andWhere('user.deletedAt IS NULL');
+
+    this._applyRoleBasedAccess(queryBuilder, currentUser);
+
+    return queryBuilder.getMany();
   }
 
   async getCompanyUsers(companyId: string): Promise<User[]> {
@@ -444,7 +450,7 @@ export class UsersService {
     });
 
     if (user) {
-      throw new ConflictException(ErrorMessages.USER_EMAIL_EXISTS(email));
+      throw new ConflictException(UsersErrors.userEmailExists(email));
     }
   }
 
@@ -454,7 +460,7 @@ export class UsersService {
     });
 
     if (!company) {
-      throw new NotFoundException(ErrorMessages.COMPANY_WITH_ID_NOT_FOUND(id));
+      throw new NotFoundException(CompaniesErrors.companyWithIdNotFound(id));
     }
 
     return company;
@@ -466,7 +472,7 @@ export class UsersService {
     });
 
     if (!department) {
-      throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(id));
+      throw new NotFoundException(DepartmentsErrors.departmentNotFound(id));
     }
 
     return department;
@@ -478,7 +484,7 @@ export class UsersService {
     });
 
     if (!position) {
-      throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
+      throw new NotFoundException(PositionsErrors.positionNotFound(id));
     }
 
     return position;
@@ -493,6 +499,19 @@ export class UsersService {
         break;
       case UserRole.HR:
         queryBuilder.andWhere('user.role != :adminRole', { adminRole: UserRole.ADMIN });
+        break;
+      case UserRole.MANAGER:
+        if (currentUser.departmentId) {
+          queryBuilder.andWhere('user.department_id = :deptId', {
+            deptId: currentUser.departmentId,
+          });
+          queryBuilder.andWhere('user.role NOT IN (:...highRoles)', {
+            highRoles: [UserRole.ADMIN, UserRole.HR],
+          });
+        } else {
+          // If manager has no department, they see no one by default (safety)
+          queryBuilder.andWhere('1=0');
+        }
         break;
       case UserRole.EMPLOYEE:
         queryBuilder.andWhere('user.id = :userId', { userId: currentUser.id });

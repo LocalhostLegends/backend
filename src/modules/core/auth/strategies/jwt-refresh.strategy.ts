@@ -4,12 +4,13 @@ import { Strategy } from 'passport-jwt';
 import type { Request } from 'express';
 
 import config from '@config/app.config';
-import { UserStatus } from '@database/enums/user-status.enum';
-import { ErrorMessages } from '@common/exceptions/error-messages';
-import { AuthorizedUser } from '@common/types/authorized-user.type';
+import { UserStatus } from '@common/enums/user-status.enum';
+import { AuthorizedUser } from '@/modules/core/users/users.types';
+import { UsersService } from '@modules/core/users/users.service';
+import { UsersErrors } from '@modules/core/users/users.errors';
 
 import { JwtRefreshPayload } from '../auth.types';
-import { UsersService } from '../../users/users.service';
+import { AuthErrors } from '../auth.errors';
 
 type RequestWithRefreshCookie = Request & {
   cookies: {
@@ -32,15 +33,15 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       const user = await this._usersService.findById(payload.sub);
 
       if (!user) {
-        throw new UnauthorizedException(ErrorMessages.USER_WITH_ID_NOT_FOUND(payload.sub));
+        throw new UnauthorizedException(UsersErrors.userWithIdNotFound(payload.sub));
       }
 
       if (user.status !== UserStatus.ACTIVE) {
-        throw new UnauthorizedException(ErrorMessages.USER_NOT_ACTIVE);
+        throw new UnauthorizedException(UsersErrors.userNotActive);
       }
 
       if (user.deletedAt) {
-        throw new UnauthorizedException(ErrorMessages.USER_DELETED);
+        throw new UnauthorizedException(UsersErrors.userDeleted);
       }
 
       return {
@@ -52,7 +53,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         lastName: user.lastName,
       };
     } catch {
-      throw new UnauthorizedException(ErrorMessages.UNAUTHORIZED);
+      throw new UnauthorizedException(AuthErrors.unauthorized);
     }
   }
 }

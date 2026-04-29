@@ -3,23 +3,28 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Position } from '@database/entities/position.entity';
-import { ErrorMessages } from '@common/exceptions/error-messages';
-import { AuthorizedUser } from '@common/types/authorized-user.type';
+import { AuthorizedUser } from '@modules/core/users/users.types';
+import { PermissionAction } from '@common/enums/permission-action.enum';
+import { PermissionsService } from '@modules/permissions/permissions.service';
 
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
+import { PositionsErrors } from './positions.errors';
 
 @Injectable()
 export class PositionsService {
   constructor(
     @InjectRepository(Position)
     private positionsRepository: Repository<Position>,
+    private readonly permissions: PermissionsService,
   ) {}
 
   async create(
     createPositionDto: CreatePositionDto,
     currentUser: AuthorizedUser,
   ): Promise<Position> {
+    this.permissions.assertCan(currentUser, PermissionAction.POSITION_CREATE);
+
     const existing = await this.positionsRepository.findOne({
       where: {
         title: createPositionDto.title,
@@ -28,7 +33,7 @@ export class PositionsService {
     });
 
     if (existing) {
-      throw new ConflictException(ErrorMessages.POSITION_TITLE_EXISTS(createPositionDto.title));
+      throw new ConflictException(PositionsErrors.positionTitleExists(createPositionDto.title));
     }
 
     const position = this.positionsRepository.create({
@@ -40,6 +45,8 @@ export class PositionsService {
   }
 
   async findAll(currentUser: AuthorizedUser): Promise<Position[]> {
+    this.permissions.assertCan(currentUser, PermissionAction.POSITION_READ);
+
     return this.positionsRepository.find({
       where: { company: { id: currentUser.companyId } },
     });
@@ -47,13 +54,14 @@ export class PositionsService {
 
   async findOne(id: string, currentUser: AuthorizedUser): Promise<Position> {
     const position = await this.positionsRepository.findOne({
-      where: {
-        id,
-        company: { id: currentUser.companyId },
-      },
+      where: { id },
+      relations: ['company'],
     });
 
-    if (!position) throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(id));
+    if (!position) throw new NotFoundException(PositionsErrors.positionNotFound(id));
+
+    this.permissions.assertCan(currentUser, PermissionAction.POSITION_READ, position);
+
     return position;
   }
 
@@ -64,6 +72,8 @@ export class PositionsService {
   ): Promise<Position> {
     const position = await this.findOne(id, currentUser);
 
+    this.permissions.assertCan(currentUser, PermissionAction.POSITION_UPDATE, position);
+
     if (updatePositionDto.title && updatePositionDto.title !== position.title) {
       const existing = await this.positionsRepository.findOne({
         where: {
@@ -73,7 +83,7 @@ export class PositionsService {
       });
 
       if (existing && existing.id !== id) {
-        throw new ConflictException(ErrorMessages.POSITION_TITLE_EXISTS(updatePositionDto.title));
+        throw new ConflictException(PositionsErrors.positionTitleExists(updatePositionDto.title));
       }
     }
 
@@ -83,6 +93,9 @@ export class PositionsService {
 
   async remove(id: string, currentUser: AuthorizedUser): Promise<void> {
     const position = await this.findOne(id, currentUser);
+
+    this.permissions.assertCan(currentUser, PermissionAction.POSITION_DELETE, position);
+
     await this.positionsRepository.remove(position);
   }
 }

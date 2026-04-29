@@ -12,11 +12,11 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
-import { UserRolesGuard } from '@common/guards/user-roles.guard';
-import { RequireRole } from '@common/decorators/require-role.decorator';
+import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
+import { RequireUserRoles } from '@modules/core/users/decorators/require-user-roles.decorator';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
-import { transformToDto } from '@common/utils/app.utils';
-import { type AuthorizedUser } from '@common/types/authorized-user.type';
+import { transformToDto } from '@/common/utils/dto.utils';
+import { type AuthorizedUser } from '@/modules/core/users/users.types';
 import { UserRole } from '@common/enums/user-role.enum';
 
 import { DepartmentsService } from './departments.service';
@@ -32,7 +32,7 @@ export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
   @Post()
-  @RequireRole(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiOperation({ summary: 'Create a new department in the current company' })
   @ApiResponse({
     status: 201,
@@ -66,7 +66,7 @@ export class DepartmentsController {
   }
 
   @Get()
-  @RequireRole(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get all departments in the current company' })
   @ApiResponse({
     status: 200,
@@ -89,7 +89,7 @@ export class DepartmentsController {
   }
 
   @Get(':id')
-  @RequireRole(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get department by ID' })
   @ApiParam({ name: 'id', description: 'Department UUID', type: String })
   @ApiResponse({
@@ -124,7 +124,7 @@ export class DepartmentsController {
   }
 
   @Patch(':id')
-  @RequireRole(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Update department' })
   @ApiParam({ name: 'id', description: 'Department UUID', type: String })
   @ApiResponse({
@@ -164,7 +164,7 @@ export class DepartmentsController {
   }
 
   @Delete(':id')
-  @RequireRole(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiOperation({ summary: 'Delete department' })
   @ApiParam({ name: 'id', description: 'Department UUID', type: String })
   @ApiResponse({

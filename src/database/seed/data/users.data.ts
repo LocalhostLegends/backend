@@ -1,5 +1,5 @@
 import { UserRole } from '@common/enums/user-role.enum';
-import { UserStatus } from '@database/enums/user-status.enum';
+import { UserStatus } from '@common/enums/user-status.enum';
 
 export const DEFAULT_SEED_PASSWORD = '123456';
 

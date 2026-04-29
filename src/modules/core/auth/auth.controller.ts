@@ -5,8 +5,8 @@ import { Throttle } from '@nestjs/throttler';
 
 import config from '@config/app.config';
 import { UserRole } from '@common/enums/user-role.enum';
-import type { AuthorizedUser } from '@common/types/authorized-user.type';
-import type { RequestWithContext } from '@common/middleware/request-context.middleware';
+import type { AuthorizedUser } from '@/modules/core/users/users.types';
+import type { AppRequest } from '@common/types/common.types';
 import { User } from '@database/entities/user.entity';
 
 import { AuthService } from './auth.service';
@@ -20,7 +20,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { AccessTokenResponseDto } from './dto/access-token-response.dto';
 
 import { UserRolesGuard } from '../users/guards/user-roles.guard';
-import { UserRoles } from '../users/decorators/user-roles.decorator';
+import { RequireUserRoles } from '../users/decorators/require-user-roles.decorator';
 import { CurrentUser } from '../users/decorators/current-user.decorator';
 
 @ApiTags('Auth')
@@ -56,7 +56,7 @@ export class AuthController {
   })
   async login(
     @Body() loginDto: LoginDto,
-    @Req() req: RequestWithContext,
+    @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AccessTokenResponseDto> {
     const { accessToken, refreshToken } = await this._authService.login(loginDto, req.context);
@@ -83,7 +83,7 @@ export class AuthController {
 
   @Post('hr')
   @UseGuards(JwtAuthGuard, UserRolesGuard)
-  @UserRoles(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create HR user (ADMIN only)' })
   @ApiResponse({ status: HttpStatus.CREATED, description: 'HR user created successfully' })
@@ -96,7 +96,7 @@ export class AuthController {
 
   @Post('employee')
   @UseGuards(JwtAuthGuard, UserRolesGuard)
-  @UserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create employee user (ADMIN or HR only)' })
   @ApiResponse({ status: HttpStatus.CREATED, description: 'Employee user created successfully' })

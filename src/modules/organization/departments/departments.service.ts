@@ -3,23 +3,28 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Department } from '@database/entities/department.entity';
-import { ErrorMessages } from '@common/exceptions/error-messages';
-import { AuthorizedUser } from '@common/types/authorized-user.type';
+import { AuthorizedUser } from '@modules/core/users/users.types';
+import { PermissionAction } from '@common/enums/permission-action.enum';
+import { PermissionsService } from '@modules/permissions/permissions.service';
 
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
+import { DepartmentsErrors } from './departments.errors';
 
 @Injectable()
 export class DepartmentsService {
   constructor(
     @InjectRepository(Department)
     private departmentsRepository: Repository<Department>,
+    private readonly permissions: PermissionsService,
   ) {}
 
   async create(
     createDepartmentDto: CreateDepartmentDto,
     currentUser: AuthorizedUser,
   ): Promise<Department> {
+    this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_CREATE);
+
     const existing = await this.departmentsRepository.findOne({
       where: {
         name: createDepartmentDto.name,
@@ -28,7 +33,7 @@ export class DepartmentsService {
     });
 
     if (existing) {
-      throw new ConflictException(ErrorMessages.DEPARTMENT_NAME_EXISTS(createDepartmentDto.name));
+      throw new ConflictException(DepartmentsErrors.departmentNameExists(createDepartmentDto.name));
     }
 
     const department = this.departmentsRepository.create({
@@ -40,6 +45,8 @@ export class DepartmentsService {
   }
 
   async findAll(currentUser: AuthorizedUser): Promise<Department[]> {
+    this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_READ);
+
     return this.departmentsRepository.find({
       where: { company: { id: currentUser.companyId } },
     });
@@ -47,13 +54,14 @@ export class DepartmentsService {
 
   async findOne(id: string, currentUser: AuthorizedUser): Promise<Department> {
     const department = await this.departmentsRepository.findOne({
-      where: {
-        id,
-        company: { id: currentUser.companyId },
-      },
+      where: { id },
+      relations: ['company'],
     });
 
-    if (!department) throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(id));
+    if (!department) throw new NotFoundException(DepartmentsErrors.departmentNotFound(id));
+
+    this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_READ, department);
+
     return department;
   }
 
@@ -64,6 +72,8 @@ export class DepartmentsService {
   ): Promise<Department> {
     const department = await this.findOne(id, currentUser);
 
+    this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_UPDATE, department);
+
     if (updateDepartmentDto.name && updateDepartmentDto.name !== department.name) {
       const existing = await this.departmentsRepository.findOne({
         where: {
@@ -73,7 +83,9 @@ export class DepartmentsService {
       });
 
       if (existing && existing.id !== id) {
-        throw new ConflictException(ErrorMessages.DEPARTMENT_NAME_EXISTS(updateDepartmentDto.name));
+        throw new ConflictException(
+          DepartmentsErrors.departmentNameExists(updateDepartmentDto.name),
+        );
       }
     }
 
@@ -83,6 +95,9 @@ export class DepartmentsService {
 
   async remove(id: string, currentUser: AuthorizedUser): Promise<void> {
     const department = await this.findOne(id, currentUser);
+
+    this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_DELETE, department);
+
     await this.departmentsRepository.remove(department);
   }
 }

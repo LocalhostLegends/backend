@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan, Repository } from 'typeorm';
+import { MoreThan, Repository, FindOptionsWhere } from 'typeorm';
 import { randomUUID } from 'crypto';
 
 import config from '@config/app.config';
@@ -14,14 +14,21 @@ import { Company } from '@database/entities/company.entity';
 import { User } from '@database/entities/user.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
-import { UserStatus } from '@database/enums/user-status.enum';
-import { TokenType } from '@database/enums/token-type.enum';
-import { InviteStatus } from '@database/enums/invite-status.enum';
+import { UserStatus } from '@common/enums/user-status.enum';
+import { TokenType } from '@common/enums/token-type.enum';
+import { InviteStatus } from '@common/enums/invite-status.enum';
 import { UserRole } from '@common/enums/user-role.enum';
-import { ErrorMessages } from '@common/exceptions/error-messages';
-import type { AuthorizedUser } from '@common/types/authorized-user.type';
+import type { AuthorizedUser } from '@/modules/core/users/users.types';
+import { UsersErrors } from '@modules/core/users/users.errors';
+import { CompaniesErrors } from '@modules/organization/companies/companies.errors';
+import { DepartmentsErrors } from '@modules/organization/departments/departments.errors';
+import { PositionsErrors } from '@modules/organization/positions/positions.errors';
+
+import { PermissionAction } from '@common/enums/permission-action.enum';
+import { PermissionsService } from '@modules/permissions/permissions.service';
 
 import { CreateInviteDto } from './dto/create-invite.dto';
+import { InviteErrors } from './invite.errors';
 
 import { EmailService } from '../email/email.service';
 import { UsersService } from '../users/users.service';
@@ -41,19 +48,20 @@ export class InviteService {
     private readonly _emailService: EmailService,
     private readonly _usersService: UsersService,
     private readonly _tokenService: TokenService,
+    private readonly _permissions: PermissionsService,
   ) {}
 
   async createInvite(dto: CreateInviteDto, currentUser: AuthorizedUser): Promise<Invite> {
+    this._permissions.assertCan(currentUser, PermissionAction.INVITE_CREATE);
+
     if (currentUser.role === UserRole.HR && dto.role === UserRole.ADMIN) {
-      throw new ForbiddenException(ErrorMessages.FORBIDDEN_INVITE_ADMIN);
+      throw new ForbiddenException(InviteErrors.forbiddenInviteAdmin);
     }
 
     const existingUser = await this._usersService.findByEmail(dto.email, currentUser.companyId);
 
     if (existingUser && existingUser.status !== UserStatus.INVITED) {
-      throw new BadRequestException(
-        ErrorMessages.USER_EMAIL_EXISTS_AND_INVITED(existingUser.email),
-      );
+      throw new BadRequestException(UsersErrors.userEmailExistsAndInvited(existingUser.email));
     }
 
     const existingInvite = await this._inviteRepository.findOne({
@@ -65,7 +73,7 @@ export class InviteService {
     });
 
     if (existingInvite) {
-      throw new BadRequestException(ErrorMessages.ACTIVE_INVITE_EXISTS(dto.email));
+      throw new BadRequestException(InviteErrors.activeInviteExists(dto.email));
     }
 
     const company = await this._companyRepository.findOne({
@@ -73,7 +81,7 @@ export class InviteService {
     });
 
     if (!company) {
-      throw new NotFoundException(ErrorMessages.COMPANY_NOT_FOUND);
+      throw new NotFoundException(CompaniesErrors.companyNotFound);
     }
 
     if (dto.departmentId) {
@@ -125,7 +133,7 @@ export class InviteService {
     });
 
     if (!loadedInvite) {
-      throw new NotFoundException(ErrorMessages.INVITE_NOT_FOUND);
+      throw new NotFoundException(InviteErrors.inviteNotFound);
     }
 
     return loadedInvite;
@@ -138,17 +146,17 @@ export class InviteService {
     });
 
     if (!invite) {
-      throw new NotFoundException(ErrorMessages.INVALID_INVITE_TOKEN);
+      throw new NotFoundException(InviteErrors.invalidInviteToken);
     }
 
     if (invite.status !== InviteStatus.PENDING) {
-      throw new BadRequestException(ErrorMessages.INVITE_STATUS(invite.status));
+      throw new BadRequestException(InviteErrors.inviteStatus(invite.status));
     }
 
     if (invite.expiresAt < new Date()) {
       invite.status = InviteStatus.EXPIRED;
       await this._inviteRepository.save(invite);
-      throw new BadRequestException(ErrorMessages.INVITE_HAS_EXPIRED);
+      throw new BadRequestException(InviteErrors.inviteHasExpired);
     }
 
     return invite;
@@ -167,7 +175,7 @@ export class InviteService {
     const existingUser = await this._usersService.findByEmail(invite.email, invite.company.id);
 
     if (existingUser && existingUser.status === UserStatus.ACTIVE) {
-      throw new BadRequestException(ErrorMessages.USER_EMAIL_EXISTS_AND_ACTIVE(existingUser.email));
+      throw new BadRequestException(UsersErrors.userEmailExistsAndActive(existingUser.email));
     }
 
     if (existingUser && existingUser.status === UserStatus.INVITED) {
@@ -200,24 +208,19 @@ export class InviteService {
   }
 
   async resendInvite(inviteId: string, currentUser: AuthorizedUser): Promise<Invite> {
-    // ✅ используем company: { id: ... }
     const invite = await this._inviteRepository.findOne({
       where: { id: inviteId },
       relations: ['company', 'invitedBy'],
     });
 
     if (!invite) {
-      throw new NotFoundException(ErrorMessages.INVITE_NOT_FOUND);
+      throw new NotFoundException(InviteErrors.inviteNotFound);
     }
 
-    if (invite.company.id !== currentUser.companyId) {
-      throw new ForbiddenException(
-        ErrorMessages.INVITE_NOT_IN_COMPANY(invite.id, currentUser.companyId),
-      );
-    }
+    this._permissions.assertCan(currentUser, PermissionAction.INVITE_RESEND, invite);
 
     if (invite.status !== InviteStatus.PENDING) {
-      throw new BadRequestException(ErrorMessages.FORBIDDEN_RESEND_INVITE(invite.status));
+      throw new BadRequestException(InviteErrors.forbiddenResendInvite(invite.status));
     }
 
     invite.expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
@@ -237,47 +240,55 @@ export class InviteService {
   }
 
   async cancelInvite(inviteId: string, currentUser: AuthorizedUser): Promise<void> {
-    // ✅ используем company: { id: ... }
     const invite = await this._inviteRepository.findOne({
       where: { id: inviteId },
       relations: ['company'],
     });
 
     if (!invite) {
-      throw new NotFoundException(ErrorMessages.INVITE_NOT_FOUND);
+      throw new NotFoundException(InviteErrors.inviteNotFound);
     }
 
-    if (invite.company.id !== currentUser.companyId) {
-      throw new ForbiddenException(
-        ErrorMessages.INVITE_NOT_IN_COMPANY(invite.id, currentUser.companyId),
-      );
-    }
+    this._permissions.assertCan(currentUser, PermissionAction.INVITE_CANCEL, invite);
 
     if (invite.status !== InviteStatus.PENDING) {
-      throw new BadRequestException(ErrorMessages.FORBIDDEN_CANCEL_INVITE(invite.status));
+      throw new BadRequestException(InviteErrors.forbiddenCancelInvite(invite.status));
     }
 
     invite.status = InviteStatus.CANCELLED;
     await this._inviteRepository.save(invite);
   }
 
-  async getCompanyInvites(companyId: string): Promise<Invite[]> {
-    // ✅ используем company: { id: ... }
+  async getCompanyInvites(currentUser: AuthorizedUser): Promise<Invite[]> {
+    this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
+
+    const where: FindOptionsWhere<Invite> = { company: { id: currentUser.companyId } };
+    if (currentUser.role === UserRole.MANAGER && currentUser.departmentId) {
+      where.departmentId = currentUser.departmentId;
+    }
+
     return this._inviteRepository.find({
-      where: { company: { id: companyId } },
+      where,
       relations: ['invitedBy'],
       order: { createdAt: 'DESC' },
     });
   }
 
-  async getPendingInvites(companyId: string): Promise<Invite[]> {
-    // ✅ используем company: { id: ... }
+  async getPendingInvites(currentUser: AuthorizedUser): Promise<Invite[]> {
+    this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
+
+    const where: FindOptionsWhere<Invite> = {
+      company: { id: currentUser.companyId },
+      status: InviteStatus.PENDING,
+      expiresAt: MoreThan(new Date()),
+    };
+
+    if (currentUser.role === UserRole.MANAGER && currentUser.departmentId) {
+      where.departmentId = currentUser.departmentId;
+    }
+
     return this._inviteRepository.find({
-      where: {
-        company: { id: companyId },
-        status: InviteStatus.PENDING,
-        expiresAt: MoreThan(new Date()),
-      },
+      where,
       relations: ['invitedBy'],
       order: { createdAt: 'DESC' },
     });
@@ -302,12 +313,12 @@ export class InviteService {
     });
 
     if (!department) {
-      throw new NotFoundException(ErrorMessages.DEPARTMENT_NOT_FOUND(departmentId));
+      throw new NotFoundException(DepartmentsErrors.departmentNotFound(departmentId));
     }
 
     if (department.company.id !== companyId) {
       throw new ForbiddenException(
-        ErrorMessages.DEPARTMENT_NOT_IN_COMPANY(departmentId, companyId),
+        DepartmentsErrors.departmentNotInCompany(departmentId, companyId),
       );
     }
   }
@@ -319,11 +330,11 @@ export class InviteService {
     });
 
     if (!position) {
-      throw new NotFoundException(ErrorMessages.POSITION_NOT_FOUND(positionId));
+      throw new NotFoundException(PositionsErrors.positionNotFound(positionId));
     }
 
     if (position.company.id !== companyId) {
-      throw new ForbiddenException(ErrorMessages.POSITION_NOT_IN_COMPANY(positionId, companyId));
+      throw new ForbiddenException(PositionsErrors.positionNotInCompany(positionId, companyId));
     }
   }
 }

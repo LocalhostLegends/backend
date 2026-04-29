@@ -1,6 +1,6 @@
-import { SwaggerFieldsMap } from '@common/types/swagger-fields-map.type';
-import { UUID_EXAMPLE } from '@/common/constants/app.constants';
-import { InviteStatus } from '@database/enums/invite-status.enum';
+import { SwaggerFieldsMap } from '@common/types/common.types';
+import { UUID_EXAMPLE } from '@common/constants/common.constants';
+import { InviteStatus } from '@common/enums/invite-status.enum';
 
 export const InviteFields = {
   id: {

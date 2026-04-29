@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Brackets, SelectQueryBuilder } from 'typeorm';
 
 import { User } from '@database/entities/user.entity';
-import { UserStatus } from '@database/enums/user-status.enum';
+import { UserStatus } from '@common/enums/user-status.enum';
 
 import { UserFilterDto } from './dto/user-filter.dto';
 

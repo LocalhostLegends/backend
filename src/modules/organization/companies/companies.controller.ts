@@ -13,12 +13,13 @@ import {
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
-import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
-import { UserRoles } from '@modules/core/users/decorators/user-roles.decorator';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
+import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
+import { RequireUserRoles } from '@modules/core/users/decorators/require-user-roles.decorator';
 import { UserRole } from '@common/enums/user-role.enum';
-import { transformToDto } from '@common/utils/app.utils';
-import type { AuthorizedUser } from '@common/types/authorized-user.type';
+import { transformToDto } from '@/common/utils/dto.utils';
+import { USER_ROLES } from '@/common/constants/common.constants';
+import type { AuthorizedUser } from '@/modules/core/users/users.types';
 
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
@@ -34,80 +35,92 @@ export class CompaniesController {
   constructor(private readonly _companiesService: CompaniesService) {}
 
   @Post()
-  @UserRoles(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new company' })
   @ApiResponse({ status: 201, type: CompanyResponseDto })
   async create(
     @Body(ValidationPipe) createCompanyDto: CreateCompanyDto,
+    @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<CompanyResponseDto> {
     return transformToDto(
       CompanyResponseDto,
-      await this._companiesService.create(createCompanyDto),
+      await this._companiesService.create(createCompanyDto, currentUser),
     );
   }
 
   @Get()
-  @UserRoles(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get all companies' })
   @ApiResponse({ status: 200, type: [CompanyResponseDto] })
-  async findAll(): Promise<CompanyResponseDto[]> {
-    return transformToDto(CompanyResponseDto, await this._companiesService.findAll());
+  async findAll(@CurrentUser() currentUser: AuthorizedUser): Promise<CompanyResponseDto[]> {
+    return transformToDto(CompanyResponseDto, await this._companiesService.findAll(currentUser));
   }
 
   @Get('my-company')
-  @UserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER, UserRole.EMPLOYEE)
+  @RequireUserRoles(...USER_ROLES)
   @ApiOperation({ summary: 'Get current user company' })
   @ApiResponse({ status: 200, type: CompanyResponseDto })
   async getMyCompany(@CurrentUser() currentUser: AuthorizedUser): Promise<CompanyResponseDto> {
     return transformToDto(
       CompanyResponseDto,
-      await this._companiesService.findById(currentUser.companyId),
+      await this._companiesService.findById(currentUser.companyId, currentUser),
     );
   }
 
   @Get('stats')
-  @UserRoles(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get company statistics' })
   async getStats(@CurrentUser() currentUser: AuthorizedUser) {
-    return this._companiesService.getCompanyStats(currentUser.companyId);
+    return this._companiesService.getCompanyStats(currentUser.companyId, currentUser);
   }
 
   @Get(':id')
-  @UserRoles(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get company by ID' })
   @ApiResponse({ status: 200, type: CompanyResponseDto })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<CompanyResponseDto> {
-    return transformToDto(CompanyResponseDto, await this._companiesService.findById(id));
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: AuthorizedUser,
+  ): Promise<CompanyResponseDto> {
+    return transformToDto(
+      CompanyResponseDto,
+      await this._companiesService.findById(id, currentUser),
+    );
   }
 
   @Patch(':id')
-  @UserRoles(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update company' })
   @ApiResponse({ status: 200, type: CompanyResponseDto })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(ValidationPipe) updateCompanyDto: UpdateCompanyDto,
+    @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<CompanyResponseDto> {
     return transformToDto(
       CompanyResponseDto,
-      await this._companiesService.update(id, updateCompanyDto),
+      await this._companiesService.update(id, updateCompanyDto, currentUser),
     );
   }
 
   @Delete(':id')
-  @UserRoles(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete company (soft delete)' })
   @ApiResponse({ status: 204 })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    await this._companiesService.remove(id);
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: AuthorizedUser,
+  ): Promise<void> {
+    await this._companiesService.remove(id, currentUser);
   }
 
   @Post(':id/subscription')
-  @UserRoles(UserRole.ADMIN)
+  @RequireUserRoles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update company subscription' })
   async updateSubscription(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(ValidationPipe) updateSubscriptionDto: UpdateSubscriptionDto,
+    @CurrentUser() currentUser: AuthorizedUser,
   ) {
     return transformToDto(
       CompanyResponseDto,
@@ -115,6 +128,7 @@ export class CompaniesController {
         id,
         updateSubscriptionDto.plan,
         updateSubscriptionDto.expiresAt,
+        currentUser,
       ),
     );
   }

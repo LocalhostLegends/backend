@@ -1,4 +1,4 @@
-import { SwaggerFieldsMap } from '@common/types/swagger-fields-map.type';
+import { SwaggerFieldsMap } from '@common/types/common.types';
 
 export const PaginationQueryFields = {
   page: {

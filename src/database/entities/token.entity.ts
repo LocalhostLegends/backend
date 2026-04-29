@@ -8,8 +8,9 @@ import {
   Index,
 } from 'typeorm';
 
+import { TokenType } from '@common/enums/token-type.enum';
+
 import { User } from './user.entity';
-import { TokenType } from '../enums/token-type.enum';
 
 @Entity('tokens')
 @Index(['token'])

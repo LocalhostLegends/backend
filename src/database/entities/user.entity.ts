@@ -11,8 +11,9 @@ import {
   BeforeInsert,
 } from 'typeorm';
 
-import { UserRole } from '@/common/enums/user-role.enum';
-import { UserStatus } from '../enums/user-status.enum';
+import { UserRole } from '@common/enums/user-role.enum';
+import { UserStatus } from '@common/enums/user-status.enum';
+
 import { Department } from './department.entity';
 import { Position } from './position.entity';
 import { Company } from './company.entity';

@@ -26,7 +26,7 @@ import { CurrentUser } from '@modules/core/users/decorators/current-user.decorat
 import { AvatarDeleteResponseDto } from '@modules/core/users/dto/avatar-delete-response.dto';
 import { AvatarUploadResponseDto } from '@modules/core/users/dto/avatar-upload-response.dto';
 import { UsersService } from '@modules/core/users/users.service';
-import type { AuthorizedUser } from '@common/types/authorized-user.type';
+import type { AuthorizedUser } from '@/modules/core/users/users.types';
 
 import { StorageService } from '../../../storage/storage.service';
 
