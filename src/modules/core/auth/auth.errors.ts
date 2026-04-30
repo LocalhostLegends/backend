@@ -4,8 +4,6 @@ export const AuthErrors = {
   unauthorized: 'Unauthorized access',
   forbidden: 'Access denied',
   hasAdmin: 'System already has an admin',
-  forbiddenCreateHr: 'Only ADMIN can create HR users',
-  forbiddenCreateEmployee: 'Only ADMIN or HR can create employee users',
   forbiddenNonOwnershipAccess: (resourceName: string) =>
     `This endpoint requires ownership of ${resourceName}`,
   forbiddenResourceAccess: (requiredRole: string, isOwnerable: boolean = true) =>

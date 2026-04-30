@@ -171,7 +171,6 @@ export class InviteService {
   ): Promise<User> {
     const invite = await this.validateInvite(token);
 
-    // ✅ доступ к id через invite.company.id
     const existingUser = await this._usersService.findByEmail(invite.email, invite.company.id);
 
     if (existingUser && existingUser.status === UserStatus.ACTIVE) {
@@ -188,7 +187,6 @@ export class InviteService {
       return activatedUser;
     }
 
-    // ✅ доступ к id через invite.company.id и invite.invitedBy.id
     await this._usersService.createInvitedUser(
       firstName || invite.email.split('@')[0],
       lastName || 'User',

@@ -1,26 +1,17 @@
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus, Res, Req } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Body, HttpCode, HttpStatus, Res, Req, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 
 import config from '@config/app.config';
-import { UserRole } from '@common/enums/user-role.enum';
 import type { AuthorizedUser } from '@/modules/core/users/users.types';
 import type { AppRequest } from '@common/types/common.types';
-import { User } from '@database/entities/user.entity';
 
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { RegisterCompanyDto } from './dto/register-company.dto';
-import { ActivateUserDto } from './dto/activate-user.dto';
 import { LoginDto } from './dto/login.dto';
-import { CreateHrDto } from './dto/create-hr.dto';
-import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { AccessTokenResponseDto } from './dto/access-token-response.dto';
-
-import { UserRolesGuard } from '../users/guards/user-roles.guard';
-import { RequireUserRoles } from '../users/decorators/require-user-roles.decorator';
 import { CurrentUser } from '../users/decorators/current-user.decorator';
 
 @ApiTags('Auth')
@@ -64,54 +55,12 @@ export class AuthController {
     return { accessToken };
   }
 
-  @Post('activate')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Activate user account' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Account activated successfully',
-    type: AccessTokenResponseDto,
-  })
-  async activateUser(
-    @Body() activateDto: ActivateUserDto,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<AccessTokenResponseDto> {
-    const { accessToken, refreshToken } = await this._authService.activateUser(activateDto);
-    this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken };
-  }
-
-  @Post('hr')
-  @UseGuards(JwtAuthGuard, UserRolesGuard)
-  @RequireUserRoles(UserRole.ADMIN)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Create HR user (ADMIN only)' })
-  @ApiResponse({ status: HttpStatus.CREATED, description: 'HR user created successfully' })
-  async createHr(
-    @Body() createHrDto: CreateHrDto,
-    @CurrentUser() currentUser: AuthorizedUser,
-  ): Promise<User> {
-    return this._authService.createHr(createHrDto, currentUser);
-  }
-
-  @Post('employee')
-  @UseGuards(JwtAuthGuard, UserRolesGuard)
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Create employee user (ADMIN or HR only)' })
-  @ApiResponse({ status: HttpStatus.CREATED, description: 'Employee user created successfully' })
-  async createEmployee(
-    @Body() createEmployeeDto: CreateEmployeeDto,
-    @CurrentUser() currentUser: AuthorizedUser,
-  ): Promise<User> {
-    return this._authService.createEmployee(createEmployeeDto, currentUser);
-  }
-
   @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('refresh')
   @UseGuards(JwtRefreshGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
+  @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Tokens refreshed successfully',

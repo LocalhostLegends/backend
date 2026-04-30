@@ -1,16 +1,9 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  ForbiddenException,
-  Inject,
-  forwardRef,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 
 import config from '@config/app.config';
 import { UserRole } from '@common/enums/user-role.enum';
-import { AuthorizedUser } from '@/modules/core/users/users.types';
 import { UserExistsException } from '@/modules/core/users/exceptions/user-exists.exception';
 import { UserStatus } from '@common/enums/user-status.enum';
 import type { AppRequestContext } from '@common/types/common.types';
@@ -19,17 +12,12 @@ import { CompaniesService } from '@modules/organization/companies/companies.serv
 import { UsersErrors } from '@modules/core/users/users.errors';
 
 import { RegisterCompanyDto } from './dto/register-company.dto';
-import { ActivateUserDto } from './dto/activate-user.dto';
 import { LoginDto } from './dto/login.dto';
-import { CreateHrDto } from './dto/create-hr.dto';
-import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { JwtPayload, JwtRefreshPayload, AuthResponse } from './auth.types';
 import { AuthErrors } from './auth.errors';
 
 import { TokenService } from '../token/token.service';
-import { EmailService } from '../email/email.service';
 import { UsersService } from '../users/users.service';
-import { InviteService } from '../invite/invite.service';
 import { AuditLogService } from '../../audit/audit-log.service';
 
 @Injectable()
@@ -38,8 +26,6 @@ export class AuthService {
     private readonly _usersService: UsersService,
     @Inject(forwardRef(() => CompaniesService))
     private readonly _companiesService: CompaniesService,
-    private readonly _emailService: EmailService,
-    private readonly _inviteService: InviteService,
     private readonly _tokenService: TokenService,
     private readonly _jwtService: JwtService,
     private readonly auditLogService: AuditLogService,
@@ -161,76 +147,6 @@ export class AuthService {
     const refreshToken = this._generateRefreshToken(user);
 
     return { accessToken, refreshToken };
-  }
-
-  async activateUser(activateDto: ActivateUserDto, ip?: string): Promise<AuthResponse> {
-    const user = await this._usersService.activateUser(activateDto.token, activateDto.password, ip);
-
-    const loginLink = `${config.frontend.url}/login`;
-    await this._emailService.sendWelcome(user.email, user.firstName, loginLink);
-
-    const accessToken = this._generateAccessToken(user);
-    const refreshToken = this._generateRefreshToken(user);
-
-    return { accessToken, refreshToken };
-  }
-
-  async createHr(createHrDto: CreateHrDto, currentUser: AuthorizedUser): Promise<User> {
-    if (currentUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException(AuthErrors.forbiddenCreateHr);
-    }
-
-    const existingUser = await this._usersService.findByEmail(
-      createHrDto.email,
-      currentUser.companyId,
-    );
-
-    if (existingUser) {
-      throw new UserExistsException(createHrDto.email, existingUser.status);
-    }
-
-    await this._inviteService.createInvite(
-      {
-        email: createHrDto.email,
-        role: UserRole.HR,
-      },
-      currentUser,
-    );
-
-    const user = await this._usersService.findByEmail(createHrDto.email, currentUser.companyId);
-    return user!;
-  }
-
-  async createEmployee(
-    createEmployeeDto: CreateEmployeeDto,
-    currentUser: AuthorizedUser,
-  ): Promise<User> {
-    if (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.HR) {
-      throw new ForbiddenException(AuthErrors.forbiddenCreateEmployee);
-    }
-
-    const existingUser = await this._usersService.findByEmail(
-      createEmployeeDto.email,
-      currentUser.companyId,
-    );
-
-    if (existingUser) {
-      throw new UserExistsException(createEmployeeDto.email, existingUser.status);
-    }
-
-    await this._inviteService.createInvite(
-      {
-        email: createEmployeeDto.email,
-        role: UserRole.EMPLOYEE,
-      },
-      currentUser,
-    );
-
-    const user = await this._usersService.findByEmail(
-      createEmployeeDto.email,
-      currentUser.companyId,
-    );
-    return user!;
   }
 
   async refresh(userId: string): Promise<AuthResponse> {
