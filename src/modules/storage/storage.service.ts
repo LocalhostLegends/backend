@@ -6,6 +6,7 @@ import {
   ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import * as crypto from 'crypto';
+import 'multer';
 
 import config from '@config/app.config';
 
@@ -30,7 +31,7 @@ export class StorageService {
         accessKeyId: config.storage.accessKeyId,
         secretAccessKey: config.storage.secretAccessKey,
       },
-      forcePathStyle: true,
+      forcePathStyle: config.storage.provider === 'minio',
     });
 
     this.logger.log(`✅ Storage initialized with ${config.storage.provider}`);
@@ -66,6 +67,7 @@ export class StorageService {
 
   async uploadAvatar(
     file: Express.Multer.File,
+    companyId: string,
     userEmail: string,
     oldAvatarUrl?: string | null,
   ): Promise<{ url: string }> {
@@ -73,17 +75,24 @@ export class StorageService {
       const oldKey = this.extractKeyFromUrl(oldAvatarUrl);
 
       if (oldKey) {
-        await this.s3Client.send(
-          new DeleteObjectCommand({
-            Bucket: config.storage.bucketName,
-            Key: oldKey,
-          }),
-        );
-        this.logger.log(`✅ Deleted old avatar`);
+        try {
+          await this.s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: config.storage.bucketName,
+              Key: oldKey,
+            }),
+          );
+          this.logger.log(`✅ Deleted old avatar`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.logger.error(`❌ Failed to delete old avatar: ${errorMessage}`);
+        }
       }
     }
 
-    const key = `users/${this.sanitizeEmail(userEmail)}/avatar/${this.generateFileName(file.originalname)}`;
+    const sanitizedEmail = this.sanitizeEmail(userEmail);
+    const fileName = this.generateFileName(file.originalname);
+    const key = `${companyId}/${sanitizedEmail}/avatar/${fileName}`;
 
     await this.s3Client.send(
       new PutObjectCommand({
@@ -96,7 +105,7 @@ export class StorageService {
 
     this.logger.log(`✅ Avatar uploaded: ${key}`);
 
-    return { url: `${config.storage.publicUrl}/${key}` };
+    return { url: `${config.storage.publicUrl.replace(/\/$/, '')}/${key}` };
   }
 
   async deleteFile(key: string): Promise<void> {
@@ -111,11 +120,19 @@ export class StorageService {
 
   extractKeyFromUrl(url: string): string | null {
     try {
+      const publicUrl = config.storage.publicUrl.replace(/\/$/, '');
+
+      if (url.startsWith(publicUrl)) {
+        return url.replace(publicUrl, '').replace(/^\//, '');
+      }
+
       const parsed = new URL(url);
       const parts = parsed.pathname.split('/').filter(Boolean);
 
-      if (config.storage.provider === 'minio') {
-        parts.shift();
+      if (config.storage.provider === 'minio' && !publicUrl.includes(config.storage.bucketName)) {
+        if (parts[0] === config.storage.bucketName) {
+          parts.shift();
+        }
       }
 
       return parts.length ? parts.join('/') : null;

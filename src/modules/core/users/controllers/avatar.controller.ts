@@ -78,7 +78,8 @@ export class AvatarController {
 
     const { url } = await this._storageService.uploadAvatar(
       file,
-      `${currentUser.companyId}/${currentUser.email}`,
+      currentUser.companyId,
+      currentUser.email,
       user.avatar,
     );
 

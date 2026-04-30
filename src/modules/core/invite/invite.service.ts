@@ -118,7 +118,7 @@ export class InviteService {
 
     await this._tokenService.createToken(null, TokenType.ACTIVATION, 48, token);
 
-    const inviteLink = `${config.frontend.url}/auth/accept-invite?token=${token}`;
+    const inviteLink = `${config.frontend.url}/invite-accept?token=${token}`;
     await this._emailService.sendInviteEmail(
       dto.email,
       dto.role,
