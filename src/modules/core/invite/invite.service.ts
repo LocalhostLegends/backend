@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository, FindOptionsWhere } from 'typeorm';
 import { randomUUID } from 'crypto';
@@ -19,16 +14,12 @@ import { TokenType } from '@common/enums/token-type.enum';
 import { InviteStatus } from '@common/enums/invite-status.enum';
 import { UserRole } from '@common/enums/user-role.enum';
 import type { AuthorizedUser } from '@/modules/core/users/users.types';
-import { UsersErrors } from '@modules/core/users/users.errors';
-import { CompaniesErrors } from '@modules/organization/companies/companies.errors';
-import { DepartmentsErrors } from '@modules/organization/departments/departments.errors';
-import { PositionsErrors } from '@modules/organization/positions/positions.errors';
+import { ExceptionFactory } from '@common/exceptions/exception-factory';
 
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { PermissionsService } from '@modules/permissions/permissions.service';
 
 import { CreateInviteDto } from './dto/create-invite.dto';
-import { InviteErrors } from './invite.errors';
 
 import { EmailService } from '../email/email.service';
 import { UsersService } from '../users/users.service';
@@ -55,13 +46,13 @@ export class InviteService {
     this._permissions.assertCan(currentUser, PermissionAction.INVITE_CREATE);
 
     if (currentUser.role === UserRole.HR && dto.role === UserRole.ADMIN) {
-      throw new ForbiddenException(InviteErrors.forbiddenInviteAdmin);
+      throw ExceptionFactory.inviteForbiddenAdmin();
     }
 
     const existingUser = await this._usersService.findByEmail(dto.email, currentUser.companyId);
 
     if (existingUser && existingUser.status !== UserStatus.INVITED) {
-      throw new BadRequestException(UsersErrors.userEmailExistsAndInvited(existingUser.email));
+      throw ExceptionFactory.userEmailExistsAndInvited(existingUser.email);
     }
 
     const existingInvite = await this._inviteRepository.findOne({
@@ -73,7 +64,7 @@ export class InviteService {
     });
 
     if (existingInvite) {
-      throw new BadRequestException(InviteErrors.activeInviteExists(dto.email));
+      throw ExceptionFactory.inviteActiveExists(dto.email);
     }
 
     const company = await this._companyRepository.findOne({
@@ -81,7 +72,7 @@ export class InviteService {
     });
 
     if (!company) {
-      throw new NotFoundException(CompaniesErrors.companyNotFound);
+      throw ExceptionFactory.companyNotFound();
     }
 
     if (dto.departmentId) {
@@ -133,7 +124,7 @@ export class InviteService {
     });
 
     if (!loadedInvite) {
-      throw new NotFoundException(InviteErrors.inviteNotFound);
+      throw ExceptionFactory.inviteNotFound();
     }
 
     return loadedInvite;
@@ -146,17 +137,17 @@ export class InviteService {
     });
 
     if (!invite) {
-      throw new NotFoundException(InviteErrors.invalidInviteToken);
+      throw ExceptionFactory.inviteInvalidToken();
     }
 
     if (invite.status !== InviteStatus.PENDING) {
-      throw new BadRequestException(InviteErrors.inviteStatus(invite.status));
+      throw ExceptionFactory.inviteAlreadyStatus(invite.status);
     }
 
     if (invite.expiresAt < new Date()) {
       invite.status = InviteStatus.EXPIRED;
       await this._inviteRepository.save(invite);
-      throw new BadRequestException(InviteErrors.inviteHasExpired);
+      throw ExceptionFactory.inviteExpired();
     }
 
     return invite;
@@ -174,7 +165,7 @@ export class InviteService {
     const existingUser = await this._usersService.findByEmail(invite.email, invite.company.id);
 
     if (existingUser && existingUser.status === UserStatus.ACTIVE) {
-      throw new BadRequestException(UsersErrors.userEmailExistsAndActive(existingUser.email));
+      throw ExceptionFactory.userEmailExistsAndActive(existingUser.email);
     }
 
     if (existingUser && existingUser.status === UserStatus.INVITED) {
@@ -212,13 +203,13 @@ export class InviteService {
     });
 
     if (!invite) {
-      throw new NotFoundException(InviteErrors.inviteNotFound);
+      throw ExceptionFactory.inviteNotFound();
     }
 
     this._permissions.assertCan(currentUser, PermissionAction.INVITE_RESEND, invite);
 
     if (invite.status !== InviteStatus.PENDING) {
-      throw new BadRequestException(InviteErrors.forbiddenResendInvite(invite.status));
+      throw ExceptionFactory.inviteCannotResend(invite.status);
     }
 
     invite.expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
@@ -244,13 +235,13 @@ export class InviteService {
     });
 
     if (!invite) {
-      throw new NotFoundException(InviteErrors.inviteNotFound);
+      throw ExceptionFactory.inviteNotFound();
     }
 
     this._permissions.assertCan(currentUser, PermissionAction.INVITE_CANCEL, invite);
 
     if (invite.status !== InviteStatus.PENDING) {
-      throw new BadRequestException(InviteErrors.forbiddenCancelInvite(invite.status));
+      throw ExceptionFactory.inviteCannotCancel(invite.status);
     }
 
     invite.status = InviteStatus.CANCELLED;
@@ -311,13 +302,11 @@ export class InviteService {
     });
 
     if (!department) {
-      throw new NotFoundException(DepartmentsErrors.departmentNotFound(departmentId));
+      throw ExceptionFactory.departmentNotFound(departmentId);
     }
 
     if (department.company.id !== companyId) {
-      throw new ForbiddenException(
-        DepartmentsErrors.departmentNotInCompany(departmentId, companyId),
-      );
+      throw ExceptionFactory.departmentNotInCompany(departmentId, companyId);
     }
   }
 
@@ -328,11 +317,11 @@ export class InviteService {
     });
 
     if (!position) {
-      throw new NotFoundException(PositionsErrors.positionNotFound(positionId));
+      throw ExceptionFactory.positionNotFound(positionId);
     }
 
     if (position.company.id !== companyId) {
-      throw new ForbiddenException(PositionsErrors.positionNotInCompany(positionId, companyId));
+      throw ExceptionFactory.positionNotInCompany(positionId, companyId);
     }
   }
 }

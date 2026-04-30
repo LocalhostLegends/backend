@@ -9,7 +9,6 @@ import helmet from 'helmet';
 
 import config from '@config/app.config';
 import { swaggerConfig, swaggerOptions } from '@config/swagger.config';
-import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 
 import { AppModule } from './app.module';
 
@@ -87,8 +86,6 @@ async function bootstrap(): Promise<void> {
   instance.head('/', (_req: Request, res: Response) => {
     res.status(200).send();
   });
-
-  app.useGlobalFilters(new HttpExceptionFilter());
 
   setupMiddleware(app);
   setupCors(app);

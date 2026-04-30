@@ -1,9 +1,8 @@
-import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ExecutionContext } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 import { User } from '@database/entities/user.entity';
-
-import { AuthErrors } from '../auth.errors';
+import { ExceptionFactory } from '@common/exceptions/exception-factory';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -17,7 +16,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     _: Error | string | null, // info
   ): UserType {
     if (err || !user) {
-      throw err || new UnauthorizedException(AuthErrors.invalidToken);
+      throw err || ExceptionFactory.invalidToken();
     }
     return user;
   }
