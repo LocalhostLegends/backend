@@ -13,7 +13,12 @@ export default configSchema.parse({
   database: process.env.DATABASE_URL
     ? {
         url: process.env.DATABASE_URL,
-        ssl: isProduction ? { rejectUnauthorized: false } : false,
+        ssl:
+          process.env.DATABASE_SSL === 'true'
+            ? { rejectUnauthorized: false }
+            : isProduction
+              ? { rejectUnauthorized: false }
+              : false,
       }
     : {
         host: process.env.DATABASE_HOST,
@@ -21,7 +26,12 @@ export default configSchema.parse({
         username: process.env.DATABASE_USERNAME,
         password: process.env.DATABASE_PASSWORD,
         database: process.env.DATABASE_NAME,
-        ssl: isProduction ? { rejectUnauthorized: false } : false,
+        ssl:
+          process.env.DATABASE_SSL === 'true'
+            ? { rejectUnauthorized: false }
+            : isProduction
+              ? { rejectUnauthorized: false }
+              : false,
       },
 
   jwt: {
@@ -44,24 +54,19 @@ export default configSchema.parse({
     port: Number(process.env.PG_ADMIN_PORT),
   },
 
-  storage: isProduction
-    ? {
-        provider: 'cloudflare',
-        accountId: storageAccountId,
-        accessKeyId: process.env.STORAGE_ACCESS_KEY_ID,
-        secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY,
-        bucketName: process.env.STORAGE_BUCKET_NAME,
-        publicUrl: process.env.STORAGE_PUBLIC_URL,
-        endpoint: `https://${storageAccountId}.r2.cloudflarestorage.com`,
-      }
-    : {
-        provider: 'minio',
-        accessKeyId: process.env.STORAGE_ACCESS_KEY_ID,
-        secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY,
-        bucketName: process.env.STORAGE_BUCKET_NAME,
-        publicUrl: process.env.STORAGE_PUBLIC_URL,
-        endpoint: process.env.STORAGE_ENDPOINT,
-      },
+  storage: {
+    provider: (process.env.STORAGE_PROVIDER || (isProduction ? 'cloudflare' : 'minio')) as
+      | 'cloudflare'
+      | 'minio',
+    accountId: storageAccountId,
+    accessKeyId: process.env.STORAGE_ACCESS_KEY_ID,
+    secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY,
+    bucketName: process.env.STORAGE_BUCKET_NAME,
+    publicUrl: process.env.STORAGE_PUBLIC_URL,
+    endpoint:
+      process.env.STORAGE_ENDPOINT ||
+      (storageAccountId ? `https://${storageAccountId}.r2.cloudflarestorage.com` : ''),
+  },
 
   smtp: {
     host: process.env.SMTP_HOST,

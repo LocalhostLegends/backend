@@ -13,7 +13,7 @@ export default z.object({
   database: z.union([
     z.object({
       url: z.string(),
-      ssl: z.union([z.object({ rejectUnauthorized: z.literal(false) }), z.literal(false)]),
+      ssl: z.union([z.object({ rejectUnauthorized: z.boolean() }), z.boolean()]),
     }),
     z.object({
       host: z.string(),
@@ -21,7 +21,7 @@ export default z.object({
       username: z.string(),
       password: z.string(),
       database: z.string(),
-      ssl: z.literal(false),
+      ssl: z.union([z.object({ rejectUnauthorized: z.boolean() }), z.boolean()]),
     }),
   ]),
 
@@ -42,25 +42,15 @@ export default z.object({
     port: z.number(),
   }),
 
-  storage: z.union([
-    z.object({
-      provider: z.literal('cloudflare'),
-      accountId: z.string(),
-      accessKeyId: z.string(),
-      secretAccessKey: z.string(),
-      bucketName: z.string(),
-      publicUrl: z.string(),
-      endpoint: z.string(),
-    }),
-    z.object({
-      provider: z.literal('minio'),
-      accessKeyId: z.string(),
-      secretAccessKey: z.string(),
-      bucketName: z.string(),
-      publicUrl: z.string(),
-      endpoint: z.string(),
-    }),
-  ]),
+  storage: z.object({
+    provider: z.enum(['cloudflare', 'minio']),
+    accountId: z.string().optional(),
+    accessKeyId: z.string(),
+    secretAccessKey: z.string(),
+    bucketName: z.string(),
+    publicUrl: z.string(),
+    endpoint: z.string(),
+  }),
 
   smtp: z.object({
     host: z.string(),
