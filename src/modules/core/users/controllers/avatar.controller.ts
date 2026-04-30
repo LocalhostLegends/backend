@@ -12,14 +12,6 @@ import {
   FileTypeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  ApiBearerAuth,
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiConsumes,
-  ApiBody,
-} from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
@@ -29,9 +21,9 @@ import { UsersService } from '@modules/core/users/users.service';
 import type { AuthorizedUser } from '@/modules/core/users/users.types';
 
 import { StorageService } from '../../../storage/storage.service';
+import { swagger } from '../swagger';
 
-@ApiTags('Users')
-@ApiBearerAuth('JWT-auth')
+@swagger.ApiTags()
 @Controller('users/me/avatar')
 @UseGuards(JwtAuthGuard)
 export class AvatarController {
@@ -41,25 +33,7 @@ export class AvatarController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Upload user avatar' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'Avatar uploaded successfully',
-    type: AvatarUploadResponseDto,
-  })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'No file uploaded or invalid file' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        avatar: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
-    },
-  })
+  @swagger.ApiUploadAvatar()
   @UseInterceptors(FileInterceptor('avatar'))
   async upload(
     @UploadedFile(
@@ -94,12 +68,7 @@ export class AvatarController {
 
   @Delete()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete user avatar' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Avatar deleted successfully',
-    type: AvatarDeleteResponseDto,
-  })
+  @swagger.ApiDeleteAvatar()
   async delete(@CurrentUser() currentUser: AuthorizedUser): Promise<AvatarDeleteResponseDto> {
     const user = await this._usersService.findById(currentUser.id);
 
