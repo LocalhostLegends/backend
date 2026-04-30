@@ -68,6 +68,12 @@ export default configSchema.parse({
       (storageAccountId ? `https://${storageAccountId}.r2.cloudflarestorage.com` : ''),
   },
 
+  email: {
+    provider: process.env.EMAIL_PROVIDER ?? 'smtp',
+    resendApiKey: process.env.EMAIL_API_KEY,
+    from: process.env.EMAIL_FROM,
+  },
+
   smtp: {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),

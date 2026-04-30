@@ -52,6 +52,12 @@ export default z.object({
     endpoint: z.string(),
   }),
 
+  email: z.object({
+    provider: z.enum(['smtp', 'resend']).default('smtp'),
+    resendApiKey: z.string().optional(),
+    from: z.string().optional(),
+  }),
+
   smtp: z.object({
     host: z.string(),
     port: z.number(),
