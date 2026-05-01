@@ -15,10 +15,10 @@ export interface WrappedResource {
   old?: WrappedResource;
   new?: Record<string, any>;
   role?: UserRole;
-  companyId?: string;
-  departmentId?: string;
-  company?: { id: string };
-  department?: { id: string };
+  companyId?: string | null;
+  departmentId?: string | null;
+  company?: { id: string } | null;
+  department?: { id: string } | null;
   [key: string]: any;
 }
 

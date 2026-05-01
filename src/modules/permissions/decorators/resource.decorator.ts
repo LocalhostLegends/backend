@@ -9,4 +9,4 @@ export interface ResourceMetadata {
 }
 
 export const Resource = (type: Type<any>, paramName: string = 'id') =>
-  SetMetadata(RESOURCE_KEY, { type, paramName } as ResourceMetadata);
+  SetMetadata(RESOURCE_KEY, { type, paramName });

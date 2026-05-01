@@ -3,7 +3,6 @@ import { Reflector, ModuleRef } from '@nestjs/core';
 import { Request } from 'express';
 import { Repository } from 'typeorm';
 import { PermissionAction } from '@common/enums/permission-action.enum';
-import { UserRole } from '@common/enums/user-role.enum';
 import { PermissionsService, PermissionResource, WrappedResource } from '../permissions.service';
 import { PERMISSION_KEY } from '../decorators/require-permission.decorator';
 import { RESOURCE_KEY, ResourceMetadata } from '../decorators/resource.decorator';
@@ -87,10 +86,10 @@ export class PermissionGuard implements CanActivate {
         id: res.id,
         old: res,
         new: body,
-        role: (body.role as UserRole) ?? res.role,
-        companyId: (body.companyId as string) ?? (res.company?.id || res.companyId),
-        departmentId: (body.departmentId as string) ?? (res.department?.id || res.departmentId),
-      } as WrappedResource;
+        role: body.role ?? res.role,
+        companyId: body.companyId ?? (res.company?.id || res.companyId),
+        departmentId: body.departmentId ?? (res.department?.id || res.departmentId),
+      };
     } else if (resource) {
       finalResource = resource;
     } else {

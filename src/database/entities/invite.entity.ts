@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 
 import { InviteStatus } from '@common/enums/invite-status.enum';
+import { UserRole } from '@common/enums/user-role.enum';
 
 import { Company } from './company.entity';
 import { User } from './user.entity';
@@ -31,8 +32,8 @@ export class Invite {
   @Column({ type: 'enum', enum: InviteStatus, default: InviteStatus.PENDING, name: 'status' })
   status: InviteStatus;
 
-  @Column({ type: 'varchar', length: 50, name: 'role' })
-  role: string;
+  @Column({ type: 'enum', enum: UserRole, name: 'role' })
+  role: UserRole;
 
   @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'company_id' })

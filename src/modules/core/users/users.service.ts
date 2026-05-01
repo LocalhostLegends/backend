@@ -398,7 +398,7 @@ export class UsersService {
         email: invite.email,
         firstName: 'Firstname',
         lastName: 'Lastname',
-        role: invite.role as UserRole,
+        role: invite.role,
         status: UserStatus.INVITED,
         company: invite.company,
         metadata: {

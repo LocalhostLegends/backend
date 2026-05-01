@@ -6,7 +6,7 @@ import { PermissionResource } from '../permissions.service';
 
 @Injectable()
 export class ResourceHelper {
-  getResourceCompanyId(resource: PermissionResource): string | null {
+  getResourceCompanyId(resource: PermissionResource | null | undefined): string | null {
     if (!resource) return null;
     if (resource.companyId) return resource.companyId;
     if (resource.company?.id) return resource.company.id;
@@ -16,7 +16,7 @@ export class ResourceHelper {
     return null;
   }
 
-  getResourceDepartmentId(resource: PermissionResource): string | null {
+  getResourceDepartmentId(resource: PermissionResource | null | undefined): string | null {
     if (!resource) return null;
     if (resource.departmentId) return resource.departmentId;
     if (resource.department?.id) return resource.department.id;
@@ -26,7 +26,7 @@ export class ResourceHelper {
     return null;
   }
 
-  getResourceRole(resource: PermissionResource): UserRole | null {
+  getResourceRole(resource: PermissionResource | null | undefined): UserRole | null {
     if (!resource) return null;
     if (resource.role) return resource.role;
     if (resource.old?.role) return resource.old.role;

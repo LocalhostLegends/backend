@@ -182,7 +182,7 @@ export class InviteService {
       firstName || invite.email.split('@')[0],
       lastName || 'User',
       invite.email,
-      invite.role as UserRole,
+      invite.role,
       invite.company.id,
       invite.invitedBy.id,
     );
