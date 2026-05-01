@@ -22,7 +22,7 @@ export class EmailService {
   private _initializeEmailProvider(): void {
     if (config.email.provider === 'resend') {
       if (!config.email.resendApiKey) {
-        this._logger.warn('Resend API key is missing');
+        this._logger.warn('Email API key is missing');
         return;
       }
 
@@ -47,7 +47,7 @@ export class EmailService {
       socketTimeout: 10000,
     });
 
-    this._logger.log(`Email service initialized with SMTP`);
+    this._logger.log('Email service initialized with SMTP provider');
   }
 
   async sendInviteEmail(
@@ -83,27 +83,32 @@ export class EmailService {
     text?: string;
   }): Promise<void> {
     if (config.email.provider === 'resend') {
-      await this._sendEmailViaResend(dto);
+      await this._sendEmailViaApi(dto);
       return;
     }
 
     await this._sendEmailViaSmtp(dto);
   }
 
-  private async _sendEmailViaResend(dto: {
+  private async _sendEmailViaApi(dto: {
     to: string;
     subject: string;
     html: string;
     text?: string;
   }): Promise<void> {
     if (!this._resend) {
-      this._logger.warn(`Email not sent to ${dto.to}: Resend is not configured`);
+      this._logger.warn(`Email not sent to ${dto.to}: API provider is not configured`);
+      return;
+    }
+
+    if (!config.email.from) {
+      this._logger.warn(`Email not sent to ${dto.to}: EMAIL_FROM is not configured`);
       return;
     }
 
     try {
-      const { data, error } = await this._resend.emails.send({
-        from: config.email.from || `"${config.smtp.sender.name}" <${config.smtp.sender.email}>`,
+      const { error } = await this._resend.emails.send({
+        from: config.email.from,
         to: dto.to,
         subject: dto.subject,
         html: dto.html,
@@ -111,15 +116,13 @@ export class EmailService {
       });
 
       if (error) {
-        this._logger.error(
-          `Failed to send email to ${dto.to} via Resend: ${JSON.stringify(error)}`,
-        );
+        this._logger.error(`Failed to send email to ${dto.to} via API: ${JSON.stringify(error)}`);
         throw new Error(error.message);
       }
 
-      this._logger.log(`Email sent to ${dto.to} via Resend: ${data?.id}`);
+      this._logger.log(`Email sent to ${dto.to} via API`);
     } catch (error) {
-      this._logger.error(`Failed to send email to ${dto.to} via Resend:`, error);
+      this._logger.error(`Failed to send email to ${dto.to} via API:`, error);
       throw error;
     }
   }
@@ -131,12 +134,12 @@ export class EmailService {
     text?: string;
   }): Promise<void> {
     if (!this._transporter) {
-      this._logger.warn(`Email not sent to ${dto.to}: SMTP not configured`);
+      this._logger.warn(`Email not sent to ${dto.to}: SMTP provider is not configured`);
       return;
     }
 
     try {
-      const info = await this._transporter.sendMail({
+      await this._transporter.sendMail({
         from: `"${config.smtp.sender.name}" <${config.smtp.sender.email}>`,
         to: dto.to,
         subject: dto.subject,
@@ -144,7 +147,7 @@ export class EmailService {
         text: dto.text || this._stripHtml(dto.html),
       });
 
-      this._logger.log(`Email sent to ${dto.to} via SMTP: ${info.messageId}`);
+      this._logger.log(`Email sent to ${dto.to} via SMTP`);
     } catch (error) {
       this._logger.error(`Failed to send email to ${dto.to} via SMTP:`, error);
       throw error;
@@ -160,12 +163,12 @@ export class EmailService {
 
   async testConnection(): Promise<boolean> {
     if (config.email.provider === 'resend') {
-      const isConfigured = Boolean(this._resend);
+      const isConfigured = Boolean(this._resend && config.email.from);
 
       if (isConfigured) {
-        this._logger.log('Resend API configured');
+        this._logger.log('Email API provider configured');
       } else {
-        this._logger.warn('Resend API is not configured');
+        this._logger.warn('Email API provider is not configured');
       }
 
       return isConfigured;

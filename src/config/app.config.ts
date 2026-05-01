@@ -69,15 +69,15 @@ export default configSchema.parse({
   },
 
   email: {
-    provider: process.env.EMAIL_PROVIDER ?? 'smtp',
+    provider: process.env.EMAIL_PROVIDER ?? (isProduction ? 'resend' : 'smtp'),
     resendApiKey: process.env.EMAIL_API_KEY,
     from: process.env.EMAIL_FROM,
   },
 
   smtp: {
     host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: process.env.SMTP_SECURE !== undefined ? process.env.SMTP_SECURE === 'true' : undefined,
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: process.env.SMTP_SECURE !== undefined ? process.env.SMTP_SECURE === 'true' : false,
     user: process.env.SMTP_USER,
     password: process.env.SMTP_PASSWORD,
     sender: {
