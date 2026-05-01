@@ -27,7 +27,7 @@ export class EmailService {
       }
 
       this._resend = new Resend(config.email.resendApiKey);
-      this._logger.log('Email service initialized with Resend API');
+      this._logger.log('Email service initialized with API provider');
       return;
     }
 
@@ -47,7 +47,7 @@ export class EmailService {
       socketTimeout: 10000,
     });
 
-    this._logger.log(`Email service initialized with SMTP host: ${config.smtp.host}`);
+    this._logger.log(`Email service initialized with SMTP`);
   }
 
   async sendInviteEmail(

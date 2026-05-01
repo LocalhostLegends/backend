@@ -13,8 +13,6 @@ import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 import { RequestLoggerMiddleware } from '@common/middleware/request-logger.middleware';
 import { RequestContextMiddleware } from '@common/middleware/request-context.middleware';
 import config from '@config/app.config';
-// Delete after test
-import { SmtpDebugService } from './debug/smtp-debug.service';
 
 @Module({
   imports: [
@@ -44,9 +42,6 @@ import { SmtpDebugService } from './debug/smtp-debug.service';
     PaginationModule,
   ],
   providers: [
-    //Delete after test
-    SmtpDebugService,
-
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
