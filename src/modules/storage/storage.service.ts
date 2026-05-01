@@ -20,8 +20,6 @@ export class StorageService {
       this.logger.log(
         `Storage config: bucket=${config.storage.bucketName}, publicUrl=${config.storage.publicUrl}, endpoint=${config.storage.endpoint}`,
       );
-    } else {
-      this.logger.log('Storage initialized with Cloudflare R2');
     }
 
     this.s3Client = new S3Client({
