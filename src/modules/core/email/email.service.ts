@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Transporter, createTransport } from 'nodemailer';
 import { SentMessageInfo } from 'nodemailer/lib/smtp-transport';
+import { Resend } from 'resend';
 
 import config from '@config/app.config';
 
@@ -11,13 +12,25 @@ import { getWelcomeEmailTemplate } from './templates/welcome-email.template';
 export class EmailService {
   private readonly _logger = new Logger(EmailService.name);
 
-  private _transporter: Transporter<SentMessageInfo>;
+  private _transporter?: Transporter<SentMessageInfo>;
+  private _resend?: Resend;
 
   constructor() {
-    this._initializeTransporter();
+    this._initializeEmailProvider();
   }
 
-  private _initializeTransporter(): void {
+  private _initializeEmailProvider(): void {
+    if (config.email.provider === 'resend') {
+      if (!config.email.resendApiKey) {
+        this._logger.warn('Email API key is missing');
+        return;
+      }
+
+      this._resend = new Resend(config.email.resendApiKey);
+      this._logger.log('Email service initialized with API provider');
+      return;
+    }
+
     this._transporter = createTransport({
       host: config.smtp.host,
       port: config.smtp.port,
@@ -29,9 +42,12 @@ export class EmailService {
       tls: {
         rejectUnauthorized: false,
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
 
-    this._logger.log('Email service initialized with Gmail SMTP');
+    this._logger.log('Email service initialized with SMTP provider');
   }
 
   async sendInviteEmail(
@@ -66,13 +82,64 @@ export class EmailService {
     html: string;
     text?: string;
   }): Promise<void> {
-    if (!this._transporter) {
-      this._logger.warn(`Email not sent to ${dto.to}: SMTP not configured`);
+    if (config.email.provider === 'resend') {
+      await this._sendEmailViaApi(dto);
+      return;
+    }
+
+    await this._sendEmailViaSmtp(dto);
+  }
+
+  private async _sendEmailViaApi(dto: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }): Promise<void> {
+    if (!this._resend) {
+      this._logger.warn(`Email not sent to ${dto.to}: API provider is not configured`);
+      return;
+    }
+
+    if (!config.email.from) {
+      this._logger.warn(`Email not sent to ${dto.to}: EMAIL_FROM is not configured`);
       return;
     }
 
     try {
-      const info = await this._transporter.sendMail({
+      const { error } = await this._resend.emails.send({
+        from: config.email.from,
+        to: dto.to,
+        subject: dto.subject,
+        html: dto.html,
+        text: dto.text || this._stripHtml(dto.html),
+      });
+
+      if (error) {
+        this._logger.error(`Failed to send email to ${dto.to} via API: ${JSON.stringify(error)}`);
+        throw new Error(error.message);
+      }
+
+      this._logger.log(`Email sent to ${dto.to} via API`);
+    } catch (error) {
+      this._logger.error(`Failed to send email to ${dto.to} via API:`, error);
+      throw error;
+    }
+  }
+
+  private async _sendEmailViaSmtp(dto: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }): Promise<void> {
+    if (!this._transporter) {
+      this._logger.warn(`Email not sent to ${dto.to}: SMTP provider is not configured`);
+      return;
+    }
+
+    try {
+      await this._transporter.sendMail({
         from: `"${config.smtp.sender.name}" <${config.smtp.sender.email}>`,
         to: dto.to,
         subject: dto.subject,
@@ -80,9 +147,9 @@ export class EmailService {
         text: dto.text || this._stripHtml(dto.html),
       });
 
-      this._logger.log(`Email sent to ${dto.to}: ${info.messageId}`);
+      this._logger.log(`Email sent to ${dto.to} via SMTP`);
     } catch (error) {
-      this._logger.error(`Failed to send email to ${dto.to}:`, error);
+      this._logger.error(`Failed to send email to ${dto.to} via SMTP:`, error);
       throw error;
     }
   }
@@ -95,6 +162,18 @@ export class EmailService {
   }
 
   async testConnection(): Promise<boolean> {
+    if (config.email.provider === 'resend') {
+      const isConfigured = Boolean(this._resend && config.email.from);
+
+      if (isConfigured) {
+        this._logger.log('Email API provider configured');
+      } else {
+        this._logger.warn('Email API provider is not configured');
+      }
+
+      return isConfigured;
+    }
+
     if (!this._transporter) {
       return false;
     }
