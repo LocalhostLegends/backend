@@ -11,13 +11,13 @@ import {
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
-import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
-import { RequireUserRoles } from '@modules/core/users/decorators/require-user-roles.decorator';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import { transformToDto } from '@/common/utils/dto.utils';
 import { type AuthorizedUser } from '@/modules/core/users/users.types';
-import { UserRole } from '@common/enums/user-role.enum';
-import { USER_ROLES } from '@/common/constants/common.constants';
+import { PermissionAction } from '@common/enums/permission-action.enum';
+import { RequirePermission } from '@modules/permissions/decorators/require-permission.decorator';
+import { Resource } from '@modules/permissions/decorators/resource.decorator';
+import { Position } from '@database/entities/position.entity';
 
 import { PositionsService } from './positions.service';
 import { CreatePositionDto } from './dto/create-position.dto';
@@ -27,13 +27,12 @@ import { swagger } from './swagger';
 
 @swagger.ApiTags()
 @Controller('positions')
-@UseGuards(JwtAuthGuard, UserRolesGuard)
-@RequireUserRoles(...USER_ROLES)
+@UseGuards(JwtAuthGuard)
 export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequirePermission(PermissionAction.POSITION_CREATE)
   @swagger.ApiCreate()
   async create(
     @Body() createPositionDto: CreatePositionDto,
@@ -46,12 +45,15 @@ export class PositionsController {
   }
 
   @Get()
+  @RequirePermission(PermissionAction.POSITION_READ)
   @swagger.ApiFindAll()
   async findAll(@CurrentUser() currentUser: AuthorizedUser): Promise<PositionResponseDto[]> {
     return transformToDto(PositionResponseDto, await this.positionsService.findAll(currentUser));
   }
 
   @Get(':id')
+  @RequirePermission(PermissionAction.POSITION_READ)
+  @Resource(Position)
   @swagger.ApiFindOne()
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
@@ -64,7 +66,8 @@ export class PositionsController {
   }
 
   @Patch(':id')
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequirePermission(PermissionAction.POSITION_UPDATE)
+  @Resource(Position)
   @swagger.ApiUpdate()
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -78,7 +81,8 @@ export class PositionsController {
   }
 
   @Delete(':id')
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequirePermission(PermissionAction.POSITION_DELETE)
+  @Resource(Position)
   @swagger.ApiRemove()
   async remove(
     @Param('id', ParseUUIDPipe) id: string,

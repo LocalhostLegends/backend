@@ -20,7 +20,7 @@ import { AvatarUploadResponseDto } from '@modules/core/users/dto/avatar-upload-r
 import { UsersService } from '@modules/core/users/users.service';
 import type { AuthorizedUser } from '@/modules/core/users/users.types';
 
-import { StorageService } from '../../../storage/storage.service';
+import { StorageService } from '@/modules/storage/storage.service';
 import { swagger } from '../swagger';
 
 @swagger.ApiTags()

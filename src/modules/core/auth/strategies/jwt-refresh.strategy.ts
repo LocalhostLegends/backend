@@ -43,13 +43,18 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         throw ExceptionFactory.userDeleted();
       }
 
+      const permissions = await this._usersService.getUserPermissions(user.id);
+
       return {
         id: user.id,
         email: user.email,
         role: user.role,
         companyId: payload.companyId,
+        departmentId: user.department?.id || null,
         firstName: user.firstName,
         lastName: user.lastName,
+        permissions,
+        permissionsVersion: user.permissionsVersion,
       };
     } catch {
       throw ExceptionFactory.unauthorized();

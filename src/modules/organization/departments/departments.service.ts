@@ -23,7 +23,7 @@ export class DepartmentsService {
     createDepartmentDto: CreateDepartmentDto,
     currentUser: AuthorizedUser,
   ): Promise<Department> {
-    this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_CREATE);
+    await this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_CREATE);
 
     const existing = await this.departmentsRepository.findOne({
       where: {
@@ -45,7 +45,7 @@ export class DepartmentsService {
   }
 
   async findAll(currentUser: AuthorizedUser): Promise<Department[]> {
-    this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_READ);
+    await this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_READ);
 
     return this.departmentsRepository.find({
       where: { company: { id: currentUser.companyId } },
@@ -60,7 +60,7 @@ export class DepartmentsService {
 
     if (!department) throw ExceptionFactory.departmentNotFound(id);
 
-    this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_READ, department);
+    await this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_READ, department);
 
     return department;
   }
@@ -72,7 +72,7 @@ export class DepartmentsService {
   ): Promise<Department> {
     const department = await this.findOne(id, currentUser);
 
-    this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_UPDATE, department);
+    await this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_UPDATE, department);
 
     if (updateDepartmentDto.name && updateDepartmentDto.name !== department.name) {
       const existing = await this.departmentsRepository.findOne({
@@ -94,7 +94,7 @@ export class DepartmentsService {
   async remove(id: string, currentUser: AuthorizedUser): Promise<void> {
     const department = await this.findOne(id, currentUser);
 
-    this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_DELETE, department);
+    await this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_DELETE, department);
 
     await this.departmentsRepository.remove(department);
   }

@@ -7,13 +7,7 @@ import { AuthorizedUser } from '@/modules/core/users/users.types';
 import { UserStatus } from '@common/enums/user-status.enum';
 import { UsersService } from '@modules/core/users/users.service';
 import { ExceptionFactory } from '@common/exceptions/exception-factory';
-
-export interface JwtPayloadWithCompany {
-  sub: string;
-  email: string;
-  role: string;
-  companyId: string;
-}
+import { JwtPayload } from '../auth.types';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -25,19 +19,17 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(payload: JwtPayloadWithCompany): Promise<AuthorizedUser> {
+  async validate(payload: JwtPayload): Promise<AuthorizedUser> {
+    const currentVersion = await this._usersService.getPermissionsVersion(payload.sub);
+
+    if (currentVersion !== payload.pv) {
+      throw ExceptionFactory.unauthorized();
+    }
+
     const user = await this._usersService.findById(payload.sub);
 
-    if (!user) {
-      throw ExceptionFactory.userWithIdNotFound(payload.sub);
-    }
-
-    if (user.status !== UserStatus.ACTIVE) {
-      throw ExceptionFactory.userNotActive();
-    }
-
-    if (user.deletedAt) {
-      throw ExceptionFactory.userDeleted();
+    if (!user || user.status !== UserStatus.ACTIVE || user.deletedAt) {
+      throw ExceptionFactory.unauthorized();
     }
 
     return {
@@ -48,6 +40,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       departmentId: user.department?.id || null,
       firstName: user.firstName,
       lastName: user.lastName,
+      permissions: payload.permissions || [],
+      permissionsVersion: user.permissionsVersion,
     };
   }
 }

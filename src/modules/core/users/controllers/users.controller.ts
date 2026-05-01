@@ -15,13 +15,14 @@ import {
 } from '@nestjs/common';
 
 import { UserRole } from '@common/enums/user-role.enum';
-import { USER_ROLES } from '@common/constants/common.constants';
+import { PermissionAction } from '@common/enums/permission-action.enum';
 import type { AuthorizedUser } from '@modules/core/users/users.types';
 import { PaginatedResult } from '@modules/pagination/pagination.interfaces';
 import { transformToDto } from '@common/utils/dto.utils';
 import { UserStatus } from '@common/enums/user-status.enum';
-import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
-import { RequireUserRoles } from '@modules/core/users/decorators/require-user-roles.decorator';
+import { RequirePermission } from '@modules/permissions/decorators/require-permission.decorator';
+import { Resource } from '@modules/permissions/decorators/resource.decorator';
+import { User } from '@database/entities/user.entity';
 
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { UsersService } from '../users.service';
@@ -33,13 +34,13 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { swagger } from '../swagger';
 
 @swagger.ApiTags()
-@UseGuards(JwtAuthGuard, UserRolesGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly _usersService: UsersService) {}
 
   @Get()
-  @RequireUserRoles(...USER_ROLES)
+  @RequirePermission(PermissionAction.USER_READ)
   @swagger.ApiFindAll()
   async findAll(
     @Query(new ValidationPipe({ transform: true })) filters: UserFilterDto,
@@ -51,7 +52,6 @@ export class UsersController {
   }
 
   @Get('me')
-  @RequireUserRoles(...USER_ROLES)
   @swagger.ApiGetCurrentUser()
   async getCurrentUser(@CurrentUser() currentUser: AuthorizedUser): Promise<UserResponseDto> {
     return transformToDto(
@@ -61,7 +61,7 @@ export class UsersController {
   }
 
   @Get('role/:role')
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequirePermission(PermissionAction.USER_READ)
   @swagger.ApiGetUsersByRole()
   async getUsersByRole(
     @Param('role') role: UserRole,
@@ -74,7 +74,7 @@ export class UsersController {
   }
 
   @Get('status/:status')
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequirePermission(PermissionAction.USER_READ)
   @swagger.ApiGetUsersByStatus()
   async getUsersByStatus(
     @Param('status') status: UserStatus,
@@ -87,7 +87,8 @@ export class UsersController {
   }
 
   @Get(':id')
-  @RequireUserRoles(...USER_ROLES)
+  @RequirePermission(PermissionAction.USER_READ)
+  @Resource(User)
   @swagger.ApiFindOne()
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
@@ -97,7 +98,8 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequirePermission(PermissionAction.USER_UPDATE)
+  @Resource(User)
   @swagger.ApiUpdateUser()
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -111,7 +113,8 @@ export class UsersController {
   }
 
   @Post(':id/block')
-  @RequireUserRoles(UserRole.ADMIN)
+  @RequirePermission(PermissionAction.USER_UPDATE)
+  @Resource(User)
   @HttpCode(HttpStatus.OK)
   @swagger.ApiBlockUser()
   async blockUser(
@@ -122,7 +125,8 @@ export class UsersController {
   }
 
   @Post(':id/unblock')
-  @RequireUserRoles(UserRole.ADMIN)
+  @RequirePermission(PermissionAction.USER_UPDATE)
+  @Resource(User)
   @HttpCode(HttpStatus.OK)
   @swagger.ApiUnblockUser()
   async unblockUser(
@@ -133,7 +137,8 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequirePermission(PermissionAction.USER_DELETE)
+  @Resource(User)
   @HttpCode(HttpStatus.NO_CONTENT)
   @swagger.ApiRemoveUser()
   async remove(

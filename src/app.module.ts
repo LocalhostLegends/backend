@@ -3,10 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { PermissionGuard } from '@modules/permissions/guards/permission.guard';
 import { CoreModule } from '@modules/core/core.module';
 import { StorageModule } from '@modules/storage/storage.module';
 import { PaginationModule } from '@modules/pagination/pagination.module';
 import { OrganizationModule } from '@modules/organization/organization.module';
+import { PermissionsModule } from '@modules/permissions/permissions.module';
 import { SeedModule } from '@database/seed/seed.module';
 import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
@@ -37,6 +39,7 @@ import config from '@config/app.config';
     }),
     CoreModule,
     OrganizationModule,
+    PermissionsModule,
     StorageModule,
     SeedModule,
     PaginationModule,
@@ -53,6 +56,10 @@ import config from '@config/app.config';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionGuard,
     },
   ],
 })
