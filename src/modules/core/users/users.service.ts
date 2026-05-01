@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, SelectQueryBuilder } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -22,16 +17,13 @@ import { type AuthorizedUser } from '@modules/core/users/users.types';
 import { PaginationService } from '@modules/pagination/pagination.service';
 import { PaginatedResult } from '@modules/pagination/pagination.interfaces';
 import { PermissionAction } from '@common/enums/permission-action.enum';
-import { CompaniesErrors } from '@modules/organization/companies/companies.errors';
-import { PositionsErrors } from '@modules/organization/positions/positions.errors';
-import { DepartmentsErrors } from '@modules/organization/departments/departments.errors';
 import { PermissionsService } from '@modules/permissions/permissions.service';
+import { ExceptionFactory } from '@common/exceptions/exception-factory';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserFilterDto } from './dto/user-filter.dto';
 import { UserFilterBuilder } from './user-filter.builder';
-import { UsersErrors } from './users.errors';
 
 import { EmailService } from '../email/email.service';
 import { TokenService } from '../token/token.service';
@@ -58,7 +50,7 @@ export class UsersService {
     const companyId = currentUser?.companyId || createUserDto.companyId;
 
     if (!companyId) {
-      throw new BadRequestException('Company ID is required');
+      throw ExceptionFactory.commonRequiredField('Company ID');
     }
 
     await this._ensureEmailUniqueInCompany(createUserDto.email, companyId);
@@ -191,7 +183,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException(UsersErrors.userWithIdNotFound(id));
+      throw ExceptionFactory.userWithIdNotFound(id);
     }
 
     return user;
@@ -257,14 +249,14 @@ export class UsersService {
     if (currentUser.role === UserRole.ADMIN) {
       if (updateUserDto.role !== undefined && updateUserDto.role !== user.role) {
         if (user.id === currentUser.id) {
-          throw new BadRequestException('Cannot change your own role');
+          throw ExceptionFactory.forbidden();
         }
         updateData.role = updateUserDto.role;
       }
 
       if (updateUserDto.status !== undefined && updateUserDto.status !== user.status) {
         if (user.id === currentUser.id && updateUserDto.status === UserStatus.BLOCKED) {
-          throw new BadRequestException('Cannot block yourself');
+          throw ExceptionFactory.forbidden();
         }
         updateData.status = updateUserDto.status;
       }
@@ -306,7 +298,7 @@ export class UsersService {
     const user = await this.findOne(id, currentUser);
 
     if (user.id === currentUser.id) {
-      throw new BadRequestException('Cannot delete yourself');
+      throw ExceptionFactory.forbidden();
     }
 
     this._permissions.assertCan(currentUser, PermissionAction.USER_DELETE, user);
@@ -322,7 +314,7 @@ export class UsersService {
     });
 
     if (!invite) {
-      throw new BadRequestException('Invalid activation token');
+      throw ExceptionFactory.invalidToken();
     }
 
     const department = invite.departmentId
@@ -381,7 +373,7 @@ export class UsersService {
     const user = await this.findOne(id, currentUser);
 
     if (user.id === currentUser.id) {
-      throw new BadRequestException('Cannot block yourself');
+      throw ExceptionFactory.forbidden();
     }
 
     this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
@@ -450,7 +442,7 @@ export class UsersService {
     });
 
     if (user) {
-      throw new ConflictException(UsersErrors.userEmailExists(email));
+      throw ExceptionFactory.userEmailExists(email);
     }
   }
 
@@ -460,7 +452,7 @@ export class UsersService {
     });
 
     if (!company) {
-      throw new NotFoundException(CompaniesErrors.companyWithIdNotFound(id));
+      throw ExceptionFactory.companyWithIdNotFound(id);
     }
 
     return company;
@@ -472,7 +464,7 @@ export class UsersService {
     });
 
     if (!department) {
-      throw new NotFoundException(DepartmentsErrors.departmentNotFound(id));
+      throw ExceptionFactory.departmentNotFound(id);
     }
 
     return department;
@@ -484,7 +476,7 @@ export class UsersService {
     });
 
     if (!position) {
-      throw new NotFoundException(PositionsErrors.positionNotFound(id));
+      throw ExceptionFactory.positionNotFound(id);
     }
 
     return position;

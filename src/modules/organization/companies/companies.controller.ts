@@ -10,7 +10,6 @@ import {
   ParseUUIDPipe,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
@@ -26,9 +25,9 @@ import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { CompanyResponseDto } from './dto/company-response.dto';
+import { swagger } from './swagger';
 
-@ApiTags('Companies')
-@ApiBearerAuth('JWT-auth')
+@swagger.ApiTags()
 @UseGuards(JwtAuthGuard, UserRolesGuard)
 @Controller('companies')
 export class CompaniesController {
@@ -36,8 +35,7 @@ export class CompaniesController {
 
   @Post()
   @RequireUserRoles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Create a new company' })
-  @ApiResponse({ status: 201, type: CompanyResponseDto })
+  @swagger.ApiCreate()
   async create(
     @Body(ValidationPipe) createCompanyDto: CreateCompanyDto,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -50,16 +48,14 @@ export class CompaniesController {
 
   @Get()
   @RequireUserRoles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get all companies' })
-  @ApiResponse({ status: 200, type: [CompanyResponseDto] })
+  @swagger.ApiFindAll()
   async findAll(@CurrentUser() currentUser: AuthorizedUser): Promise<CompanyResponseDto[]> {
     return transformToDto(CompanyResponseDto, await this._companiesService.findAll(currentUser));
   }
 
   @Get('my-company')
   @RequireUserRoles(...USER_ROLES)
-  @ApiOperation({ summary: 'Get current user company' })
-  @ApiResponse({ status: 200, type: CompanyResponseDto })
+  @swagger.ApiGetMyCompany()
   async getMyCompany(@CurrentUser() currentUser: AuthorizedUser): Promise<CompanyResponseDto> {
     return transformToDto(
       CompanyResponseDto,
@@ -69,15 +65,14 @@ export class CompaniesController {
 
   @Get('stats')
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Get company statistics' })
+  @swagger.ApiGetStats()
   async getStats(@CurrentUser() currentUser: AuthorizedUser) {
     return this._companiesService.getCompanyStats(currentUser.companyId, currentUser);
   }
 
   @Get(':id')
   @RequireUserRoles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get company by ID' })
-  @ApiResponse({ status: 200, type: CompanyResponseDto })
+  @swagger.ApiFindOne()
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -90,8 +85,7 @@ export class CompaniesController {
 
   @Patch(':id')
   @RequireUserRoles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Update company' })
-  @ApiResponse({ status: 200, type: CompanyResponseDto })
+  @swagger.ApiUpdate()
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(ValidationPipe) updateCompanyDto: UpdateCompanyDto,
@@ -105,8 +99,7 @@ export class CompaniesController {
 
   @Delete(':id')
   @RequireUserRoles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Delete company (soft delete)' })
-  @ApiResponse({ status: 204 })
+  @swagger.ApiRemove()
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -116,7 +109,7 @@ export class CompaniesController {
 
   @Post(':id/subscription')
   @RequireUserRoles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Update company subscription' })
+  @swagger.ApiUpdateSubscription()
   async updateSubscription(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(ValidationPipe) updateSubscriptionDto: UpdateSubscriptionDto,

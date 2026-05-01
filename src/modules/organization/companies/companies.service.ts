@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -6,10 +6,10 @@ import { Company } from '@database/entities/company.entity';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { PermissionsService } from '@modules/permissions/permissions.service';
+import { ExceptionFactory } from '@common/exceptions/exception-factory';
 
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
-import { CompaniesErrors } from './companies.errors';
 
 @Injectable()
 export class CompaniesService {
@@ -51,7 +51,7 @@ export class CompaniesService {
     });
 
     if (!company) {
-      throw new NotFoundException(CompaniesErrors.companyWithIdNotFound(id));
+      throw ExceptionFactory.companyWithIdNotFound(id);
     }
 
     if (currentUser) {
@@ -144,7 +144,7 @@ export class CompaniesService {
   private async _ensureSubdomainUnique(subdomain: string): Promise<void> {
     const existing = await this.findBySubdomain(subdomain);
     if (existing) {
-      throw new ConflictException(`Subdomain "${subdomain}" is already taken`);
+      throw ExceptionFactory.companySubdomainTaken(subdomain);
     }
   }
 }

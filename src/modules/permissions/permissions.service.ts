@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, HttpStatus } from '@nestjs/common';
 import { UserRole } from '@common/enums/user-role.enum';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { Company } from '@database/entities/company.entity';
@@ -7,12 +7,16 @@ import { Position } from '@database/entities/position.entity';
 import { User } from '@database/entities/user.entity';
 import { Invite } from '@database/entities/invite.entity';
 import { AuthorizedUser } from '@modules/core/users/users.types';
-import { AuthErrors } from '@modules/core/auth/auth.errors';
-import { DepartmentsErrors } from '@modules/organization/departments/departments.errors';
-import { PositionsErrors } from '@modules/organization/positions/positions.errors';
-import { InviteErrors } from '@modules/core/invite/invite.errors';
+import { ExceptionCode } from '@common/exceptions/exception-codes';
+import { AppException } from '@common/exceptions/app.exception';
+import { ExceptionParams } from '@common/exceptions/exception.types';
 
 export type PermissionResource = Company | Department | Position | User | Invite;
+
+export interface DenialReason<K extends ExceptionCode = ExceptionCode> {
+  code: K;
+  params?: ExceptionParams[K];
+}
 
 @Injectable()
 export class PermissionsService {
@@ -62,26 +66,35 @@ export class PermissionsService {
     user: AuthorizedUser,
     action: PermissionAction,
     resource?: PermissionResource | null,
-  ): string | null {
+  ): DenialReason | null {
     if (user.role === UserRole.SUPER_ADMIN) return null;
-    if (!user.companyId) return AuthErrors.forbidden;
+    if (!user.companyId) return { code: ExceptionCode.AUTH_FORBIDDEN };
 
     if (resource) {
       const resourceCompanyId = this.getResourceCompanyId(resource);
       if (resourceCompanyId && resourceCompanyId !== user.companyId) {
         if (action.startsWith('department.'))
-          return DepartmentsErrors.departmentNotInCompany(resource.id, user.companyId);
+          return {
+            code: ExceptionCode.DEPARTMENT_NOT_IN_COMPANY,
+            params: [resource.id, user.companyId],
+          };
         if (action.startsWith('position.'))
-          return PositionsErrors.positionNotInCompany(resource.id, user.companyId);
+          return {
+            code: ExceptionCode.POSITION_NOT_IN_COMPANY,
+            params: [resource.id, user.companyId],
+          };
         if (action.startsWith('invite.'))
-          return InviteErrors.inviteNotInCompany(resource.id, user.companyId);
-        return AuthErrors.forbiddenNonOwnershipAccess('this resource');
+          return {
+            code: ExceptionCode.INVITE_NOT_IN_COMPANY,
+            params: [resource.id, user.companyId],
+          };
+        return { code: ExceptionCode.AUTH_FORBIDDEN_NON_OWNERSHIP, params: ['this resource'] };
       }
 
       // MANAGER Scope: Department level
       if (user.role === UserRole.MANAGER && user.departmentId) {
         if (action === PermissionAction.DEPARTMENT_UPDATE && resource.id !== user.departmentId) {
-          return AuthErrors.forbiddenResourceAccess('your own department');
+          return { code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE, params: ['your own department'] };
         }
 
         const resourceDeptId = this.getResourceDepartmentId(resource);
@@ -90,14 +103,20 @@ export class PermissionsService {
           resourceDeptId &&
           resourceDeptId !== user.departmentId
         ) {
-          return AuthErrors.forbiddenResourceAccess('your department employees');
+          return {
+            code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
+            params: ['your department employees'],
+          };
         }
       }
     }
 
-    const roleDenied = (requiredRoles: UserRole[]) => {
+    const roleDenied = (requiredRoles: UserRole[]): DenialReason | null => {
       if (!requiredRoles.includes(user.role)) {
-        return AuthErrors.forbiddenResourceAccess(requiredRoles.join(' or '));
+        return {
+          code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
+          params: [requiredRoles.join(' or ')],
+        };
       }
       return null;
     };
@@ -128,18 +147,21 @@ export class PermissionsService {
 
       case PermissionAction.USER_READ:
         if (user.role === UserRole.HR && resourceRole === UserRole.ADMIN) {
-          return AuthErrors.forbiddenResourceAccess(UserRole.ADMIN, false);
+          return { code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE, params: [UserRole.ADMIN, false] };
         }
         if (
           user.role === UserRole.MANAGER &&
           (resourceRole === UserRole.ADMIN || resourceRole === UserRole.HR)
         ) {
-          return AuthErrors.forbiddenResourceAccess('HR or ADMIN', false);
+          return { code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE, params: ['HR or ADMIN', false] };
         }
         if (user.role === UserRole.MANAGER && user.departmentId && resource instanceof User) {
           const targetDeptId = resource.department?.id;
           if (targetDeptId && targetDeptId !== user.departmentId) {
-            return AuthErrors.forbiddenResourceAccess('employees of your department');
+            return {
+              code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
+              params: ['employees of your department'],
+            };
           }
         }
         return null;
@@ -149,13 +171,13 @@ export class PermissionsService {
       case PermissionAction.USER_UPDATE:
       case PermissionAction.USER_DELETE:
         if (user.role === UserRole.HR && resourceRole === UserRole.ADMIN) {
-          return AuthErrors.forbiddenResourceAccess(UserRole.ADMIN, false);
+          return { code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE, params: [UserRole.ADMIN, false] };
         }
         if (
           user.role === UserRole.MANAGER &&
           (resourceRole === UserRole.ADMIN || resourceRole === UserRole.HR)
         ) {
-          return AuthErrors.forbiddenResourceAccess('HR or ADMIN', false);
+          return { code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE, params: ['HR or ADMIN', false] };
         }
         return roleDenied([UserRole.ADMIN, UserRole.HR, UserRole.MANAGER]);
 
@@ -166,14 +188,14 @@ export class PermissionsService {
       case PermissionAction.INVITE_RESEND:
       case PermissionAction.INVITE_CANCEL:
         if (user.role === UserRole.HR && resourceRole === UserRole.ADMIN) {
-          return InviteErrors.forbiddenInviteAdmin;
+          return { code: ExceptionCode.INVITE_FORBIDDEN_ADMIN };
         }
         return roleDenied([UserRole.ADMIN, UserRole.HR]);
       case PermissionAction.INVITE_READ:
         return null;
 
       default:
-        return AuthErrors.forbidden;
+        return { code: ExceptionCode.AUTH_FORBIDDEN };
     }
   }
 
@@ -189,11 +211,11 @@ export class PermissionsService {
     user: AuthorizedUser,
     action: PermissionAction,
     resource?: PermissionResource | null,
-    customMessage?: string,
+    _customMessage?: string,
   ): void {
-    const denialReason = this.getDenialReason(user, action, resource);
-    if (denialReason !== null) {
-      throw new ForbiddenException(customMessage || denialReason);
+    const denial = this.getDenialReason(user, action, resource);
+    if (denial !== null) {
+      throw new AppException(denial.code, HttpStatus.FORBIDDEN, denial.params);
     }
   }
 }

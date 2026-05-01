@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
 import type { Request } from 'express';
@@ -7,10 +7,9 @@ import config from '@config/app.config';
 import { UserStatus } from '@common/enums/user-status.enum';
 import { AuthorizedUser } from '@/modules/core/users/users.types';
 import { UsersService } from '@modules/core/users/users.service';
-import { UsersErrors } from '@modules/core/users/users.errors';
+import { ExceptionFactory } from '@common/exceptions/exception-factory';
 
 import { JwtRefreshPayload } from '../auth.types';
-import { AuthErrors } from '../auth.errors';
 
 type RequestWithRefreshCookie = Request & {
   cookies: {
@@ -33,15 +32,15 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       const user = await this._usersService.findById(payload.sub);
 
       if (!user) {
-        throw new UnauthorizedException(UsersErrors.userWithIdNotFound(payload.sub));
+        throw ExceptionFactory.userWithIdNotFound(payload.sub);
       }
 
       if (user.status !== UserStatus.ACTIVE) {
-        throw new UnauthorizedException(UsersErrors.userNotActive);
+        throw ExceptionFactory.userNotActive();
       }
 
       if (user.deletedAt) {
-        throw new UnauthorizedException(UsersErrors.userDeleted);
+        throw ExceptionFactory.userDeleted();
       }
 
       return {
@@ -53,7 +52,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         lastName: user.lastName,
       };
     } catch {
-      throw new UnauthorizedException(AuthErrors.unauthorized);
+      throw ExceptionFactory.unauthorized();
     }
   }
 }

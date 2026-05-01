@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -6,10 +6,10 @@ import { Department } from '@database/entities/department.entity';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { PermissionsService } from '@modules/permissions/permissions.service';
+import { ExceptionFactory } from '@common/exceptions/exception-factory';
 
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
-import { DepartmentsErrors } from './departments.errors';
 
 @Injectable()
 export class DepartmentsService {
@@ -33,7 +33,7 @@ export class DepartmentsService {
     });
 
     if (existing) {
-      throw new ConflictException(DepartmentsErrors.departmentNameExists(createDepartmentDto.name));
+      throw ExceptionFactory.departmentNameExists(createDepartmentDto.name);
     }
 
     const department = this.departmentsRepository.create({
@@ -58,7 +58,7 @@ export class DepartmentsService {
       relations: ['company'],
     });
 
-    if (!department) throw new NotFoundException(DepartmentsErrors.departmentNotFound(id));
+    if (!department) throw ExceptionFactory.departmentNotFound(id);
 
     this.permissions.assertCan(currentUser, PermissionAction.DEPARTMENT_READ, department);
 
@@ -83,9 +83,7 @@ export class DepartmentsService {
       });
 
       if (existing && existing.id !== id) {
-        throw new ConflictException(
-          DepartmentsErrors.departmentNameExists(updateDepartmentDto.name),
-        );
+        throw ExceptionFactory.departmentNameExists(updateDepartmentDto.name);
       }
     }
 

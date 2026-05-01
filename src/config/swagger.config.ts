@@ -1,9 +1,9 @@
 import { DocumentBuilder } from '@nestjs/swagger';
 
 export const swaggerConfig = new DocumentBuilder()
-  .setTitle('HR Tech Portal API')
-  .setDescription(``)
-  .setVersion('1.0.0')
+  .setTitle('Hirely API')
+  .setDescription('Hirely — HR Technology Platform for Modern Teams')
+  .setVersion('1.0.1')
   .addBearerAuth(
     {
       type: 'http',

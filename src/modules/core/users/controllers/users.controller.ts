@@ -13,7 +13,6 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import { UserRole } from '@common/enums/user-role.enum';
 import { USER_ROLES } from '@common/constants/common.constants';
@@ -31,9 +30,9 @@ import { UserFilterDto } from '../dto/user-filter.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
 
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { swagger } from '../swagger';
 
-@ApiTags('Users')
-@ApiBearerAuth('JWT-auth')
+@swagger.ApiTags()
 @UseGuards(JwtAuthGuard, UserRolesGuard)
 @Controller('users')
 export class UsersController {
@@ -41,8 +40,7 @@ export class UsersController {
 
   @Get()
   @RequireUserRoles(...USER_ROLES)
-  @ApiOperation({ summary: 'Get all users with pagination and filters' })
-  @ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] })
+  @swagger.ApiFindAll()
   async findAll(
     @Query(new ValidationPipe({ transform: true })) filters: UserFilterDto,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -54,8 +52,7 @@ export class UsersController {
 
   @Get('me')
   @RequireUserRoles(...USER_ROLES)
-  @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
+  @swagger.ApiGetCurrentUser()
   async getCurrentUser(@CurrentUser() currentUser: AuthorizedUser): Promise<UserResponseDto> {
     return transformToDto(
       UserResponseDto,
@@ -65,8 +62,7 @@ export class UsersController {
 
   @Get('role/:role')
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Get users by role' })
-  @ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] })
+  @swagger.ApiGetUsersByRole()
   async getUsersByRole(
     @Param('role') role: UserRole,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -79,8 +75,7 @@ export class UsersController {
 
   @Get('status/:status')
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Get users by status' })
-  @ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] })
+  @swagger.ApiGetUsersByStatus()
   async getUsersByStatus(
     @Param('status') status: UserStatus,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -93,8 +88,7 @@ export class UsersController {
 
   @Get(':id')
   @RequireUserRoles(...USER_ROLES)
-  @ApiOperation({ summary: 'Get user by ID' })
-  @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
+  @swagger.ApiFindOne()
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -104,8 +98,7 @@ export class UsersController {
 
   @Patch(':id')
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Update user' })
-  @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
+  @swagger.ApiUpdateUser()
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -120,8 +113,7 @@ export class UsersController {
   @Post(':id/block')
   @RequireUserRoles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Block user (ADMIN only)' })
-  @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
+  @swagger.ApiBlockUser()
   async blockUser(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -132,8 +124,7 @@ export class UsersController {
   @Post(':id/unblock')
   @RequireUserRoles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Unblock user (ADMIN only)' })
-  @ApiResponse({ status: HttpStatus.OK, type: UserResponseDto })
+  @swagger.ApiUnblockUser()
   async unblockUser(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -144,7 +135,7 @@ export class UsersController {
   @Delete(':id')
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete user (soft delete)' })
+  @swagger.ApiRemoveUser()
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,

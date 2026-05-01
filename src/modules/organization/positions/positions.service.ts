@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -6,10 +6,10 @@ import { Position } from '@database/entities/position.entity';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { PermissionsService } from '@modules/permissions/permissions.service';
+import { ExceptionFactory } from '@common/exceptions/exception-factory';
 
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
-import { PositionsErrors } from './positions.errors';
 
 @Injectable()
 export class PositionsService {
@@ -33,7 +33,7 @@ export class PositionsService {
     });
 
     if (existing) {
-      throw new ConflictException(PositionsErrors.positionTitleExists(createPositionDto.title));
+      throw ExceptionFactory.positionTitleExists(createPositionDto.title);
     }
 
     const position = this.positionsRepository.create({
@@ -58,7 +58,7 @@ export class PositionsService {
       relations: ['company'],
     });
 
-    if (!position) throw new NotFoundException(PositionsErrors.positionNotFound(id));
+    if (!position) throw ExceptionFactory.positionNotFound(id);
 
     this.permissions.assertCan(currentUser, PermissionAction.POSITION_READ, position);
 
@@ -83,7 +83,7 @@ export class PositionsService {
       });
 
       if (existing && existing.id !== id) {
-        throw new ConflictException(PositionsErrors.positionTitleExists(updatePositionDto.title));
+        throw ExceptionFactory.positionTitleExists(updatePositionDto.title);
       }
     }
 

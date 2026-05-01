@@ -9,7 +9,7 @@ import { PaginationModule } from '@modules/pagination/pagination.module';
 import { OrganizationModule } from '@modules/organization/organization.module';
 import { SeedModule } from '@database/seed/seed.module';
 import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
-import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
+import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { RequestLoggerMiddleware } from '@common/middleware/request-logger.middleware';
 import { RequestContextMiddleware } from '@common/middleware/request-context.middleware';
 import config from '@config/app.config';
@@ -48,7 +48,7 @@ import config from '@config/app.config';
     },
     {
       provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
+      useClass: GlobalExceptionFilter,
     },
     {
       provide: APP_GUARD,
