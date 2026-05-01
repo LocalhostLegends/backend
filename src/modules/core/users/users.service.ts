@@ -161,6 +161,7 @@ export class UsersService {
     }
 
     const user = this._usersRepository.create(userData);
+    await this._assignSystemRole(user);
     const savedUser = await this._usersRepository.save(user);
 
     if (createUserDto.sendInvitation && !hasPassword) {
@@ -197,6 +198,7 @@ export class UsersService {
       },
     });
 
+    await this._assignSystemRole(user);
     const savedUser = await this._usersRepository.save(user);
     await this._createAndSendInvitation(savedUser);
 
@@ -355,6 +357,11 @@ export class UsersService {
     updateData.updatedBy = currentUser.id;
 
     const updatedUser = this._usersRepository.merge(user, updateData);
+
+    if (updateData.role) {
+      await this._assignSystemRole(updatedUser);
+    }
+
     return this._usersRepository.save(updatedUser);
   }
 
@@ -407,6 +414,7 @@ export class UsersService {
           source: 'invite',
         },
       });
+      await this._assignSystemRole(user);
       user = await this._usersRepository.save(user);
     }
 
@@ -590,6 +598,15 @@ export class UsersService {
       user.firstName,
       activationLink,
     );
+  }
+
+  private async _assignSystemRole(user: User): Promise<void> {
+    const systemRole = await this._roleRepository.findOne({
+      where: { code: user.role, isSystem: true },
+    });
+    if (systemRole) {
+      user.roles = [systemRole];
+    }
   }
 
   private async _hashPassword(password: string): Promise<string> {

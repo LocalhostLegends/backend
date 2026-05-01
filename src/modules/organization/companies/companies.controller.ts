@@ -11,7 +11,6 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 
-import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
 import { RequireUserRoles } from '@modules/core/users/decorators/require-user-roles.decorator';
@@ -28,7 +27,7 @@ import { CompanyResponseDto } from './dto/company-response.dto';
 import { swagger } from './swagger';
 
 @swagger.ApiTags()
-@UseGuards(JwtAuthGuard, UserRolesGuard)
+@UseGuards(UserRolesGuard)
 @Controller('companies')
 export class CompaniesController {
   constructor(private readonly _companiesService: CompaniesService) {}

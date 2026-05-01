@@ -12,6 +12,7 @@ import { RegisterCompanyDto } from './dto/register-company.dto';
 import { LoginDto } from './dto/login.dto';
 import { AccessTokenResponseDto } from './dto/access-token-response.dto';
 import { CurrentUser } from '../users/decorators/current-user.decorator';
+import { Public } from '@common/decorators/public.decorator';
 import { swagger } from './swagger';
 
 @swagger.ApiTags()
@@ -19,6 +20,7 @@ import { swagger } from './swagger';
 export class AuthController {
   constructor(private readonly _authService: AuthService) {}
 
+  @Public()
   @Post('register-company')
   @HttpCode(HttpStatus.CREATED)
   @swagger.ApiRegisterCompany()
@@ -31,6 +33,7 @@ export class AuthController {
     return { accessToken };
   }
 
+  @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)

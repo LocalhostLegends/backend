@@ -96,6 +96,10 @@ export class PermissionGuard implements CanActivate {
       finalResource = resourceFromBody;
     }
 
+    if (finalResource && !finalResource.companyId && !finalResource.company && user.companyId) {
+      finalResource = { ...finalResource, companyId: user.companyId };
+    }
+
     try {
       await this.permissionsService.assertCan(user, action, finalResource);
       return true;

@@ -1,16 +1,5 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  ParseUUIDPipe,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
 
-import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import { transformToDto } from '@/common/utils/dto.utils';
 import { type AuthorizedUser } from '@/modules/core/users/users.types';
@@ -27,7 +16,6 @@ import { swagger } from './swagger';
 
 @swagger.ApiTags()
 @Controller('departments')
-@UseGuards(JwtAuthGuard)
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 

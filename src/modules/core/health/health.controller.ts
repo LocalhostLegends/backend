@@ -1,8 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { StorageService } from '@modules/storage/storage.service';
+import { Public } from '@common/decorators/public.decorator';
 import config from '@config/app.config';
 
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(

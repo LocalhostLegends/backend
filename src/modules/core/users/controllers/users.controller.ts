@@ -6,7 +6,6 @@ import {
   Body,
   Param,
   ParseUUIDPipe,
-  UseGuards,
   Query,
   ValidationPipe,
   Post,
@@ -30,11 +29,9 @@ import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserFilterDto } from '../dto/user-filter.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
 
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { swagger } from '../swagger';
 
 @swagger.ApiTags()
-@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly _usersService: UsersService) {}

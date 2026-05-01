@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { PermissionGuard } from '@modules/permissions/guards/permission.guard';
+import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { CoreModule } from '@modules/core/core.module';
 import { StorageModule } from '@modules/storage/storage.module';
 import { PaginationModule } from '@modules/pagination/pagination.module';
@@ -56,6 +57,10 @@ import config from '@config/app.config';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
     {
       provide: APP_GUARD,
