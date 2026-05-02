@@ -13,13 +13,12 @@ export const POLICY_RULES = 'POLICY_RULES';
 export interface WrappedResource {
   id?: string;
   old?: WrappedResource;
-  new?: Record<string, any>;
+  new?: Record<string, unknown>;
   role?: UserRole;
   companyId?: string | null;
   departmentId?: string | null;
   company?: { id: string } | null;
   department?: { id: string } | null;
-  [key: string]: any;
 }
 
 export type PermissionResource = WrappedResource;

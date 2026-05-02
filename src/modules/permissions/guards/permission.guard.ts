@@ -48,7 +48,7 @@ export class PermissionGuard implements CanActivate {
 
       if (resourceId) {
         try {
-          const repository = this.moduleRef.get<Repository<Record<string, any>>>(
+          const repository = this.moduleRef.get<Repository<Record<string, unknown>>>(
             getRepositoryToken(resourceMetadata.type),
             {
               strict: false,
@@ -61,7 +61,7 @@ export class PermissionGuard implements CanActivate {
             });
 
             if (found) {
-              resource = found as WrappedResource;
+              resource = found;
               request.resource = resource;
             }
           }
@@ -73,7 +73,7 @@ export class PermissionGuard implements CanActivate {
 
     const resourceFromBody =
       request.method === 'POST' || request.method === 'PATCH' || request.method === 'PUT'
-        ? (request.body as WrappedResource)
+        ? (request.body as Record<string, unknown>)
         : undefined;
 
     let finalResource: PermissionResource | undefined = undefined;
@@ -82,13 +82,14 @@ export class PermissionGuard implements CanActivate {
     const body = resourceFromBody;
 
     if (res && body) {
+      const wrappedBody = body as WrappedResource;
       finalResource = {
         id: res.id,
         old: res,
         new: body,
-        role: body.role ?? res.role,
-        companyId: body.companyId ?? (res.company?.id || res.companyId),
-        departmentId: body.departmentId ?? (res.department?.id || res.departmentId),
+        role: wrappedBody.role ?? res.role,
+        companyId: wrappedBody.companyId ?? (res.company?.id || res.companyId),
+        departmentId: wrappedBody.departmentId ?? (res.department?.id || res.departmentId),
       };
     } else if (resource) {
       finalResource = resource;
