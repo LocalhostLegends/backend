@@ -23,7 +23,7 @@ export class PositionsService {
     createPositionDto: CreatePositionDto,
     currentUser: AuthorizedUser,
   ): Promise<Position> {
-    this.permissions.assertCan(currentUser, PermissionAction.POSITION_CREATE);
+    await this.permissions.assertCan(currentUser, PermissionAction.POSITION_CREATE);
 
     const existing = await this.positionsRepository.findOne({
       where: {
@@ -45,7 +45,7 @@ export class PositionsService {
   }
 
   async findAll(currentUser: AuthorizedUser): Promise<Position[]> {
-    this.permissions.assertCan(currentUser, PermissionAction.POSITION_READ);
+    await this.permissions.assertCan(currentUser, PermissionAction.POSITION_READ);
 
     return this.positionsRepository.find({
       where: { company: { id: currentUser.companyId } },
@@ -60,7 +60,7 @@ export class PositionsService {
 
     if (!position) throw ExceptionFactory.positionNotFound(id);
 
-    this.permissions.assertCan(currentUser, PermissionAction.POSITION_READ, position);
+    await this.permissions.assertCan(currentUser, PermissionAction.POSITION_READ, position);
 
     return position;
   }
@@ -72,7 +72,7 @@ export class PositionsService {
   ): Promise<Position> {
     const position = await this.findOne(id, currentUser);
 
-    this.permissions.assertCan(currentUser, PermissionAction.POSITION_UPDATE, position);
+    await this.permissions.assertCan(currentUser, PermissionAction.POSITION_UPDATE, position);
 
     if (updatePositionDto.title && updatePositionDto.title !== position.title) {
       const existing = await this.positionsRepository.findOne({
@@ -94,7 +94,7 @@ export class PositionsService {
   async remove(id: string, currentUser: AuthorizedUser): Promise<void> {
     const position = await this.findOne(id, currentUser);
 
-    this.permissions.assertCan(currentUser, PermissionAction.POSITION_DELETE, position);
+    await this.permissions.assertCan(currentUser, PermissionAction.POSITION_DELETE, position);
 
     await this.positionsRepository.remove(position);
   }

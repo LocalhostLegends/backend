@@ -27,8 +27,8 @@ import { ValidateInviteDto } from './dto/validate-invite.dto';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { InviteResponseDto } from './dto/invite-response.dto';
 
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../users/decorators/current-user.decorator';
+import { Public } from '@common/decorators/public.decorator';
 import { swagger } from './swagger';
 
 @swagger.ApiTags()
@@ -37,7 +37,7 @@ export class InviteController {
   constructor(private readonly _inviteService: InviteService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UseGuards(UserRolesGuard)
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @swagger.ApiCreateInvite()
   async createInvite(
@@ -50,12 +50,14 @@ export class InviteController {
     );
   }
 
+  @Public()
   @Get('validate')
   @swagger.ApiValidateInvite()
   async validateInvite(@Query() query: ValidateInviteDto): Promise<InviteResponseDto> {
     return transformToDto(InviteResponseDto, await this._inviteService.validateInvite(query.token));
   }
 
+  @Public()
   @Post('accept')
   @HttpCode(HttpStatus.OK)
   @swagger.ApiAcceptInvite()
@@ -70,7 +72,7 @@ export class InviteController {
   }
 
   @Post('resend')
-  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UseGuards(UserRolesGuard)
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @swagger.ApiResendInvite()
   async resendInvite(
@@ -84,7 +86,7 @@ export class InviteController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UseGuards(UserRolesGuard)
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @HttpCode(HttpStatus.NO_CONTENT)
   @swagger.ApiCancelInvite()
@@ -96,7 +98,7 @@ export class InviteController {
   }
 
   @Get('company')
-  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UseGuards(UserRolesGuard)
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @swagger.ApiGetCompanyInvites()
   async getCompanyInvites(
@@ -109,7 +111,7 @@ export class InviteController {
   }
 
   @Get('pending')
-  @UseGuards(JwtAuthGuard, UserRolesGuard)
+  @UseGuards(UserRolesGuard)
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @swagger.ApiGetPendingInvites()
   async getPendingInvites(

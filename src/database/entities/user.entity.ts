@@ -9,6 +9,8 @@ import {
   DeleteDateColumn,
   Index,
   BeforeInsert,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 
 import { UserRole } from '@common/enums/user-role.enum';
@@ -17,6 +19,7 @@ import { UserStatus } from '@common/enums/user-status.enum';
 import { Department } from './department.entity';
 import { Position } from './position.entity';
 import { Company } from './company.entity';
+import { Role } from './role.entity';
 
 @Entity('users')
 @Index(['company', 'email'], { unique: true })
@@ -43,6 +46,14 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.EMPLOYEE, name: 'role' })
   @Index()
   role: UserRole;
+
+  @ManyToMany(() => Role)
+  @JoinTable({
+    name: 'user_roles',
+    joinColumn: { name: 'user_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
+  })
+  roles: Role[];
 
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.INVITED, name: 'status' })
   @Index()
@@ -86,6 +97,9 @@ export class User {
 
   @Column({ type: 'timestamp', nullable: true, name: 'email_verified_at' })
   emailVerifiedAt: Date | null;
+
+  @Column({ type: 'int', default: 1, name: 'permissions_version' })
+  permissionsVersion: number;
 
   @Column({ type: 'jsonb', default: {}, name: 'metadata' })
   metadata: {

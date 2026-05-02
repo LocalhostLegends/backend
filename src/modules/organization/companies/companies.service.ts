@@ -21,7 +21,7 @@ export class CompaniesService {
 
   async create(createCompanyDto: CreateCompanyDto, currentUser?: AuthorizedUser): Promise<Company> {
     if (currentUser) {
-      this._permissions.assertCan(currentUser, PermissionAction.COMPANY_UPDATE);
+      await this._permissions.assertCan(currentUser, PermissionAction.COMPANY_UPDATE);
     }
 
     // Check if subdomain is unique
@@ -35,7 +35,7 @@ export class CompaniesService {
 
   async findAll(currentUser?: AuthorizedUser): Promise<Company[]> {
     if (currentUser) {
-      this._permissions.assertCan(currentUser, PermissionAction.COMPANY_READ);
+      await this._permissions.assertCan(currentUser, PermissionAction.COMPANY_READ);
     }
 
     return this._companyRepository.find({
@@ -55,7 +55,7 @@ export class CompaniesService {
     }
 
     if (currentUser) {
-      this._permissions.assertCan(currentUser, PermissionAction.COMPANY_READ, company);
+      await this._permissions.assertCan(currentUser, PermissionAction.COMPANY_READ, company);
     }
 
     return company;
@@ -75,7 +75,7 @@ export class CompaniesService {
     const company = await this.findById(id, currentUser);
 
     if (currentUser) {
-      this._permissions.assertCan(currentUser, PermissionAction.COMPANY_UPDATE, company);
+      await this._permissions.assertCan(currentUser, PermissionAction.COMPANY_UPDATE, company);
     }
 
     // Check subdomain uniqueness if it's being updated
@@ -91,7 +91,7 @@ export class CompaniesService {
     const company = await this.findById(id, currentUser);
 
     if (currentUser) {
-      this._permissions.assertCan(currentUser, PermissionAction.COMPANY_DELETE, company);
+      await this._permissions.assertCan(currentUser, PermissionAction.COMPANY_DELETE, company);
     }
 
     await this._companyRepository.softDelete(company.id);
@@ -114,7 +114,7 @@ export class CompaniesService {
     const company = await this.findById(id, currentUser);
 
     if (currentUser) {
-      this._permissions.assertCan(currentUser, PermissionAction.COMPANY_UPDATE, company);
+      await this._permissions.assertCan(currentUser, PermissionAction.COMPANY_UPDATE, company);
     }
 
     company.subscriptionPlan = plan;

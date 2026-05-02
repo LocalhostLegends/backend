@@ -5,6 +5,8 @@ export interface JwtPayload {
   email: string;
   role: UserRole;
   companyId: string;
+  permissions: string[];
+  pv: number; // permission version
 }
 
 export interface JwtRefreshPayload {

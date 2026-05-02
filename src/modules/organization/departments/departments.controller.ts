@@ -1,22 +1,12 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  ParseUUIDPipe,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
 
-import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
-import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
-import { RequireUserRoles } from '@modules/core/users/decorators/require-user-roles.decorator';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import { transformToDto } from '@/common/utils/dto.utils';
 import { type AuthorizedUser } from '@/modules/core/users/users.types';
-import { UserRole } from '@common/enums/user-role.enum';
+import { PermissionAction } from '@common/enums/permission-action.enum';
+import { RequirePermission } from '@modules/permissions/decorators/require-permission.decorator';
+import { Resource } from '@modules/permissions/decorators/resource.decorator';
+import { Department } from '@database/entities/department.entity';
 
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
@@ -26,12 +16,11 @@ import { swagger } from './swagger';
 
 @swagger.ApiTags()
 @Controller('departments')
-@UseGuards(JwtAuthGuard, UserRolesGuard)
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
   @Post()
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequirePermission(PermissionAction.DEPARTMENT_CREATE)
   @swagger.ApiCreate()
   async create(
     @Body() createDepartmentDto: CreateDepartmentDto,
@@ -44,7 +33,7 @@ export class DepartmentsController {
   }
 
   @Get()
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequirePermission(PermissionAction.DEPARTMENT_READ)
   @swagger.ApiFindAll()
   async findAll(@CurrentUser() currentUser: AuthorizedUser): Promise<DepartmentResponseDto[]> {
     return transformToDto(
@@ -54,7 +43,8 @@ export class DepartmentsController {
   }
 
   @Get(':id')
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequirePermission(PermissionAction.DEPARTMENT_READ)
+  @Resource(Department)
   @swagger.ApiFindOne()
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
@@ -67,7 +57,8 @@ export class DepartmentsController {
   }
 
   @Patch(':id')
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
+  @RequirePermission(PermissionAction.DEPARTMENT_UPDATE)
+  @Resource(Department)
   @swagger.ApiUpdate()
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -81,7 +72,8 @@ export class DepartmentsController {
   }
 
   @Delete(':id')
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
+  @RequirePermission(PermissionAction.DEPARTMENT_DELETE)
+  @Resource(Department)
   @swagger.ApiRemove()
   async remove(
     @Param('id', ParseUUIDPipe) id: string,

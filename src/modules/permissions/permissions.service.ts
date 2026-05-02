@@ -1,221 +1,126 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus, Inject, Logger } from '@nestjs/common';
 import { UserRole } from '@common/enums/user-role.enum';
 import { PermissionAction } from '@common/enums/permission-action.enum';
-import { Company } from '@database/entities/company.entity';
-import { Department } from '@database/entities/department.entity';
-import { Position } from '@database/entities/position.entity';
-import { User } from '@database/entities/user.entity';
-import { Invite } from '@database/entities/invite.entity';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { ExceptionCode } from '@common/exceptions/exception-codes';
 import { AppException } from '@common/exceptions/app.exception';
 import { ExceptionParams } from '@common/exceptions/exception.types';
 
-export type PermissionResource = Company | Department | Position | User | Invite;
+import { PolicyRule } from './interfaces/policy-rule.interface';
+
+export const POLICY_RULES = 'POLICY_RULES';
+
+export interface WrappedResource {
+  id?: string;
+  old?: WrappedResource;
+  new?: Record<string, unknown>;
+  role?: UserRole;
+  companyId?: string | null;
+  departmentId?: string | null;
+  company?: { id: string } | null;
+  department?: { id: string } | null;
+}
+
+export type PermissionResource = WrappedResource;
 
 export interface DenialReason<K extends ExceptionCode = ExceptionCode> {
   code: K;
   params?: ExceptionParams[K];
 }
 
+export type PolicyEffect = 'ALLOW' | 'DENY' | 'SKIP';
+
+export interface PolicyResult {
+  effect: PolicyEffect;
+  reason?: DenialReason;
+}
+
+export interface PermissionTrace {
+  rule: string;
+  effect: PolicyEffect;
+  reason?: DenialReason;
+}
+
 @Injectable()
 export class PermissionsService {
-  /**
-   * Safe check for company ownership
-   */
-  private getResourceCompanyId(resource: PermissionResource): string | undefined {
-    if (resource instanceof Company) return resource.id;
-    if (
-      resource instanceof Department ||
-      resource instanceof Position ||
-      resource instanceof User ||
-      resource instanceof Invite
-    ) {
-      return resource.company?.id;
-    }
-    return undefined;
-  }
+  private readonly logger = new Logger(PermissionsService.name);
 
-  /**
-   * Safe check for department ownership
-   */
-  private getResourceDepartmentId(resource: PermissionResource): string | undefined {
-    if (resource instanceof User || resource instanceof Department) {
-      return resource instanceof User ? resource.department?.id : resource.id;
-    }
-    if (resource instanceof Invite) {
-      return resource.departmentId || undefined;
-    }
-    return undefined;
-  }
+  constructor(
+    @Inject(POLICY_RULES)
+    private readonly rules: PolicyRule[],
+  ) {}
 
-  /**
-   * Safe check for role (User or Invite)
-   */
-  private getResourceRole(resource: PermissionResource): UserRole | string | undefined {
-    if (resource instanceof User || resource instanceof Invite) {
-      return resource.role;
-    }
-    return undefined;
-  }
-
-  /**
-   * Check if user can perform an action on a resource
-   */
-  getDenialReason(
+  async can(
     user: AuthorizedUser,
     action: PermissionAction,
     resource?: PermissionResource | null,
-  ): DenialReason | null {
-    if (user.role === UserRole.SUPER_ADMIN) return null;
-    if (!user.companyId) return { code: ExceptionCode.AUTH_FORBIDDEN };
+  ): Promise<{ denial: DenialReason | null; trace: PermissionTrace[] }> {
+    const trace: PermissionTrace[] = [];
 
-    if (resource) {
-      const resourceCompanyId = this.getResourceCompanyId(resource);
-      if (resourceCompanyId && resourceCompanyId !== user.companyId) {
-        if (action.startsWith('department.'))
-          return {
-            code: ExceptionCode.DEPARTMENT_NOT_IN_COMPANY,
-            params: [resource.id, user.companyId],
-          };
-        if (action.startsWith('position.'))
-          return {
-            code: ExceptionCode.POSITION_NOT_IN_COMPANY,
-            params: [resource.id, user.companyId],
-          };
-        if (action.startsWith('invite.'))
-          return {
-            code: ExceptionCode.INVITE_NOT_IN_COMPANY,
-            params: [resource.id, user.companyId],
-          };
-        return { code: ExceptionCode.AUTH_FORBIDDEN_NON_OWNERSHIP, params: ['this resource'] };
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return { denial: null, trace: [{ rule: 'SuperAdminBypass', effect: 'ALLOW' }] };
+    }
+
+    let isAllowed = false;
+
+    const rbacEffect: PolicyEffect = user.permissions.includes(action) ? 'ALLOW' : 'SKIP';
+    trace.push({ rule: 'RBAC', effect: rbacEffect });
+    if (rbacEffect === 'ALLOW') isAllowed = true;
+
+    const applicableRules = this.rules
+      .filter((rule) => rule.supports(action))
+      .sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100));
+
+    for (const rule of applicableRules) {
+      const result = await rule.check(user, action, resource);
+      trace.push({ rule: rule.constructor.name, effect: result.effect, reason: result.reason });
+
+      if (result.effect === 'DENY') {
+        const denial = result.reason || { code: ExceptionCode.AUTH_FORBIDDEN };
+        this._logDecision(user, action, 'DENY', trace);
+        return { denial, trace };
       }
 
-      // MANAGER Scope: Department level
-      if (user.role === UserRole.MANAGER && user.departmentId) {
-        if (action === PermissionAction.DEPARTMENT_UPDATE && resource.id !== user.departmentId) {
-          return { code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE, params: ['your own department'] };
-        }
-
-        const resourceDeptId = this.getResourceDepartmentId(resource);
-        if (
-          (action === PermissionAction.USER_READ || action === PermissionAction.USER_UPDATE) &&
-          resourceDeptId &&
-          resourceDeptId !== user.departmentId
-        ) {
-          return {
-            code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
-            params: ['your department employees'],
-          };
-        }
+      if (result.effect === 'ALLOW') {
+        isAllowed = true;
       }
     }
 
-    const roleDenied = (requiredRoles: UserRole[]): DenialReason | null => {
-      if (!requiredRoles.includes(user.role)) {
-        return {
-          code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
-          params: [requiredRoles.join(' or ')],
-        };
-      }
-      return null;
+    if (isAllowed) {
+      return { denial: null, trace };
+    }
+
+    const finalDenial: DenialReason<ExceptionCode.AUTH_FORBIDDEN_RESOURCE> = {
+      code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
+      params: ['access policy', false],
     };
 
-    const resourceRole = resource ? this.getResourceRole(resource) : undefined;
+    this._logDecision(user, action, 'DENY', trace);
+    return { denial: finalDenial, trace };
+  }
 
-    switch (action) {
-      case PermissionAction.COMPANY_READ:
-        return null;
-      case PermissionAction.COMPANY_UPDATE:
-      case PermissionAction.COMPANY_DELETE:
-        return roleDenied([UserRole.ADMIN]);
-
-      case PermissionAction.DEPARTMENT_CREATE:
-      case PermissionAction.DEPARTMENT_DELETE:
-        return roleDenied([UserRole.ADMIN, UserRole.HR]);
-      case PermissionAction.DEPARTMENT_UPDATE:
-        return roleDenied([UserRole.ADMIN, UserRole.HR, UserRole.MANAGER]);
-      case PermissionAction.DEPARTMENT_READ:
-        return null;
-
-      case PermissionAction.POSITION_CREATE:
-      case PermissionAction.POSITION_UPDATE:
-      case PermissionAction.POSITION_DELETE:
-        return roleDenied([UserRole.ADMIN, UserRole.HR]);
-      case PermissionAction.POSITION_READ:
-        return null;
-
-      case PermissionAction.USER_READ:
-        if (user.role === UserRole.HR && resourceRole === UserRole.ADMIN) {
-          return { code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE, params: [UserRole.ADMIN, false] };
-        }
-        if (
-          user.role === UserRole.MANAGER &&
-          (resourceRole === UserRole.ADMIN || resourceRole === UserRole.HR)
-        ) {
-          return { code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE, params: ['HR or ADMIN', false] };
-        }
-        if (user.role === UserRole.MANAGER && user.departmentId && resource instanceof User) {
-          const targetDeptId = resource.department?.id;
-          if (targetDeptId && targetDeptId !== user.departmentId) {
-            return {
-              code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
-              params: ['employees of your department'],
-            };
-          }
-        }
-        return null;
-
-      case PermissionAction.USER_CREATE:
-        return roleDenied([UserRole.ADMIN, UserRole.HR]);
-      case PermissionAction.USER_UPDATE:
-      case PermissionAction.USER_DELETE:
-        if (user.role === UserRole.HR && resourceRole === UserRole.ADMIN) {
-          return { code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE, params: [UserRole.ADMIN, false] };
-        }
-        if (
-          user.role === UserRole.MANAGER &&
-          (resourceRole === UserRole.ADMIN || resourceRole === UserRole.HR)
-        ) {
-          return { code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE, params: ['HR or ADMIN', false] };
-        }
-        return roleDenied([UserRole.ADMIN, UserRole.HR, UserRole.MANAGER]);
-
-      case PermissionAction.USER_MANAGE_ROLES:
-        return roleDenied([UserRole.ADMIN]);
-
-      case PermissionAction.INVITE_CREATE:
-      case PermissionAction.INVITE_RESEND:
-      case PermissionAction.INVITE_CANCEL:
-        if (user.role === UserRole.HR && resourceRole === UserRole.ADMIN) {
-          return { code: ExceptionCode.INVITE_FORBIDDEN_ADMIN };
-        }
-        return roleDenied([UserRole.ADMIN, UserRole.HR]);
-      case PermissionAction.INVITE_READ:
-        return null;
-
-      default:
-        return { code: ExceptionCode.AUTH_FORBIDDEN };
+  async assertCan(
+    user: AuthorizedUser,
+    action: PermissionAction,
+    resource?: PermissionResource | null,
+  ): Promise<void> {
+    const { denial } = await this.can(user, action, resource);
+    if (denial !== null) {
+      throw new AppException(denial.code, HttpStatus.FORBIDDEN, denial.params);
     }
   }
 
-  can(
+  private _logDecision(
     user: AuthorizedUser,
-    action: PermissionAction,
-    resource?: PermissionResource | null,
-  ): boolean {
-    return this.getDenialReason(user, action, resource) === null;
-  }
-
-  assertCan(
-    user: AuthorizedUser,
-    action: PermissionAction,
-    resource?: PermissionResource | null,
-    _customMessage?: string,
-  ): void {
-    const denial = this.getDenialReason(user, action, resource);
-    if (denial !== null) {
-      throw new AppException(denial.code, HttpStatus.FORBIDDEN, denial.params);
+    action: string,
+    effect: string,
+    trace: PermissionTrace[],
+  ) {
+    if (process.env.NODE_ENV !== 'production' || effect === 'DENY') {
+      const traceStr = trace
+        .map((t) => `${t.rule}:${t.effect}${t.reason ? `(${t.reason.code})` : ''}`)
+        .join(' -> ');
+      this.logger.debug(`Permission ${effect} for ${user.email} on ${action}. Trace: ${traceStr}`);
     }
   }
 }

@@ -8,4 +8,6 @@ export interface AuthorizedUser {
   departmentId?: string | null;
   firstName?: string;
   lastName?: string;
+  permissions: string[];
+  permissionsVersion: number;
 }

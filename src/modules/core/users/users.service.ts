@@ -28,14 +28,22 @@ import { UserFilterBuilder } from './user-filter.builder';
 import { EmailService } from '../email/email.service';
 import { TokenService } from '../token/token.service';
 
+import { Role } from '@database/entities/role.entity';
+
 @Injectable()
 export class UsersService {
+  private readonly _permissionsVersionCache = new Map<
+    string,
+    { version: number; expires: number }
+  >();
+
   constructor(
     @InjectRepository(User) private readonly _usersRepository: Repository<User>,
     @InjectRepository(Company) private readonly _companyRepository: Repository<Company>,
     @InjectRepository(Department) private readonly _departmentRepository: Repository<Department>,
     @InjectRepository(Position) private readonly _positionRepository: Repository<Position>,
     @InjectRepository(Invite) private readonly _inviteRepository: Repository<Invite>,
+    @InjectRepository(Role) private readonly _roleRepository: Repository<Role>,
     private readonly _paginationService: PaginationService,
     private readonly _userFilterBuilder: UserFilterBuilder,
     private readonly _emailService: EmailService,
@@ -43,14 +51,73 @@ export class UsersService {
     private readonly _permissions: PermissionsService,
   ) {}
 
-  async create(createUserDto: CreateUserDto, currentUser?: AuthorizedUser): Promise<User> {
-    if (currentUser) {
-      this._permissions.assertCan(currentUser, PermissionAction.USER_CREATE);
+  /**
+   * Gets the user's permissions version.
+   * Uses a local cache for optimization.
+   * TODO: When scaling to multiple instances, replace Map with Redis.
+   */
+  async getPermissionsVersion(userId: string, forceRefresh = false): Promise<number> {
+    const now = Date.now();
+
+    if (!forceRefresh) {
+      const cached = this._permissionsVersionCache.get(userId);
+      if (cached && cached.expires > now) {
+        return cached.version;
+      }
     }
+
+    const user = await this._usersRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'permissionsVersion'],
+    });
+
+    const version = user?.permissionsVersion ?? 0;
+
+    this._permissionsVersionCache.set(userId, {
+      version,
+      expires: now + 15 * 1000,
+    });
+
+    return version;
+  }
+
+  clearPermissionsVersionCache(userId: string): void {
+    this._permissionsVersionCache.delete(userId);
+  }
+
+  async incrementPermissionsVersion(userId: string): Promise<void> {
+    await this._usersRepository.increment({ id: userId }, 'permissionsVersion', 1);
+    this.clearPermissionsVersionCache(userId);
+  }
+
+  async getUserPermissions(userId: string): Promise<string[]> {
+    const roles = await this._roleRepository
+      .createQueryBuilder('role')
+      .innerJoin('user_roles', 'ur', 'ur.role_id = role.id')
+      .innerJoinAndSelect('role.permissions', 'permission')
+      .where('ur.user_id = :userId', { userId })
+      .getMany();
+
+    const permissions = new Set<string>();
+    roles.forEach((role) => {
+      role.permissions?.forEach((p) => permissions.add(p.action));
+    });
+
+    return Array.from(permissions);
+  }
+
+  async create(createUserDto: CreateUserDto, currentUser?: AuthorizedUser): Promise<User> {
     const companyId = currentUser?.companyId || createUserDto.companyId;
 
     if (!companyId) {
       throw ExceptionFactory.commonRequiredField('Company ID');
+    }
+
+    if (currentUser) {
+      await this._permissions.assertCan(currentUser, PermissionAction.USER_CREATE, {
+        companyId,
+        departmentId: createUserDto.departmentId,
+      });
     }
 
     await this._ensureEmailUniqueInCompany(createUserDto.email, companyId);
@@ -94,6 +161,7 @@ export class UsersService {
     }
 
     const user = this._usersRepository.create(userData);
+    await this._assignSystemRole(user);
     const savedUser = await this._usersRepository.save(user);
 
     if (createUserDto.sendInvitation && !hasPassword) {
@@ -130,6 +198,7 @@ export class UsersService {
       },
     });
 
+    await this._assignSystemRole(user);
     const savedUser = await this._usersRepository.save(user);
     await this._createAndSendInvitation(savedUser);
 
@@ -167,12 +236,7 @@ export class UsersService {
 
   async findOne(id: string, currentUser: AuthorizedUser): Promise<User> {
     const user = await this.findById(id);
-
-    // If it's not the user themselves, check read permission
-    if (currentUser.id !== id) {
-      this._permissions.assertCan(currentUser, PermissionAction.USER_READ, user);
-    }
-
+    await this._permissions.assertCan(currentUser, PermissionAction.USER_READ, user);
     return user;
   }
 
@@ -227,12 +291,12 @@ export class UsersService {
     updateUserDto: UpdateUserDto,
     currentUser: AuthorizedUser,
   ): Promise<User> {
-    const user = await this.findOne(id, currentUser);
+    const user = await this.findById(id);
 
-    // If it's not the user themselves, check update permission
-    if (currentUser.id !== id) {
-      this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
-    }
+    await this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, {
+      ...user,
+      ...updateUserDto,
+    });
 
     if (updateUserDto.email && updateUserDto.email !== user.email) {
       await this._ensureEmailUniqueInCompany(updateUserDto.email, currentUser.companyId);
@@ -252,6 +316,7 @@ export class UsersService {
           throw ExceptionFactory.forbidden();
         }
         updateData.role = updateUserDto.role;
+        await this.incrementPermissionsVersion(user.id);
       }
 
       if (updateUserDto.status !== undefined && updateUserDto.status !== user.status) {
@@ -259,6 +324,7 @@ export class UsersService {
           throw ExceptionFactory.forbidden();
         }
         updateData.status = updateUserDto.status;
+        await this.incrementPermissionsVersion(user.id);
       }
     }
 
@@ -291,6 +357,11 @@ export class UsersService {
     updateData.updatedBy = currentUser.id;
 
     const updatedUser = this._usersRepository.merge(user, updateData);
+
+    if (updateData.role) {
+      await this._assignSystemRole(updatedUser);
+    }
+
     return this._usersRepository.save(updatedUser);
   }
 
@@ -301,7 +372,7 @@ export class UsersService {
       throw ExceptionFactory.forbidden();
     }
 
-    this._permissions.assertCan(currentUser, PermissionAction.USER_DELETE, user);
+    await this._permissions.assertCan(currentUser, PermissionAction.USER_DELETE, user);
 
     await this._tokenService.revokeUserTokens(id);
     await this._usersRepository.softDelete(id);
@@ -334,7 +405,7 @@ export class UsersService {
         email: invite.email,
         firstName: 'Firstname',
         lastName: 'Lastname',
-        role: invite.role as UserRole,
+        role: invite.role,
         status: UserStatus.INVITED,
         company: invite.company,
         metadata: {
@@ -343,6 +414,7 @@ export class UsersService {
           source: 'invite',
         },
       });
+      await this._assignSystemRole(user);
       user = await this._usersRepository.save(user);
     }
 
@@ -376,7 +448,7 @@ export class UsersService {
       throw ExceptionFactory.forbidden();
     }
 
-    this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
+    await this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
 
     user.status = UserStatus.BLOCKED;
 
@@ -386,14 +458,14 @@ export class UsersService {
 
   async unblockUser(id: string, currentUser: AuthorizedUser): Promise<User> {
     const user = await this.findOne(id, currentUser);
-    this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
+    await this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
     user.status = UserStatus.ACTIVE;
     user.resetFailedLoginAttempts();
     return this._usersRepository.save(user);
   }
 
   async getUsersByRole(currentUser: AuthorizedUser, role: UserRole): Promise<User[]> {
-    this._permissions.assertCan(currentUser, PermissionAction.USER_READ);
+    await this._permissions.assertCan(currentUser, PermissionAction.USER_READ);
     const queryBuilder = this._usersRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.department', 'department')
@@ -501,7 +573,6 @@ export class UsersService {
             highRoles: [UserRole.ADMIN, UserRole.HR],
           });
         } else {
-          // If manager has no department, they see no one by default (safety)
           queryBuilder.andWhere('1=0');
         }
         break;
@@ -522,11 +593,20 @@ export class UsersService {
 
     await this._emailService.sendInviteEmail(
       user.email,
-      user.role, // role
-      user.company.name, // companyName
-      user.firstName, // invitedByName (who invite)
-      activationLink, // inviteLink
+      user.role,
+      user.company.name,
+      user.firstName,
+      activationLink,
     );
+  }
+
+  private async _assignSystemRole(user: User): Promise<void> {
+    const systemRole = await this._roleRepository.findOne({
+      where: { code: user.role, isSystem: true },
+    });
+    if (systemRole) {
+      user.roles = [systemRole];
+    }
   }
 
   private async _hashPassword(password: string): Promise<string> {

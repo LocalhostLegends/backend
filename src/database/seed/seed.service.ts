@@ -15,6 +15,7 @@ import { Company } from '../entities/company.entity';
 import { Department } from '../entities/department.entity';
 import { Position } from '../entities/position.entity';
 import { User } from '../entities/user.entity';
+import { Role } from '../entities/role.entity';
 
 @Injectable()
 export class SeedService implements OnModuleInit {
@@ -128,49 +129,58 @@ export class SeedService implements OnModuleInit {
           : createdBy;
         const hasPassword = userData.status !== UserStatus.INVITED;
 
-        const user = await userRepository.save(
-          userRepository.create({
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            email: userData.email,
-            password: hasPassword ? hashedPassword : null,
-            role: userData.role,
-            status: userData.status,
-            company,
-            department,
-            position,
-            phone: userData.phone ?? null,
-            avatar: userData.avatar ?? null,
-            lastLoginAt: userData.status === UserStatus.ACTIVE ? now : null,
-            lastLoginIp: userData.lastLoginIp ?? null,
-            failedLoginAttempts: userData.failedLoginAttempts ?? 0,
-            lockedUntil:
-              userData.status === UserStatus.BLOCKED
-                ? this._addHours(now, userData.lockedForHours ?? 12)
-                : null,
-            emailVerifiedAt: hasPassword ? now : null,
-            metadata: {
-              invitedBy: createdBy?.id,
-              invitedAt: now,
-              source: userData.source,
-              welcomeEmailSent: hasPassword,
-              lastPasswordChange: hasPassword ? now : undefined,
+        const user = userRepository.create({
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          password: hasPassword ? hashedPassword : null,
+          role: userData.role,
+          status: userData.status,
+          company,
+          department,
+          position,
+          phone: userData.phone ?? null,
+          avatar: userData.avatar ?? null,
+          lastLoginAt: userData.status === UserStatus.ACTIVE ? now : null,
+          lastLoginIp: userData.lastLoginIp ?? null,
+          failedLoginAttempts: userData.failedLoginAttempts ?? 0,
+          lockedUntil:
+            userData.status === UserStatus.BLOCKED
+              ? this._addHours(now, userData.lockedForHours ?? 12)
+              : null,
+          emailVerifiedAt: hasPassword ? now : null,
+          metadata: {
+            invitedBy: createdBy?.id,
+            invitedAt: now,
+            source: userData.source,
+            welcomeEmailSent: hasPassword,
+            lastPasswordChange: hasPassword ? now : undefined,
+          },
+          preferences: {
+            language: userData.preferences?.language ?? 'en',
+            timezone: userData.preferences?.timezone ?? company.timezone,
+            notifications: {
+              email: true,
+              push: true,
+              sms: false,
+              ...userData.preferences?.notifications,
             },
-            preferences: {
-              language: userData.preferences?.language ?? 'en',
-              timezone: userData.preferences?.timezone ?? company.timezone,
-              notifications: {
-                email: true,
-                push: true,
-                sms: false,
-                ...userData.preferences?.notifications,
-              },
-              theme: userData.preferences?.theme ?? 'system',
-            },
-            createdBy: createdBy?.id ?? null,
-            updatedBy: updatedBy?.id ?? null,
-          }),
-        );
+            theme: userData.preferences?.theme ?? 'system',
+          },
+          createdBy: createdBy?.id ?? null,
+          updatedBy: updatedBy?.id ?? null,
+        });
+
+        // Assign system role
+        const roleRepository = manager.getRepository(Role);
+        const systemRole = await roleRepository.findOne({
+          where: { code: userData.role, isSystem: true },
+        });
+        if (systemRole) {
+          user.roles = [systemRole];
+        }
+
+        await userRepository.save(user);
 
         usersByKey.set(userData.key, user);
       }

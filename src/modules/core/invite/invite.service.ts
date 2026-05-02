@@ -43,7 +43,7 @@ export class InviteService {
   ) {}
 
   async createInvite(dto: CreateInviteDto, currentUser: AuthorizedUser): Promise<Invite> {
-    this._permissions.assertCan(currentUser, PermissionAction.INVITE_CREATE);
+    await this._permissions.assertCan(currentUser, PermissionAction.INVITE_CREATE);
 
     if (currentUser.role === UserRole.HR && dto.role === UserRole.ADMIN) {
       throw ExceptionFactory.inviteForbiddenAdmin();
@@ -182,7 +182,7 @@ export class InviteService {
       firstName || invite.email.split('@')[0],
       lastName || 'User',
       invite.email,
-      invite.role as UserRole,
+      invite.role,
       invite.company.id,
       invite.invitedBy.id,
     );
@@ -206,7 +206,7 @@ export class InviteService {
       throw ExceptionFactory.inviteNotFound();
     }
 
-    this._permissions.assertCan(currentUser, PermissionAction.INVITE_RESEND, invite);
+    await this._permissions.assertCan(currentUser, PermissionAction.INVITE_RESEND, invite);
 
     if (invite.status !== InviteStatus.PENDING) {
       throw ExceptionFactory.inviteCannotResend(invite.status);
@@ -238,7 +238,7 @@ export class InviteService {
       throw ExceptionFactory.inviteNotFound();
     }
 
-    this._permissions.assertCan(currentUser, PermissionAction.INVITE_CANCEL, invite);
+    await this._permissions.assertCan(currentUser, PermissionAction.INVITE_CANCEL, invite);
 
     if (invite.status !== InviteStatus.PENDING) {
       throw ExceptionFactory.inviteCannotCancel(invite.status);
@@ -249,7 +249,7 @@ export class InviteService {
   }
 
   async getCompanyInvites(currentUser: AuthorizedUser): Promise<Invite[]> {
-    this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
+    await this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
 
     const where: FindOptionsWhere<Invite> = { company: { id: currentUser.companyId } };
     if (currentUser.role === UserRole.MANAGER && currentUser.departmentId) {
@@ -264,7 +264,7 @@ export class InviteService {
   }
 
   async getPendingInvites(currentUser: AuthorizedUser): Promise<Invite[]> {
-    this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
+    await this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
 
     const where: FindOptionsWhere<Invite> = {
       company: { id: currentUser.companyId },

@@ -4,7 +4,6 @@ import {
   Delete,
   UseInterceptors,
   UploadedFile,
-  UseGuards,
   HttpCode,
   HttpStatus,
   ParseFilePipe,
@@ -13,19 +12,17 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 
-import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import { AvatarDeleteResponseDto } from '@modules/core/users/dto/avatar-delete-response.dto';
 import { AvatarUploadResponseDto } from '@modules/core/users/dto/avatar-upload-response.dto';
 import { UsersService } from '@modules/core/users/users.service';
 import type { AuthorizedUser } from '@/modules/core/users/users.types';
 
-import { StorageService } from '../../../storage/storage.service';
+import { StorageService } from '@/modules/storage/storage.service';
 import { swagger } from '../swagger';
 
 @swagger.ApiTags()
 @Controller('users/me/avatar')
-@UseGuards(JwtAuthGuard)
 export class AvatarController {
   constructor(
     private readonly _storageService: StorageService,

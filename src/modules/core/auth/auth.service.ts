@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 
@@ -22,7 +22,6 @@ import { AuditLogService } from '../../audit/audit-log.service';
 export class AuthService {
   constructor(
     private readonly _usersService: UsersService,
-    @Inject(forwardRef(() => CompaniesService))
     private readonly _companiesService: CompaniesService,
     private readonly _tokenService: TokenService,
     private readonly _jwtService: JwtService,
@@ -58,7 +57,7 @@ export class AuthService {
 
     const user = await this._usersService.create(userData);
 
-    const accessToken = this._generateAccessToken(user);
+    const accessToken = await this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
 
     return { accessToken, refreshToken };
@@ -147,7 +146,7 @@ export class AuthService {
     });
     await this._usersService.updateLastLogin(user.id, context?.ip, context?.userAgent);
 
-    const accessToken = this._generateAccessToken(user);
+    const accessToken = await this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
 
     return { accessToken, refreshToken };
@@ -160,7 +159,7 @@ export class AuthService {
       throw ExceptionFactory.userNotActive();
     }
 
-    const accessToken = this._generateAccessToken(user);
+    const accessToken = await this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
 
     return { accessToken, refreshToken };
@@ -173,12 +172,16 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  private _generateAccessToken(user: User): string {
+  private async _generateAccessToken(user: User): Promise<string> {
+    const permissions = await this._usersService.getUserPermissions(user.id);
+
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
       companyId: user.company.id,
+      permissions,
+      pv: user.permissionsVersion,
     };
 
     return this._jwtService.sign(payload, {
