@@ -10,6 +10,10 @@ import { PolicyRule } from './interfaces/policy-rule.interface';
 
 export const POLICY_RULES = 'POLICY_RULES';
 
+export interface ObjectLiteral {
+  [key: string]: any;
+}
+
 export interface WrappedResource {
   id?: string;
   old?: WrappedResource;
@@ -19,9 +23,10 @@ export interface WrappedResource {
   departmentId?: string | null;
   company?: { id: string } | null;
   department?: { id: string } | null;
+  [key: string]: unknown;
 }
 
-export type PermissionResource = WrappedResource;
+export type PermissionResource = WrappedResource | ObjectLiteral;
 
 export interface DenialReason<K extends ExceptionCode = ExceptionCode> {
   code: K;

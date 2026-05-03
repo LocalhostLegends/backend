@@ -19,7 +19,7 @@ export class PaginationService {
     const hasPreviousPage = page > 1;
 
     return {
-      data,
+      items: data,
       meta: {
         page,
         limit,

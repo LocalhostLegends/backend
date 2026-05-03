@@ -115,6 +115,7 @@ export class PermissionSystemMigration1776000000002 implements MigrationInterfac
         'user.read',
         'user.update',
         'user.delete',
+        'user.manage_roles',
         'invite.create',
         'invite.read',
         'invite.resend',
@@ -146,7 +147,8 @@ export class PermissionSystemMigration1776000000002 implements MigrationInterfac
         'company.read',
         'department.read',
         'position.read',
-        'user.read'
+        'user.read',
+        'user.update'
       )
       WHERE r.code = 'employee'
     `);

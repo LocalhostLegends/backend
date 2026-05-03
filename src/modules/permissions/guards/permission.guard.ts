@@ -82,14 +82,20 @@ export class PermissionGuard implements CanActivate {
     const body = resourceFromBody;
 
     if (res && body) {
-      const wrappedBody = body as WrappedResource;
       finalResource = {
-        id: res.id,
+        id: res.id as WrappedResource,
         old: res,
         new: body,
-        role: wrappedBody.role ?? res.role,
-        companyId: wrappedBody.companyId ?? (res.company?.id || res.companyId),
-        departmentId: wrappedBody.departmentId ?? (res.department?.id || res.departmentId),
+        role: body.role ?? (res.role as WrappedResource),
+
+        companyId:
+          body.companyId ??
+          ((res.company as Record<string, unknown> | undefined)?.id as string | undefined) ??
+          (res.companyId as string | undefined),
+        departmentId:
+          body.departmentId ??
+          ((res.department as Record<string, unknown> | undefined)?.id as string | undefined) ??
+          (res.departmentId as string | undefined),
       };
     } else if (resource) {
       finalResource = resource;
@@ -97,8 +103,11 @@ export class PermissionGuard implements CanActivate {
       finalResource = resourceFromBody;
     }
 
-    if (finalResource && !finalResource.companyId && !finalResource.company && user.companyId) {
-      finalResource = { ...finalResource, companyId: user.companyId };
+    if (finalResource) {
+      const frWrapped = finalResource;
+      if (!frWrapped.companyId && !frWrapped.company && user.companyId) {
+        finalResource = { ...frWrapped, companyId: user.companyId };
+      }
     }
 
     try {

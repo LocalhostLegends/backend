@@ -68,12 +68,4 @@ export class CompanyResponseDto {
   @Expose()
   @ApiPropertyOptional(CompanyFields.subscriptionExpiresAt)
   subscriptionExpiresAt: Date | null;
-
-  @Expose()
-  @ApiProperty(CommonFields.createdAt)
-  createdAt: Date;
-
-  @Expose()
-  @ApiProperty(CommonFields.updatedAt)
-  updatedAt: Date;
 }
