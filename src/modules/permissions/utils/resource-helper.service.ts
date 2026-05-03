@@ -106,7 +106,10 @@ export class ResourceHelper {
     return (
       typeof obj.id === 'string' ||
       typeof obj.companyId === 'string' ||
+      typeof obj.departmentId === 'string' ||
       typeof obj.role === 'string' ||
+      (!!obj.company && typeof obj.company === 'object') ||
+      (!!obj.department && typeof obj.department === 'object') ||
       obj instanceof Company ||
       obj instanceof Department
     );
