@@ -216,7 +216,7 @@ export class InviteService {
     invite.sentCount += 1;
     await this._inviteRepository.save(invite);
 
-    const inviteLink = `${config.frontend.url}/auth/accept-invite?token=${invite.token}`;
+    const inviteLink = `${config.frontend.url}/invite-accept?token=${invite.token}`;
     await this._emailService.sendInviteEmail(
       invite.email,
       invite.role,
