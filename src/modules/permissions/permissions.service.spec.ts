@@ -84,19 +84,162 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
   describe('SelfAccessRule', () => {
     it('should allow updating safe fields and deny sensitive on own profile', async () => {
       const user = mockUser({ id: 'me' });
+
       const ok = await service.can(user, PermissionAction.USER_UPDATE, {
         id: 'me',
         companyId: 'company-1',
-        new: { firstName: 'New' },
+        role: UserRole.EMPLOYEE,
+        new: { avatar: 'new-avatar.png' },
       });
       expect(ok.denial).toBeNull();
 
-      const fail = await service.can(user, PermissionAction.USER_UPDATE, {
+      const failMerged = await service.can(user, PermissionAction.USER_UPDATE, {
+        id: 'me',
+        companyId: 'company-1',
+        role: UserRole.EMPLOYEE,
+        avatar: 'new-avatar.png',
+      });
+      expect(failMerged.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
+
+      const failSensitive = await service.can(user, PermissionAction.USER_UPDATE, {
         id: 'me',
         companyId: 'company-1',
         new: { role: UserRole.ADMIN },
       });
+      expect(failSensitive.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
+    });
+  });
+
+  describe('Role-based Profile Updates', () => {
+    it('HR should be able to update their own profile including sensitive fields if they have RBAC permission', async () => {
+      const hrUser = mockUser({
+        id: 'hr-1',
+        role: UserRole.HR,
+        permissions: [PermissionAction.USER_UPDATE],
+      });
+
+      const result = await service.can(hrUser, PermissionAction.USER_UPDATE, {
+        id: 'hr-1',
+        companyId: 'company-1',
+        new: { role: UserRole.ADMIN },
+      });
+
+      expect(result.denial).toBeNull();
+    });
+
+    it('Employee WITHOUT RBAC permission should be restricted to basic fields on self', async () => {
+      const employee = mockUser({
+        id: 'emp-1',
+        role: UserRole.EMPLOYEE,
+        permissions: [],
+      });
+
+      const ok = await service.can(employee, PermissionAction.USER_UPDATE, {
+        id: 'emp-1',
+        companyId: 'company-1',
+        new: { firstName: 'New Name' },
+      });
+      expect(ok.denial).toBeNull();
+
+      const fail = await service.can(employee, PermissionAction.USER_UPDATE, {
+        id: 'emp-1',
+        companyId: 'company-1',
+        new: { role: UserRole.ADMIN },
+      });
       expect(fail.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
+    });
+
+    it('Manager should be able to update team members basic info but NOT sensitive fields', async () => {
+      const manager = mockUser({
+        id: 'mgr-1',
+        role: UserRole.MANAGER,
+        departmentId: 'dept-1',
+        permissions: [PermissionAction.USER_UPDATE],
+      });
+
+      const targetEmployee = {
+        id: 'emp-1',
+        companyId: 'company-1',
+        departmentId: 'dept-1',
+        role: UserRole.EMPLOYEE,
+      };
+
+      const ok = await service.can(manager, PermissionAction.USER_UPDATE, {
+        ...targetEmployee,
+        new: { firstName: 'Updated' },
+      });
+      expect(ok.denial).toBeNull();
+
+      const fail = await service.can(manager, PermissionAction.USER_UPDATE, {
+        ...targetEmployee,
+        new: { role: UserRole.ADMIN },
+      });
+      expect(fail.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
+      expect(fail.trace.some((t) => t.rule === 'HrRestrictionRule' && t.effect === 'DENY')).toBe(
+        true,
+      );
+    });
+  });
+
+  describe('Role Management', () => {
+    it('HR should be able to promote Employee to Manager', async () => {
+      const hrUser = mockUser({
+        role: UserRole.HR,
+        permissions: [PermissionAction.USER_MANAGE_ROLES],
+      });
+
+      const result = await service.can(hrUser, PermissionAction.USER_MANAGE_ROLES, {
+        id: 'emp-1',
+        role: UserRole.EMPLOYEE,
+        new: { role: UserRole.MANAGER },
+      });
+
+      expect(result.denial).toBeNull();
+    });
+
+    it('HR should be able to promote HR to Manager', async () => {
+      const hrUser = mockUser({
+        role: UserRole.HR,
+        permissions: [PermissionAction.USER_MANAGE_ROLES],
+      });
+
+      const result = await service.can(hrUser, PermissionAction.USER_MANAGE_ROLES, {
+        id: 'hr-target',
+        role: UserRole.HR,
+        new: { role: UserRole.MANAGER },
+      });
+
+      expect(result.denial).toBeNull();
+    });
+
+    it('HR should be able to promote Employee to HR', async () => {
+      const hrUser = mockUser({
+        role: UserRole.HR,
+        permissions: [PermissionAction.USER_MANAGE_ROLES],
+      });
+
+      const result = await service.can(hrUser, PermissionAction.USER_MANAGE_ROLES, {
+        id: 'emp-1',
+        role: UserRole.EMPLOYEE,
+        new: { role: UserRole.HR },
+      });
+
+      expect(result.denial).toBeNull();
+    });
+
+    it('HR should NOT be able to promote Employee to Admin', async () => {
+      const hrUser = mockUser({
+        role: UserRole.HR,
+        permissions: [PermissionAction.USER_MANAGE_ROLES],
+      });
+
+      const result = await service.can(hrUser, PermissionAction.USER_MANAGE_ROLES, {
+        id: 'emp-1',
+        role: UserRole.EMPLOYEE,
+        new: { role: UserRole.ADMIN },
+      });
+
+      expect(result.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
     });
   });
 

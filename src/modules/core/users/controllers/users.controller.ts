@@ -45,7 +45,7 @@ export class UsersController {
   ): Promise<PaginatedResult<UserResponseDto>> {
     const result = await this._usersService.findAllPaginated(filters, currentUser);
 
-    return { ...result, data: transformToDto(UserResponseDto, result.data) };
+    return { ...result, items: transformToDto(UserResponseDto, result.items) };
   }
 
   @Get('me')
@@ -80,7 +80,7 @@ export class UsersController {
     const filters = { status };
     const result = await this._usersService.findAllPaginated(filters, currentUser);
 
-    return transformToDto(UserResponseDto, result.data);
+    return transformToDto(UserResponseDto, result.items);
   }
 
   @Get(':id')

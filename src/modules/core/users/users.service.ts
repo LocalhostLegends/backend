@@ -295,7 +295,7 @@ export class UsersService {
 
     await this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, {
       ...user,
-      ...updateUserDto,
+      new: updateUserDto as unknown as Record<string, unknown>,
     });
 
     if (updateUserDto.email && updateUserDto.email !== user.email) {
@@ -310,16 +310,21 @@ export class UsersService {
     if (updateUserDto.phone !== undefined) updateData.phone = updateUserDto.phone;
     if (updateUserDto.avatar !== undefined) updateData.avatar = updateUserDto.avatar;
 
-    if (currentUser.role === UserRole.ADMIN) {
-      if (updateUserDto.role !== undefined && updateUserDto.role !== user.role) {
-        if (user.id === currentUser.id) {
-          throw ExceptionFactory.forbidden();
-        }
-        updateData.role = updateUserDto.role;
-        await this.incrementPermissionsVersion(user.id);
-      }
+    if (updateUserDto.role !== undefined && updateUserDto.role !== user.role) {
+      await this._permissions.assertCan(currentUser, PermissionAction.USER_MANAGE_ROLES, {
+        ...user,
+        new: { role: updateUserDto.role },
+      });
 
-      if (updateUserDto.status !== undefined && updateUserDto.status !== user.status) {
+      if (user.id === currentUser.id) {
+        throw ExceptionFactory.forbidden();
+      }
+      updateData.role = updateUserDto.role;
+      await this.incrementPermissionsVersion(user.id);
+    }
+
+    if (updateUserDto.status !== undefined && updateUserDto.status !== user.status) {
+      if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.HR) {
         if (user.id === currentUser.id && updateUserDto.status === UserStatus.BLOCKED) {
           throw ExceptionFactory.forbidden();
         }
@@ -430,6 +435,7 @@ export class UsersService {
     user.status = UserStatus.ACTIVE;
     user.emailVerifiedAt = new Date();
 
+    await this._assignSystemRole(user);
     const savedUser = await this._usersRepository.save(user);
 
     invite.status = InviteStatus.ACCEPTED;

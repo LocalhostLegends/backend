@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { UserRole } from '@common/enums/user-role.enum';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { PolicyRule } from '../interfaces/policy-rule.interface';
 import { PermissionAction } from '@common/enums/permission-action.enum';
-import { PolicyResult, PermissionResource } from '../permissions.service';
+import { PolicyResult, PermissionResource, WrappedResource } from '../permissions.service';
 import { ExceptionCode } from '@common/exceptions/exception-codes';
 
 @Injectable()
@@ -18,8 +19,15 @@ export class SelfAccessRule implements PolicyRule {
   }
 
   check(user: AuthorizedUser, action: string, resource?: PermissionResource | null): PolicyResult {
-    const resourceId = resource?.id;
+    const resourceId = (resource as WrappedResource | undefined)?.id;
     if (!resourceId || resourceId !== user.id) return { effect: 'SKIP' };
+
+    if (
+      user.permissions.includes(PermissionAction.USER_UPDATE) &&
+      [UserRole.HR, UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER].includes(user.role)
+    ) {
+      return { effect: 'SKIP' };
+    }
 
     const actionEnum = action as PermissionAction;
 
@@ -27,9 +35,12 @@ export class SelfAccessRule implements PolicyRule {
       return { effect: 'ALLOW' };
     }
 
-    if (actionEnum === PermissionAction.USER_UPDATE) {
-      const updateData = resource.new || resource;
-      const updateKeys = Object.keys(updateData as object).filter((key) => key !== 'id');
+    if (actionEnum === PermissionAction.USER_UPDATE && resource) {
+      const wrappedRes = resource;
+      const updateData = (wrappedRes.new || wrappedRes) as Record<string, any>;
+      const updateKeys = Object.keys(updateData).filter(
+        (key) => key !== 'id' && updateData[key] !== undefined,
+      );
 
       const hasRestrictedFields = updateKeys.some(
         (key) => !this.ALLOWED_SELF_UPDATE_FIELDS.includes(key),

@@ -58,14 +58,6 @@ export class UserResponseDto {
   company: CompanyResponseDto | null;
 
   @Expose()
-  @ApiPropertyOptional(CommonFields.createdAt)
-  createdAt: Date;
-
-  @Expose()
-  @ApiPropertyOptional(CommonFields.updatedAt)
-  updatedAt: Date;
-
-  @Expose()
   @ApiPropertyOptional(UserFields.lastLoginAt)
   lastLoginAt: Date | null;
 
