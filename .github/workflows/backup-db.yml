@@ -1,0 +1,40 @@
+name: Backup DB
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install PostgreSQL client and AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client awscli
+
+      - name: Create database backup
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          mkdir -p backups
+          FILE="backup-$(date +'%Y-%m-%d-%H-%M-%S').dump"
+
+          pg_dump "$NEON_DATABASE_URL" \
+            --format=custom \
+            --compress=9 \
+            --no-owner \
+            --no-privileges \
+            --verbose \
+            --file="backups/$FILE"
+
+          echo "FILE=$FILE" >> $GITHUB_ENV
+
+      - name: Upload backup to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          S3_BACKUP_BUCKET: ${{ secrets.S3_BACKUP_BUCKET }}
+        run: |
+          aws s3 cp "backups/$FILE" "s3://$S3_BACKUP_BUCKET/postgres/$FILE"
