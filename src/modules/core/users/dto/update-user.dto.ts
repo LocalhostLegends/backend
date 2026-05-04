@@ -3,12 +3,12 @@ import { IsOptional, IsUUID, IsEmail, IsUrl } from 'class-validator';
 
 import { UserStatus } from '@/common/enums/user-status.enum';
 import { UserRole } from '@common/enums/user-role.enum';
-import { IsPhone } from '@common/decorators/common-fields.decorators';
+import { IsDateQuery, IsPhone } from '@common/decorators/common-fields.decorators';
 import { CommonFields } from '@common/swagger/common.fields';
 import {
   IsUserFirstName,
   IsUserLastName,
-  IsUserRole,
+  IsUserRoles,
   IsUserStatus,
 } from '@modules/core/users/decorators/user-fields.decorators';
 import { UserFields } from '@modules/core/users/swagger/user.fields';
@@ -31,10 +31,20 @@ export class UpdateUserDto {
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional(UserFields.role)
+  @ApiPropertyOptional({ ...UserFields.roles, isArray: true })
   @IsOptional()
-  @IsUserRole()
-  role?: UserRole;
+  @IsUserRoles()
+  roles?: UserRole[];
+
+  @ApiPropertyOptional(UserFields.dateOfBirth)
+  @IsOptional()
+  @IsDateQuery()
+  dateOfBirth?: Date | null;
+
+  @ApiPropertyOptional(UserFields.hireDate)
+  @IsOptional()
+  @IsDateQuery()
+  hireDate?: Date;
 
   @ApiPropertyOptional(UserFields.status)
   @IsOptional()

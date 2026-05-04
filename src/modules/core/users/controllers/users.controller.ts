@@ -17,7 +17,6 @@ import { UserRole } from '@common/enums/user-role.enum';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import type { AuthorizedUser } from '@modules/core/users/users.types';
 import { PaginatedResult } from '@modules/pagination/pagination.interfaces';
-import { transformToDto } from '@common/utils/dto.utils';
 import { UserStatus } from '@common/enums/user-status.enum';
 import { RequirePermission } from '@modules/permissions/decorators/require-permission.decorator';
 import { Resource } from '@modules/permissions/decorators/resource.decorator';
@@ -43,18 +42,13 @@ export class UsersController {
     @Query(new ValidationPipe({ transform: true })) filters: UserFilterDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<PaginatedResult<UserResponseDto>> {
-    const result = await this._usersService.findAllPaginated(filters, currentUser);
-
-    return { ...result, items: transformToDto(UserResponseDto, result.items) };
+    return this._usersService.findAllPaginated(filters, currentUser);
   }
 
   @Get('me')
   @swagger.ApiGetCurrentUser()
   async getCurrentUser(@CurrentUser() currentUser: AuthorizedUser): Promise<UserResponseDto> {
-    return transformToDto(
-      UserResponseDto,
-      await this._usersService.findOne(currentUser.id, currentUser),
-    );
+    return this._usersService.findOne(currentUser.id, currentUser);
   }
 
   @Get('role/:role')
@@ -64,10 +58,7 @@ export class UsersController {
     @Param('role') role: UserRole,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto[]> {
-    return transformToDto(
-      UserResponseDto,
-      await this._usersService.getUsersByRole(currentUser, role),
-    );
+    return this._usersService.getUsersByRole(currentUser, role);
   }
 
   @Get('status/:status')
@@ -80,7 +71,7 @@ export class UsersController {
     const filters = { status };
     const result = await this._usersService.findAllPaginated(filters, currentUser);
 
-    return transformToDto(UserResponseDto, result.items);
+    return result.items;
   }
 
   @Get(':id')
@@ -91,7 +82,7 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto> {
-    return transformToDto(UserResponseDto, await this._usersService.findOne(id, currentUser));
+    return this._usersService.findOne(id, currentUser);
   }
 
   @Patch(':id')
@@ -103,10 +94,7 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto> {
-    return transformToDto(
-      UserResponseDto,
-      await this._usersService.update(id, updateUserDto, currentUser),
-    );
+    return this._usersService.update(id, updateUserDto, currentUser);
   }
 
   @Post(':id/block')
@@ -118,7 +106,7 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto> {
-    return transformToDto(UserResponseDto, await this._usersService.blockUser(id, currentUser));
+    return this._usersService.blockUser(id, currentUser);
   }
 
   @Post(':id/unblock')
@@ -130,7 +118,7 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<UserResponseDto> {
-    return transformToDto(UserResponseDto, await this._usersService.unblockUser(id, currentUser));
+    return this._usersService.unblockUser(id, currentUser);
   }
 
   @Delete(':id')

@@ -12,4 +12,6 @@ export const IsUserLastName = () =>
 
 export const IsUserRole = () => applyDecorators(IsEnum(UserRole));
 
+export const IsUserRoles = () => applyDecorators(IsEnum(UserRole, { each: true }));
+
 export const IsUserStatus = () => applyDecorators(IsEnum(UserStatus));

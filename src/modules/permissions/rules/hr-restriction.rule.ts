@@ -24,67 +24,86 @@ export class HrRestrictionRule implements PolicyRule {
   check(user: AuthorizedUser, _action: string, resource?: PermissionResource | null): PolicyResult {
     if (resource && resource.id === user.id) return { effect: 'SKIP' };
 
+    const isAdmin = user.roles.some((role) =>
+      [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role),
+    );
+    const isHR = user.roles.includes(UserRole.HR);
+    const isManager = user.roles.includes(UserRole.MANAGER);
+
+    if (isAdmin) return { effect: 'SKIP' };
+
     const wrappedRes = resource as WrappedResource | undefined;
-    const currentRole = wrappedRes?.old?.role || wrappedRes?.role;
-    const newRole = wrappedRes?.new?.['role'] as UserRole | undefined;
+    const currentRoles = wrappedRes?.old?.roles || wrappedRes?.roles || [];
+    const newRoles = wrappedRes?.new?.['roles'] as UserRole[] | undefined;
 
-    if (currentRole) {
-      if (user.role === UserRole.HR && currentRole === UserRole.ADMIN) {
-        return {
-          effect: 'DENY',
-          reason: {
-            code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
-            params: ['Admin editing permissions', false],
-          },
-        };
-      }
+    const targetHasAdmin = currentRoles.some((role) =>
+      [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role),
+    );
+    const targetHasHR = currentRoles.includes(UserRole.HR);
+    const targetHasManager = currentRoles.includes(UserRole.MANAGER);
 
-      if (
-        user.role === UserRole.MANAGER &&
-        (currentRole === UserRole.ADMIN || currentRole === UserRole.HR)
-      ) {
-        return {
-          effect: 'DENY',
-          reason: {
-            code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
-            params: ['Admin/HR editing permissions', false],
-          },
-        };
-      }
+    if (currentRoles.length > 0) {
+      if (isHR) {
+        if (targetHasAdmin) {
+          return {
+            effect: 'DENY',
+            reason: {
+              code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
+              params: ['Admin editing permissions', false],
+            },
+          };
+        }
+        // HR can edit others (HR, Manager, Employee)
+      } else if (isManager) {
+        if (targetHasAdmin || targetHasHR) {
+          return {
+            effect: 'DENY',
+            reason: {
+              code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
+              params: ['Admin/HR editing permissions', false],
+            },
+          };
+        }
 
-      if (user.role === UserRole.MANAGER && currentRole === UserRole.MANAGER) {
-        return {
-          effect: 'DENY',
-          reason: {
-            code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
-            params: ['permissions to modify other Managers', false],
-          },
-        };
+        if (targetHasManager) {
+          return {
+            effect: 'DENY',
+            reason: {
+              code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
+              params: ['permissions to modify other Managers', false],
+            },
+          };
+        }
       }
     }
 
-    if (newRole) {
-      if (user.role === UserRole.HR && newRole === UserRole.ADMIN) {
-        return {
-          effect: 'DENY',
-          reason: {
-            code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
-            params: [`permissions to promote users to ${newRole}`, false],
-          },
-        };
-      }
+    if (newRoles) {
+      const givingAdmin = newRoles.some((role) =>
+        [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role),
+      );
+      const givingHR = newRoles.includes(UserRole.HR);
+      const givingManager = newRoles.includes(UserRole.MANAGER);
 
-      if (
-        user.role === UserRole.MANAGER &&
-        (newRole === UserRole.ADMIN || newRole === UserRole.HR || newRole === UserRole.MANAGER)
-      ) {
-        return {
-          effect: 'DENY',
-          reason: {
-            code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
-            params: [`promoting users to ${newRole}`, false],
-          },
-        };
+      if (isHR) {
+        if (givingAdmin) {
+          return {
+            effect: 'DENY',
+            reason: {
+              code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
+              params: [`permissions to promote users to Admin`, false],
+            },
+          };
+        }
+      } else if (isManager) {
+        if (givingAdmin || givingHR || givingManager) {
+          return {
+            effect: 'DENY',
+            reason: {
+              code: ExceptionCode.AUTH_FORBIDDEN_RESOURCE,
+              params: [`promoting users to higher roles`, false],
+            },
+          };
+        }
       }
     }
 

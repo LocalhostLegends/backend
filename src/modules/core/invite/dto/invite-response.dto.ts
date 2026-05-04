@@ -28,7 +28,7 @@ export class InviteResponseDto {
   status: InviteStatus;
 
   @Expose()
-  @ApiProperty(UserFields.role)
+  @ApiProperty(UserFields.roles)
   role: UserRole;
 
   @Expose()

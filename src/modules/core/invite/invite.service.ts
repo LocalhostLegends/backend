@@ -45,7 +45,7 @@ export class InviteService {
   async createInvite(dto: CreateInviteDto, currentUser: AuthorizedUser): Promise<Invite> {
     await this._permissions.assertCan(currentUser, PermissionAction.INVITE_CREATE);
 
-    if (currentUser.role === UserRole.HR && dto.role === UserRole.ADMIN) {
+    if (currentUser.roles.includes(UserRole.HR) && dto.role === UserRole.ADMIN) {
       throw ExceptionFactory.inviteForbiddenAdmin();
     }
 
@@ -182,7 +182,7 @@ export class InviteService {
       firstName || invite.email.split('@')[0],
       lastName || 'User',
       invite.email,
-      invite.role,
+      [invite.role],
       invite.company.id,
       invite.invitedBy.id,
     );
@@ -252,7 +252,7 @@ export class InviteService {
     await this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
 
     const where: FindOptionsWhere<Invite> = { company: { id: currentUser.companyId } };
-    if (currentUser.role === UserRole.MANAGER && currentUser.departmentId) {
+    if (currentUser.roles.includes(UserRole.MANAGER) && currentUser.departmentId) {
       where.departmentId = currentUser.departmentId;
     }
 
@@ -272,7 +272,7 @@ export class InviteService {
       expiresAt: MoreThan(new Date()),
     };
 
-    if (currentUser.role === UserRole.MANAGER && currentUser.departmentId) {
+    if (currentUser.roles.includes(UserRole.MANAGER) && currentUser.departmentId) {
       where.departmentId = currentUser.departmentId;
     }
 

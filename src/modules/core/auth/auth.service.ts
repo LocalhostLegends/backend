@@ -50,7 +50,7 @@ export class AuthService {
       lastName: registerDto.lastName,
       email: registerDto.email,
       password: registerDto.password,
-      role: UserRole.ADMIN,
+      roles: [UserRole.ADMIN],
       companyId: company.id,
       sendInvitation: false,
     };
@@ -174,11 +174,12 @@ export class AuthService {
 
   private async _generateAccessToken(user: User): Promise<string> {
     const permissions = await this._usersService.getUserPermissions(user.id);
+    const roles = user.roles?.map((r) => r.code as UserRole) || [];
 
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
-      role: user.role,
+      roles,
       companyId: user.company.id,
       permissions,
       pv: user.permissionsVersion,

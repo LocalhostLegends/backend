@@ -27,8 +27,8 @@ export class UserResponseDto {
   email: string;
 
   @Expose()
-  @ApiProperty(UserFields.role)
-  role: UserRole;
+  @ApiProperty({ ...UserFields.roles, isArray: true, type: String })
+  roles: UserRole[];
 
   @Expose()
   @ApiProperty(UserFields.status)
@@ -60,6 +60,14 @@ export class UserResponseDto {
   @Expose()
   @ApiPropertyOptional(UserFields.lastLoginAt)
   lastLoginAt: Date | null;
+
+  @Expose()
+  @ApiPropertyOptional(UserFields.dateOfBirth)
+  dateOfBirth: Date | null;
+
+  @Expose()
+  @ApiProperty(UserFields.hireDate)
+  hireDate: Date;
 
   @Expose()
   @ApiPropertyOptional(UserFields.fullName)

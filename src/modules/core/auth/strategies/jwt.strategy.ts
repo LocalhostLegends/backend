@@ -5,6 +5,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import config from '@config/app.config';
 import { AuthorizedUser } from '@/modules/core/users/users.types';
 import { UserStatus } from '@common/enums/user-status.enum';
+import { UserRole } from '@common/enums/user-role.enum';
 import { UsersService } from '@modules/core/users/users.service';
 import { ExceptionFactory } from '@common/exceptions/exception-factory';
 import { JwtPayload } from '../auth.types';
@@ -35,7 +36,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     return {
       id: user.id,
       email: user.email,
-      role: user.role,
+      roles: user.roles?.map((r) => r.code as UserRole) ?? [],
       companyId: payload.companyId,
       departmentId: user.department?.id || null,
       firstName: user.firstName,

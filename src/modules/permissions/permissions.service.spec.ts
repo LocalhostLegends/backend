@@ -18,7 +18,7 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
   const mockUser = (overrides: Partial<AuthorizedUser> = {}): AuthorizedUser => ({
     id: 'user-1',
     email: 'user@example.com',
-    role: UserRole.EMPLOYEE,
+    roles: [UserRole.EMPLOYEE],
     companyId: 'company-1',
     permissions: [],
     permissionsVersion: 1,
@@ -49,7 +49,7 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
 
   describe('Core Pipeline Logic', () => {
     it('should bypass all checks for SUPER_ADMIN', async () => {
-      const user = mockUser({ role: UserRole.SUPER_ADMIN });
+      const user = mockUser({ roles: [UserRole.SUPER_ADMIN] });
       const { denial } = await service.can(user, PermissionAction.COMPANY_DELETE);
       expect(denial).toBeNull();
     });
@@ -57,7 +57,7 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
     it('should stop pipeline at first DENY and not execute subsequent rules', async () => {
       //! Important: CompanyBoundaryRule (priority 0) must be executed before HrRestrictionRule (priority 50)
       const user = mockUser({ permissions: [PermissionAction.USER_READ] });
-      const resource = { id: 'other', companyId: 'other-company', role: UserRole.ADMIN };
+      const resource = { id: 'other', companyId: 'other-company', roles: [UserRole.ADMIN] };
 
       const boundarySpy = jest.spyOn(boundaryRule, 'check');
       const hrSpy = jest.spyOn(hrRule, 'check');
@@ -72,9 +72,9 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
 
   describe('HrRestrictionRule', () => {
     it('HR should NOT be able to touch ADMIN or other HR', async () => {
-      const hrUser = mockUser({ role: UserRole.HR, permissions: [PermissionAction.USER_READ] });
+      const hrUser = mockUser({ roles: [UserRole.HR], permissions: [PermissionAction.USER_READ] });
       const toAdmin = await service.can(hrUser, PermissionAction.USER_READ, {
-        role: UserRole.ADMIN,
+        roles: [UserRole.ADMIN],
         companyId: 'company-1',
       });
       expect(toAdmin.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
@@ -88,7 +88,7 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
       const ok = await service.can(user, PermissionAction.USER_UPDATE, {
         id: 'me',
         companyId: 'company-1',
-        role: UserRole.EMPLOYEE,
+        roles: [UserRole.EMPLOYEE],
         new: { avatar: 'new-avatar.png' },
       });
       expect(ok.denial).toBeNull();
@@ -96,7 +96,7 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
       const failMerged = await service.can(user, PermissionAction.USER_UPDATE, {
         id: 'me',
         companyId: 'company-1',
-        role: UserRole.EMPLOYEE,
+        roles: [UserRole.EMPLOYEE],
         avatar: 'new-avatar.png',
       });
       expect(failMerged.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
@@ -104,7 +104,7 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
       const failSensitive = await service.can(user, PermissionAction.USER_UPDATE, {
         id: 'me',
         companyId: 'company-1',
-        new: { role: UserRole.ADMIN },
+        new: { roles: [UserRole.ADMIN] },
       });
       expect(failSensitive.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
     });
@@ -114,14 +114,14 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
     it('HR should be able to update their own profile including sensitive fields if they have RBAC permission', async () => {
       const hrUser = mockUser({
         id: 'hr-1',
-        role: UserRole.HR,
+        roles: [UserRole.HR],
         permissions: [PermissionAction.USER_UPDATE],
       });
 
       const result = await service.can(hrUser, PermissionAction.USER_UPDATE, {
         id: 'hr-1',
         companyId: 'company-1',
-        new: { role: UserRole.ADMIN },
+        new: { roles: [UserRole.ADMIN] },
       });
 
       expect(result.denial).toBeNull();
@@ -130,7 +130,7 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
     it('Employee WITHOUT RBAC permission should be restricted to basic fields on self', async () => {
       const employee = mockUser({
         id: 'emp-1',
-        role: UserRole.EMPLOYEE,
+        roles: [UserRole.EMPLOYEE],
         permissions: [],
       });
 
@@ -144,7 +144,7 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
       const fail = await service.can(employee, PermissionAction.USER_UPDATE, {
         id: 'emp-1',
         companyId: 'company-1',
-        new: { role: UserRole.ADMIN },
+        new: { roles: [UserRole.ADMIN] },
       });
       expect(fail.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
     });
@@ -152,7 +152,7 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
     it('Manager should be able to update team members basic info but NOT sensitive fields', async () => {
       const manager = mockUser({
         id: 'mgr-1',
-        role: UserRole.MANAGER,
+        roles: [UserRole.MANAGER],
         departmentId: 'dept-1',
         permissions: [PermissionAction.USER_UPDATE],
       });
@@ -161,7 +161,7 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
         id: 'emp-1',
         companyId: 'company-1',
         departmentId: 'dept-1',
-        role: UserRole.EMPLOYEE,
+        roles: [UserRole.EMPLOYEE],
       };
 
       const ok = await service.can(manager, PermissionAction.USER_UPDATE, {
@@ -172,26 +172,49 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
 
       const fail = await service.can(manager, PermissionAction.USER_UPDATE, {
         ...targetEmployee,
-        new: { role: UserRole.ADMIN },
+        new: { roles: [UserRole.ADMIN] },
       });
       expect(fail.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
       expect(fail.trace.some((t) => t.rule === 'HrRestrictionRule' && t.effect === 'DENY')).toBe(
         true,
       );
     });
+
+    it('User with BOTH HR and MANAGER roles should bypass department scope restriction', async () => {
+      const hrManager = mockUser({
+        id: 'hr-mgr-1',
+        roles: [UserRole.HR, UserRole.MANAGER],
+        departmentId: 'dept-1',
+        permissions: [PermissionAction.USER_READ],
+      });
+
+      const targetInOtherDept = {
+        id: 'emp-2',
+        companyId: 'company-1',
+        departmentId: 'other-dept',
+        roles: [UserRole.EMPLOYEE],
+      };
+
+      const result = await service.can(hrManager, PermissionAction.USER_READ, targetInOtherDept);
+
+      expect(result.denial).toBeNull();
+      expect(
+        result.trace.some((t) => t.rule === 'DepartmentScopeRule' && t.effect === 'SKIP'),
+      ).toBe(true);
+    });
   });
 
   describe('Role Management', () => {
     it('HR should be able to promote Employee to Manager', async () => {
       const hrUser = mockUser({
-        role: UserRole.HR,
+        roles: [UserRole.HR],
         permissions: [PermissionAction.USER_MANAGE_ROLES],
       });
 
       const result = await service.can(hrUser, PermissionAction.USER_MANAGE_ROLES, {
         id: 'emp-1',
-        role: UserRole.EMPLOYEE,
-        new: { role: UserRole.MANAGER },
+        roles: [UserRole.EMPLOYEE],
+        new: { roles: [UserRole.MANAGER] },
       });
 
       expect(result.denial).toBeNull();
@@ -199,14 +222,14 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
 
     it('HR should be able to promote HR to Manager', async () => {
       const hrUser = mockUser({
-        role: UserRole.HR,
+        roles: [UserRole.HR],
         permissions: [PermissionAction.USER_MANAGE_ROLES],
       });
 
       const result = await service.can(hrUser, PermissionAction.USER_MANAGE_ROLES, {
         id: 'hr-target',
-        role: UserRole.HR,
-        new: { role: UserRole.MANAGER },
+        roles: [UserRole.HR],
+        new: { roles: [UserRole.MANAGER] },
       });
 
       expect(result.denial).toBeNull();
@@ -214,14 +237,14 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
 
     it('HR should be able to promote Employee to HR', async () => {
       const hrUser = mockUser({
-        role: UserRole.HR,
+        roles: [UserRole.HR],
         permissions: [PermissionAction.USER_MANAGE_ROLES],
       });
 
       const result = await service.can(hrUser, PermissionAction.USER_MANAGE_ROLES, {
         id: 'emp-1',
-        role: UserRole.EMPLOYEE,
-        new: { role: UserRole.HR },
+        roles: [UserRole.EMPLOYEE],
+        new: { roles: [UserRole.HR] },
       });
 
       expect(result.denial).toBeNull();
@@ -229,14 +252,14 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
 
     it('HR should NOT be able to promote Employee to Admin', async () => {
       const hrUser = mockUser({
-        role: UserRole.HR,
+        roles: [UserRole.HR],
         permissions: [PermissionAction.USER_MANAGE_ROLES],
       });
 
       const result = await service.can(hrUser, PermissionAction.USER_MANAGE_ROLES, {
         id: 'emp-1',
-        role: UserRole.EMPLOYEE,
-        new: { role: UserRole.ADMIN },
+        roles: [UserRole.EMPLOYEE],
+        new: { roles: [UserRole.ADMIN] },
       });
 
       expect(result.denial?.code).toBe(ExceptionCode.AUTH_FORBIDDEN_RESOURCE);
@@ -275,10 +298,13 @@ describe('PermissionsModule Integration (Exhaustive)', () => {
       ).toBe('new');
     });
 
-    it('should extract role with priority new > old > flat', () => {
-      expect(helper.getResourceRole({ role: UserRole.EMPLOYEE, new: { role: UserRole.HR } })).toBe(
-        UserRole.HR,
-      );
+    it('should extract roles with priority new > old > flat', () => {
+      expect(
+        helper.getResourceRoles({
+          roles: [UserRole.EMPLOYEE],
+          new: { roles: [UserRole.HR] },
+        }),
+      ).toEqual([UserRole.HR]);
     });
   });
 });

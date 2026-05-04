@@ -24,7 +24,6 @@ import { Role } from './role.entity';
 @Entity('users')
 @Index(['company', 'email'], { unique: true })
 @Index(['company', 'status'])
-@Index(['company', 'role'])
 @Index(['email', 'status'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -43,9 +42,11 @@ export class User {
   @Column({ type: 'varchar', length: 255, select: false, nullable: true, name: 'password' })
   password: string | null;
 
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.EMPLOYEE, name: 'role' })
-  @Index()
-  role: UserRole;
+  @Column({ type: 'date', nullable: true, name: 'date_of_birth' })
+  dateOfBirth: Date | null;
+
+  @Column({ type: 'date', nullable: false, name: 'hire_date' })
+  hireDate: Date;
 
   @ManyToMany(() => Role)
   @JoinTable({
@@ -155,19 +156,23 @@ export class User {
   }
 
   isAdmin(): boolean {
-    return this.role === UserRole.ADMIN;
+    return this.roles?.some((r) => (r.code as UserRole) === UserRole.ADMIN) ?? false;
   }
 
   isHR(): boolean {
-    return this.role === UserRole.HR;
+    return this.roles?.some((r) => (r.code as UserRole) === UserRole.HR) ?? false;
   }
 
   isEmployee(): boolean {
-    return this.role === UserRole.EMPLOYEE;
+    return this.roles?.some((r) => (r.code as UserRole) === UserRole.EMPLOYEE) ?? false;
   }
 
   isSuperAdmin(): boolean {
-    return this.role === UserRole.SUPER_ADMIN;
+    return this.roles?.some((r) => (r.code as UserRole) === UserRole.SUPER_ADMIN) ?? false;
+  }
+
+  isManager(): boolean {
+    return this.roles?.some((r) => (r.code as UserRole) === UserRole.MANAGER) ?? false;
   }
 
   isLocked(): boolean {

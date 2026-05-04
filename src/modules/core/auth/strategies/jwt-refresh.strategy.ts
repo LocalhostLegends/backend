@@ -5,6 +5,7 @@ import type { Request } from 'express';
 
 import config from '@config/app.config';
 import { UserStatus } from '@common/enums/user-status.enum';
+import { UserRole } from '@common/enums/user-role.enum';
 import { AuthorizedUser } from '@/modules/core/users/users.types';
 import { UsersService } from '@modules/core/users/users.service';
 import { ExceptionFactory } from '@common/exceptions/exception-factory';
@@ -48,7 +49,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       return {
         id: user.id,
         email: user.email,
-        role: user.role,
+        roles: user.roles?.map((r) => r.code as UserRole) ?? [],
         companyId: payload.companyId,
         departmentId: user.department?.id || null,
         firstName: user.firstName,

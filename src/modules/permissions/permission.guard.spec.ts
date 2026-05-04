@@ -44,7 +44,7 @@ describe('PermissionGuard', () => {
           ? undefined
           : {
               id: 'u1',
-              role: UserRole.EMPLOYEE,
+              roles: [UserRole.EMPLOYEE],
               companyId: 'c1',
               permissions: [],
               ...overrides.user,
@@ -84,7 +84,7 @@ describe('PermissionGuard', () => {
   });
 
   it('should load composite resource when both metadata and body exist', async () => {
-    const userFromDb = { id: 'u1', role: UserRole.EMPLOYEE, companyId: 'c1' };
+    const userFromDb = { id: 'u1', roles: [UserRole.EMPLOYEE], companyId: 'c1' };
     jest
       .spyOn(reflector, 'getAllAndOverride')
       .mockReturnValueOnce(PermissionAction.USER_UPDATE)
@@ -103,7 +103,10 @@ describe('PermissionGuard', () => {
     expect(permissionsService.assertCan).toHaveBeenCalledWith(
       expect.anything(),
       PermissionAction.USER_UPDATE,
-      expect.objectContaining({ old: userFromDb, new: { firstName: 'New' } }),
+      expect.objectContaining({
+        old: expect.objectContaining(userFromDb),
+        new: { firstName: 'New' },
+      }),
     );
   });
 });
