@@ -21,17 +21,17 @@ export interface SeedCompanyData {
 }
 
 export const companyData: SeedCompanyData = {
-  name: 'Localhost Legends',
-  subdomain: 'localhost-legends',
-  logoUrl: 'https://localhostlegends.dev/assets/logo.svg',
+  name: 'Hirely',
+  subdomain: 'hirely',
+  logoUrl: 'https://hirely.dev/assets/logo.svg',
   timezone: 'Europe/Riga',
   isActive: true,
   subscriptionPlan: 'business',
   subscriptionExpiresInDays: 365,
   settings: {
-    email: 'team@localhostlegends.dev',
+    email: 'team@hire.dev',
     phone: '+37120000000',
-    website: 'https://localhostlegends.dev',
+    website: 'https://hirely.dev',
     address: 'Brivibas iela 21',
     city: 'Riga',
     country: 'Latvia',

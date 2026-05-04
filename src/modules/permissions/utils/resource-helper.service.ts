@@ -75,27 +75,34 @@ export class ResourceHelper {
     return null;
   }
 
-  getResourceRole(resource: PermissionResource | null | undefined): UserRole | null {
-    if (!resource) return null;
+  getResourceRoles(resource: PermissionResource | null | undefined): UserRole[] {
+    if (!resource) return [];
 
     const wrapped = resource as WrappedResource;
 
     if (wrapped.new && this.isPermissionResource(wrapped.new)) {
-      const role = this._extractString(wrapped.new, 'role');
-      if (this._isValidRole(role)) return role;
+      const roles = this._extractArray(wrapped.new, 'roles');
+      if (roles && roles.every((r) => this._isValidRole(r))) return roles;
     }
 
     if (wrapped.old && this.isPermissionResource(wrapped.old)) {
-      const role = this._extractString(wrapped.old, 'role');
-      if (this._isValidRole(role)) return role;
+      const roles = this.getResourceRoles(wrapped.old);
+      if (roles.length > 0) return roles;
     }
 
-    if (this._isValidRole(wrapped.role)) return wrapped.role;
+    if (Array.isArray(wrapped.roles) && wrapped.roles.every((r) => this._isValidRole(r))) {
+      return wrapped.roles;
+    }
 
-    const rawRole = this._extractString(resource, 'role');
-    if (this._isValidRole(rawRole)) return rawRole;
+    const rawRoles = this._extractArray(resource, 'roles');
+    if (rawRoles && rawRoles.every((r) => this._isValidRole(r))) return rawRoles;
 
-    return null;
+    return [];
+  }
+
+  getResourceRole(resource: PermissionResource | null | undefined): UserRole | null {
+    const roles = this.getResourceRoles(resource);
+    return roles.length > 0 ? roles[0] : null;
   }
 
   private isPermissionResource(value: unknown): value is PermissionResource {
@@ -107,7 +114,7 @@ export class ResourceHelper {
       typeof obj.id === 'string' ||
       typeof obj.companyId === 'string' ||
       typeof obj.departmentId === 'string' ||
-      typeof obj.role === 'string' ||
+      Array.isArray(obj.roles) ||
       (!!obj.company && typeof obj.company === 'object') ||
       (!!obj.department && typeof obj.department === 'object') ||
       obj instanceof Company ||
@@ -119,6 +126,14 @@ export class ResourceHelper {
     if (obj && typeof obj === 'object' && key in obj) {
       const value = (obj as Record<string, unknown>)[key];
       return typeof value === 'string' ? value : null;
+    }
+    return null;
+  }
+
+  private _extractArray(obj: unknown, key: string): unknown[] | null {
+    if (obj && typeof obj === 'object' && key in obj) {
+      const value = (obj as Record<string, unknown>)[key];
+      return Array.isArray(value) ? value : null;
     }
     return null;
   }

@@ -5,6 +5,12 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "webpack": false,
+    "assets": [
+      {
+        "include": "database/seed/data/photo/**/*",
+        "watchAssets": true
+      }
+    ],
     "plugins": [
       {
         "name": "@nestjs/swagger",

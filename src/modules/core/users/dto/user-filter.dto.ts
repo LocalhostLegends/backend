@@ -53,7 +53,7 @@ export class UserFilterDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional(UserFields.role)
+  @ApiPropertyOptional(UserFields.roles)
   @IsOptional()
   @IsUserRole()
   role?: UserRole;

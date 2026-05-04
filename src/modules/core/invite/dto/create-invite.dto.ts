@@ -13,7 +13,7 @@ export class CreateInviteDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty(UserFields.role)
+  @ApiProperty(UserFields.roles)
   @IsUserRole()
   role: UserRole;
 

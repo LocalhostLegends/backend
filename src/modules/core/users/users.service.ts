@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, SelectQueryBuilder } from 'typeorm';
+import { Repository, IsNull, SelectQueryBuilder, In } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
 import config from '@config/app.config';
@@ -29,6 +29,8 @@ import { EmailService } from '../email/email.service';
 import { TokenService } from '../token/token.service';
 
 import { Role } from '@database/entities/role.entity';
+import { toUserResponse } from './users.utils';
+import { UserResponseDto } from './dto/user-response.dto';
 
 @Injectable()
 export class UsersService {
@@ -134,18 +136,19 @@ export class UsersService {
       position = await this._findPositionById(createUserDto.positionId, companyId);
     }
 
-    const role = createUserDto.role || UserRole.EMPLOYEE;
+    const rolesCodes = createUserDto.roles || [UserRole.EMPLOYEE];
     const hasPassword = !!createUserDto.password;
 
     const userData: Partial<User> = {
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
       email: createUserDto.email,
+      dateOfBirth: createUserDto.dateOfBirth,
+      hireDate: createUserDto.hireDate || new Date(),
       company,
       department,
       position,
       phone: createUserDto.phone || null,
-      role,
       status: hasPassword ? UserStatus.ACTIVE : UserStatus.INVITED,
       createdBy: currentUser?.id || null,
       metadata: {
@@ -161,7 +164,13 @@ export class UsersService {
     }
 
     const user = this._usersRepository.create(userData);
-    await this._assignSystemRole(user);
+
+    // Assign roles
+    const systemRoles = await this._roleRepository.find({
+      where: { code: In(rolesCodes), isSystem: true },
+    });
+    user.roles = systemRoles;
+
     const savedUser = await this._usersRepository.save(user);
 
     if (createUserDto.sendInvitation && !hasPassword) {
@@ -175,7 +184,7 @@ export class UsersService {
     firstName: string,
     lastName: string,
     email: string,
-    role: UserRole,
+    roleCodes: UserRole[],
     companyId: string,
     createdBy?: string,
   ): Promise<User> {
@@ -187,7 +196,7 @@ export class UsersService {
       firstName,
       lastName,
       email,
-      role,
+      hireDate: new Date(),
       status: UserStatus.INVITED,
       company,
       createdBy: createdBy || null,
@@ -198,7 +207,11 @@ export class UsersService {
       },
     });
 
-    await this._assignSystemRole(user);
+    const systemRoles = await this._roleRepository.find({
+      where: { code: In(roleCodes), isSystem: true },
+    });
+    user.roles = systemRoles;
+
     const savedUser = await this._usersRepository.save(user);
     await this._createAndSendInvitation(savedUser);
 
@@ -208,12 +221,13 @@ export class UsersService {
   async findAllPaginated(
     filters: UserFilterDto,
     currentUser: AuthorizedUser,
-  ): Promise<PaginatedResult<User>> {
+  ): Promise<PaginatedResult<UserResponseDto>> {
     const queryBuilder = this._usersRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.department', 'department')
       .leftJoinAndSelect('user.position', 'position')
       .leftJoinAndSelect('user.company', 'company')
+      .leftJoinAndSelect('user.roles', 'roles')
       .where('user.company_id = :companyId', { companyId: currentUser.companyId });
 
     this._userFilterBuilder.buildFilters(queryBuilder, filters);
@@ -231,19 +245,24 @@ export class UsersService {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 10;
 
-    return this._paginationService.paginate(queryBuilder, page, limit);
+    const result = await this._paginationService.paginate(queryBuilder, page, limit);
+
+    return {
+      ...result,
+      items: toUserResponse(result.items),
+    };
   }
 
-  async findOne(id: string, currentUser: AuthorizedUser): Promise<User> {
+  async findOne(id: string, currentUser: AuthorizedUser): Promise<UserResponseDto> {
     const user = await this.findById(id);
     await this._permissions.assertCan(currentUser, PermissionAction.USER_READ, user);
-    return user;
+    return toUserResponse(user);
   }
 
   async findById(id: string): Promise<User> {
     const user = await this._usersRepository.findOne({
       where: { id },
-      relations: ['company', 'department', 'position'],
+      relations: ['company', 'department', 'position', 'roles'],
     });
 
     if (!user) {
@@ -263,6 +282,7 @@ export class UsersService {
       .leftJoinAndSelect('user.company', 'company')
       .leftJoinAndSelect('user.department', 'department')
       .leftJoinAndSelect('user.position', 'position')
+      .leftJoinAndSelect('user.roles', 'roles')
       .where('user.email = :email', { email });
 
     if (companyId) {
@@ -277,20 +297,20 @@ export class UsersService {
   }
 
   async findFirstAdmin(): Promise<User | null> {
-    return this._usersRepository.findOne({
-      where: {
-        role: UserRole.ADMIN,
-        status: UserStatus.ACTIVE,
-      },
-      relations: ['company'],
-    });
+    return this._usersRepository
+      .createQueryBuilder('user')
+      .innerJoinAndSelect('user.roles', 'roles')
+      .leftJoinAndSelect('user.company', 'company')
+      .where('roles.code = :roleCode', { roleCode: UserRole.ADMIN })
+      .andWhere('user.status = :status', { status: UserStatus.ACTIVE })
+      .getOne();
   }
 
   async update(
     id: string,
     updateUserDto: UpdateUserDto,
     currentUser: AuthorizedUser,
-  ): Promise<User> {
+  ): Promise<UserResponseDto> {
     const user = await this.findById(id);
 
     await this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, {
@@ -309,22 +329,29 @@ export class UsersService {
     if (updateUserDto.email !== undefined) updateData.email = updateUserDto.email;
     if (updateUserDto.phone !== undefined) updateData.phone = updateUserDto.phone;
     if (updateUserDto.avatar !== undefined) updateData.avatar = updateUserDto.avatar;
+    if (updateUserDto.dateOfBirth !== undefined) updateData.dateOfBirth = updateUserDto.dateOfBirth;
+    if (updateUserDto.hireDate !== undefined) updateData.hireDate = updateUserDto.hireDate;
 
-    if (updateUserDto.role !== undefined && updateUserDto.role !== user.role) {
+    if (updateUserDto.roles !== undefined) {
       await this._permissions.assertCan(currentUser, PermissionAction.USER_MANAGE_ROLES, {
         ...user,
-        new: { role: updateUserDto.role },
+        new: { roles: updateUserDto.roles },
       });
 
       if (user.id === currentUser.id) {
         throw ExceptionFactory.forbidden();
       }
-      updateData.role = updateUserDto.role;
+
+      const systemRoles = await this._roleRepository.find({
+        where: { code: In(updateUserDto.roles), isSystem: true },
+      });
+      user.roles = systemRoles;
+
       await this.incrementPermissionsVersion(user.id);
     }
 
     if (updateUserDto.status !== undefined && updateUserDto.status !== user.status) {
-      if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.HR) {
+      if (currentUser.roles.includes(UserRole.ADMIN) || currentUser.roles.includes(UserRole.HR)) {
         if (user.id === currentUser.id && updateUserDto.status === UserStatus.BLOCKED) {
           throw ExceptionFactory.forbidden();
         }
@@ -333,7 +360,7 @@ export class UsersService {
       }
     }
 
-    if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.HR) {
+    if (currentUser.roles.includes(UserRole.ADMIN) || currentUser.roles.includes(UserRole.HR)) {
       if (updateUserDto.departmentId !== undefined) {
         if (updateUserDto.departmentId === null) {
           updateData.department = null;
@@ -362,12 +389,13 @@ export class UsersService {
     updateData.updatedBy = currentUser.id;
 
     const updatedUser = this._usersRepository.merge(user, updateData);
+    const savedUser = await this._usersRepository.save(updatedUser);
 
-    if (updateData.role) {
-      await this._assignSystemRole(updatedUser);
+    if (updateUserDto.roles !== undefined) {
+      return this.findOne(savedUser.id, currentUser);
     }
 
-    return this._usersRepository.save(updatedUser);
+    return toUserResponse(savedUser);
   }
 
   async remove(id: string, currentUser: AuthorizedUser): Promise<void> {
@@ -410,7 +438,7 @@ export class UsersService {
         email: invite.email,
         firstName: 'Firstname',
         lastName: 'Lastname',
-        role: invite.role,
+        hireDate: new Date(),
         status: UserStatus.INVITED,
         company: invite.company,
         metadata: {
@@ -419,7 +447,10 @@ export class UsersService {
           source: 'invite',
         },
       });
-      await this._assignSystemRole(user);
+      const systemRoles = await this._roleRepository.find({
+        where: { code: invite.role, isSystem: true },
+      });
+      user.roles = systemRoles;
       user = await this._usersRepository.save(user);
     }
 
@@ -435,7 +466,11 @@ export class UsersService {
     user.status = UserStatus.ACTIVE;
     user.emailVerifiedAt = new Date();
 
-    await this._assignSystemRole(user);
+    const systemRoles = await this._roleRepository.find({
+      where: { code: invite.role, isSystem: true },
+    });
+    user.roles = systemRoles;
+
     const savedUser = await this._usersRepository.save(user);
 
     invite.status = InviteStatus.ACCEPTED;
@@ -447,8 +482,8 @@ export class UsersService {
     return this.findById(savedUser.id);
   }
 
-  async blockUser(id: string, currentUser: AuthorizedUser): Promise<User> {
-    const user = await this.findOne(id, currentUser);
+  async blockUser(id: string, currentUser: AuthorizedUser): Promise<UserResponseDto> {
+    const user = await this.findById(id);
 
     if (user.id === currentUser.id) {
       throw ExceptionFactory.forbidden();
@@ -459,37 +494,50 @@ export class UsersService {
     user.status = UserStatus.BLOCKED;
 
     await this._tokenService.revokeUserTokens(id);
-    return this._usersRepository.save(user);
+    const savedUser = await this._usersRepository.save(user);
+    return toUserResponse(savedUser);
   }
 
-  async unblockUser(id: string, currentUser: AuthorizedUser): Promise<User> {
-    const user = await this.findOne(id, currentUser);
+  async unblockUser(id: string, currentUser: AuthorizedUser): Promise<UserResponseDto> {
+    const user = await this.findById(id);
     await this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
     user.status = UserStatus.ACTIVE;
     user.resetFailedLoginAttempts();
-    return this._usersRepository.save(user);
+    const savedUser = await this._usersRepository.save(user);
+    return toUserResponse(savedUser);
   }
 
-  async getUsersByRole(currentUser: AuthorizedUser, role: UserRole): Promise<User[]> {
+  async getUsersByRole(currentUser: AuthorizedUser, role: UserRole): Promise<UserResponseDto[]> {
     await this._permissions.assertCan(currentUser, PermissionAction.USER_READ);
     const queryBuilder = this._usersRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.department', 'department')
       .leftJoinAndSelect('user.position', 'position')
+      .leftJoinAndSelect('user.roles', 'roles')
       .where('user.company_id = :companyId', { companyId: currentUser.companyId })
-      .andWhere('user.role = :role', { role })
+      .andWhere((qb) => {
+        const subQuery = qb
+          .subQuery()
+          .select('ur.user_id')
+          .from('user_roles', 'ur')
+          .innerJoin('roles', 'r', 'r.id = ur.role_id')
+          .where('r.code = :role', { role })
+          .getQuery();
+        return `user.id IN ${subQuery}`;
+      })
       .andWhere('user.status = :status', { status: UserStatus.ACTIVE })
       .andWhere('user.deletedAt IS NULL');
 
     this._applyRoleBasedAccess(queryBuilder, currentUser);
 
-    return queryBuilder.getMany();
+    const users = await queryBuilder.getMany();
+    return toUserResponse(users);
   }
 
   async getCompanyUsers(companyId: string): Promise<User[]> {
     return this._usersRepository.find({
       where: { company: { id: companyId }, deletedAt: IsNull() },
-      relations: ['department', 'position'],
+      relations: ['department', 'position', 'roles'],
     });
   }
 
@@ -564,27 +612,53 @@ export class UsersService {
     queryBuilder: SelectQueryBuilder<User>,
     currentUser: AuthorizedUser,
   ): void {
-    switch (currentUser.role) {
-      case UserRole.ADMIN:
-        break;
-      case UserRole.HR:
-        queryBuilder.andWhere('user.role != :adminRole', { adminRole: UserRole.ADMIN });
-        break;
-      case UserRole.MANAGER:
-        if (currentUser.departmentId) {
-          queryBuilder.andWhere('user.department_id = :deptId', {
-            deptId: currentUser.departmentId,
-          });
-          queryBuilder.andWhere('user.role NOT IN (:...highRoles)', {
-            highRoles: [UserRole.ADMIN, UserRole.HR],
-          });
-        } else {
-          queryBuilder.andWhere('1=0');
-        }
-        break;
-      case UserRole.EMPLOYEE:
-        queryBuilder.andWhere('user.id = :userId', { userId: currentUser.id });
-        break;
+    const roles = currentUser.roles;
+
+    if (roles.includes(UserRole.ADMIN)) {
+      return;
+    }
+
+    if (roles.includes(UserRole.HR)) {
+      queryBuilder.andWhere((qb) => {
+        const subQuery = qb
+          .subQuery()
+          .select('ur.user_id')
+          .from('user_roles', 'ur')
+          .innerJoin('roles', 'r', 'r.id = ur.role_id')
+          .where('r.code = :adminRole', { adminRole: UserRole.ADMIN })
+          .getQuery();
+        return `user.id NOT IN ${subQuery}`;
+      });
+      return;
+    }
+
+    if (roles.includes(UserRole.MANAGER)) {
+      if (currentUser.departmentId) {
+        queryBuilder.andWhere('user.department_id = :deptId', {
+          deptId: currentUser.departmentId,
+        });
+        // Limit to non-admin/non-hr
+        queryBuilder.andWhere((qb) => {
+          const subQuery = qb
+            .subQuery()
+            .select('ur.user_id')
+            .from('user_roles', 'ur')
+            .innerJoin('roles', 'r', 'r.id = ur.role_id')
+            .where('r.code IN (:...highRoles)', {
+              highRoles: [UserRole.ADMIN, UserRole.HR],
+            })
+            .getQuery();
+          return `user.id NOT IN ${subQuery}`;
+        });
+      } else {
+        queryBuilder.andWhere('1=0');
+      }
+      return;
+    }
+
+    if (roles.includes(UserRole.EMPLOYEE)) {
+      queryBuilder.andWhere('user.id = :userId', { userId: currentUser.id });
+      return;
     }
   }
 
@@ -597,22 +671,15 @@ export class UsersService {
 
     const activationLink = `${config.frontend.url}/activate?token=${token.token}`;
 
+    const primaryRole = user.roles?.[0]?.code || UserRole.EMPLOYEE;
+
     await this._emailService.sendInviteEmail(
       user.email,
-      user.role,
+      primaryRole,
       user.company.name,
       user.firstName,
       activationLink,
     );
-  }
-
-  private async _assignSystemRole(user: User): Promise<void> {
-    const systemRole = await this._roleRepository.findOne({
-      where: { code: user.role, isSystem: true },
-    });
-    if (systemRole) {
-      user.roles = [systemRole];
-    }
   }
 
   private async _hashPassword(password: string): Promise<string> {

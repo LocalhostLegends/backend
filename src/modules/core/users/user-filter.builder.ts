@@ -31,12 +31,23 @@ export class UserFilterBuilder {
 
     // Filter by role
     if (filters.role) {
-      queryBuilder.andWhere('user.role = :role', { role: filters.role });
+      queryBuilder
+        .innerJoin('user.roles', 'roleJoin')
+        .andWhere('roleJoin.code = :roleCode', { roleCode: filters.role });
     }
 
     // Filter by multiple roles
     if (filters.roles && filters.roles.length > 0) {
-      queryBuilder.andWhere('user.role IN (:...roles)', { roles: filters.roles });
+      const alias = filters.role ? 'rolesJoinMulti' : 'roleJoin';
+      if (filters.role) {
+        queryBuilder
+          .innerJoin('user.roles', alias)
+          .andWhere(`${alias}.code IN (:...rolesCodes)`, { rolesCodes: filters.roles });
+      } else {
+        queryBuilder
+          .innerJoin('user.roles', alias)
+          .andWhere(`${alias}.code IN (:...rolesCodes)`, { rolesCodes: filters.roles });
+      }
     }
 
     // Filter by status
@@ -150,18 +161,29 @@ export class UserFilterBuilder {
 
   applyRoleBasedAccess(
     queryBuilder: SelectQueryBuilder<User>,
-    currentUserRole: string,
+    currentUserRoles: string[],
     currentUserId: string,
   ): SelectQueryBuilder<User> {
-    switch (currentUserRole) {
-      case 'ADMIN':
-        break;
-      case 'HR':
-        queryBuilder.andWhere('user.role != :adminRole', { adminRole: 'ADMIN' });
-        break;
-      case 'EMPLOYEE':
-        queryBuilder.andWhere('user.id = :userId', { userId: currentUserId });
-        break;
+    if (currentUserRoles.includes('ADMIN')) {
+      return queryBuilder;
+    }
+
+    if (currentUserRoles.includes('HR')) {
+      queryBuilder.andWhere((qb) => {
+        const subQuery = qb
+          .subQuery()
+          .select('ur.user_id')
+          .from('user_roles', 'ur')
+          .innerJoin('roles', 'r', 'r.id = ur.role_id')
+          .where('r.code = :adminRole', { adminRole: 'ADMIN' })
+          .getQuery();
+        return `user.id NOT IN ${subQuery}`;
+      });
+      return queryBuilder;
+    }
+
+    if (currentUserRoles.includes('EMPLOYEE')) {
+      queryBuilder.andWhere('user.id = :userId', { userId: currentUserId });
     }
     return queryBuilder;
   }

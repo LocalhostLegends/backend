@@ -16,10 +16,10 @@ export const UserFields = {
     example: 'Doe',
     description: 'User last name',
   },
-  role: {
+  roles: {
     enum: UserRole,
-    example: UserRole.HR,
-    description: 'User role',
+    example: [UserRole.HR, UserRole.MANAGER],
+    description: 'User roles',
   },
   status: {
     enum: UserStatus,
@@ -43,6 +43,14 @@ export const UserFields = {
   },
   lastLoginAt: {
     description: 'Last login date',
+  },
+  dateOfBirth: {
+    example: '1990-01-01',
+    description: 'Date of birth',
+  },
+  hireDate: {
+    example: '2024-01-01',
+    description: 'Date of hire',
   },
   fullName: {
     description: 'Full name (First name + Last name)',

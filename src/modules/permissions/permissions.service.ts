@@ -18,7 +18,7 @@ export interface WrappedResource {
   id?: string;
   old?: WrappedResource;
   new?: Record<string, unknown>;
-  role?: UserRole;
+  roles?: UserRole[];
   companyId?: string | null;
   departmentId?: string | null;
   company?: { id: string } | null;
@@ -62,7 +62,7 @@ export class PermissionsService {
   ): Promise<{ denial: DenialReason | null; trace: PermissionTrace[] }> {
     const trace: PermissionTrace[] = [];
 
-    if (user.role === UserRole.SUPER_ADMIN) {
+    if (user.roles.includes(UserRole.SUPER_ADMIN)) {
       return { denial: null, trace: [{ rule: 'SuperAdminBypass', effect: 'ALLOW' }] };
     }
 

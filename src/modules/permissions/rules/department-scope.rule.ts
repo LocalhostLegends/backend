@@ -57,7 +57,14 @@ export class DepartmentScopeRule implements PolicyRule {
   }
 
   check(user: AuthorizedUser, action: string, resource?: PermissionResource | null): PolicyResult {
-    if (user.role !== UserRole.MANAGER || !user.departmentId) return { effect: 'SKIP' };
+    const isHigherRole = user.roles.some((role) =>
+      [UserRole.HR, UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role),
+    );
+
+    if (isHigherRole || !user.roles.includes(UserRole.MANAGER) || !user.departmentId) {
+      return { effect: 'SKIP' };
+    }
+
     if (!resource) return { effect: 'SKIP' };
 
     const actionEnum = action as PermissionAction;

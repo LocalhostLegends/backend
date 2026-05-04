@@ -2,12 +2,12 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsBoolean, IsEmail, IsUUID } from 'class-validator';
 
 import { UserRole } from '@common/enums/user-role.enum';
-import { IsPassword, IsPhone } from '@common/decorators/common-fields.decorators';
+import { IsDateQuery, IsPassword, IsPhone } from '@common/decorators/common-fields.decorators';
 import { CommonFields } from '@common/swagger/common.fields';
 import {
   IsUserFirstName,
   IsUserLastName,
-  IsUserRole,
+  IsUserRoles,
 } from '@modules/core/users/decorators/user-fields.decorators';
 import { UserFields } from '@modules/core/users/swagger/user.fields';
 import { CompanyFields } from '@modules/organization/companies/swagger/company.fields';
@@ -32,10 +32,20 @@ export class CreateUserDto {
   @IsPassword()
   password?: string;
 
-  @ApiPropertyOptional(UserFields.role)
+  @ApiPropertyOptional({ ...UserFields.roles, isArray: true })
   @IsOptional()
-  @IsUserRole()
-  role?: UserRole;
+  @IsUserRoles()
+  roles?: UserRole[];
+
+  @ApiPropertyOptional(UserFields.dateOfBirth)
+  @IsOptional()
+  @IsDateQuery()
+  dateOfBirth?: Date;
+
+  @ApiPropertyOptional(UserFields.hireDate)
+  @IsOptional()
+  @IsDateQuery()
+  hireDate?: Date;
 
   @ApiPropertyOptional(CompanyFields.id)
   @IsOptional()

@@ -18,7 +18,7 @@ export class UserRolesGuard implements CanActivate {
 
     if (requiredRoles.length > 0) {
       const user = getAppRequestUser(context);
-      const hasRole = requiredRoles.includes(user.role);
+      const hasRole = user.roles.some((role) => requiredRoles.includes(role));
 
       if (!hasRole) {
         throw new ForbiddenException(

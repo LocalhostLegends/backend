@@ -24,7 +24,9 @@ export class SelfAccessRule implements PolicyRule {
 
     if (
       user.permissions.includes(PermissionAction.USER_UPDATE) &&
-      [UserRole.HR, UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER].includes(user.role)
+      user.roles.some((role) =>
+        [UserRole.HR, UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER].includes(role),
+      )
     ) {
       return { effect: 'SKIP' };
     }
