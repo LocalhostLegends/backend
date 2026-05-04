@@ -8,10 +8,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install PostgreSQL client
+      - name: Install PostgreSQL 17 client
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+          pg_dump --version
 
       - name: Create database backup
         env:
@@ -20,7 +24,7 @@ jobs:
           mkdir -p backups
           FILE="backup-$(date +'%Y-%m-%d-%H-%M-%S').dump"
 
-          pg_dump "$NEON_DATABASE_URL" \
+          /usr/lib/postgresql/17/bin/pg_dump "$NEON_DATABASE_URL" \
             --format=custom \
             --compress=9 \
             --no-owner \
