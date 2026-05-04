@@ -8,10 +8,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install PostgreSQL client and AWS CLI
+      - name: Install PostgreSQL 17 client
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client awscli
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+          pg_dump --version
 
       - name: Create database backup
         env:
@@ -20,7 +24,7 @@ jobs:
           mkdir -p backups
           FILE="backup-$(date +'%Y-%m-%d-%H-%M-%S').dump"
 
-          pg_dump "$NEON_DATABASE_URL" \
+          /usr/lib/postgresql/17/bin/pg_dump "$NEON_DATABASE_URL" \
             --format=custom \
             --compress=9 \
             --no-owner \
@@ -30,11 +34,15 @@ jobs:
 
           echo "FILE=$FILE" >> $GITHUB_ENV
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Upload backup to S3
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
           S3_BACKUP_BUCKET: ${{ secrets.S3_BACKUP_BUCKET }}
         run: |
           aws s3 cp "backups/$FILE" "s3://$S3_BACKUP_BUCKET/postgres/$FILE"
