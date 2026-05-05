@@ -54,6 +54,8 @@ export const ExceptionMessages: {
     `This endpoint requires ownership of ${resourceName}`,
   [ExceptionCode.AUTH_FORBIDDEN_RESOURCE]: (requiredRole: string, isOwnerable = true) =>
     `This endpoint requires ${requiredRole} role ${isOwnerable ? ' or ownership of the resource' : ''}`,
+  [ExceptionCode.AUTH_TOKEN_EXPIRED]: () => 'Token has expired',
+  [ExceptionCode.AUTH_TOKEN_USED]: () => 'Token has already been used',
 
   // Companies
   [ExceptionCode.COMPANY_NOT_FOUND]: () => 'Company not found',

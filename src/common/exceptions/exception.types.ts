@@ -41,6 +41,8 @@ export type ExceptionParams = {
   [ExceptionCode.AUTH_HAS_ADMIN]: [];
   [ExceptionCode.AUTH_FORBIDDEN_NON_OWNERSHIP]: [resourceName: string];
   [ExceptionCode.AUTH_FORBIDDEN_RESOURCE]: [requiredRole: string, isOwnerable?: boolean];
+  [ExceptionCode.AUTH_TOKEN_EXPIRED]: [];
+  [ExceptionCode.AUTH_TOKEN_USED]: [];
 
   // Companies
   [ExceptionCode.COMPANY_NOT_FOUND]: [];
