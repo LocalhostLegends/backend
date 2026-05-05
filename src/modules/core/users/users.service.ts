@@ -555,6 +555,15 @@ export class UsersService {
     });
   }
 
+  async updatePassword(userId: string, password: string): Promise<void> {
+    const hashedPassword = await this._hashPassword(password);
+    await this._usersRepository.update(userId, {
+      password: hashedPassword,
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+    });
+  }
+
   async incrementFailedLoginAttempts(userId: string): Promise<void> {
     const user = await this.findById(userId);
     user.incrementFailedLoginAttempts();

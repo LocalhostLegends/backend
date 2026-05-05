@@ -10,6 +10,8 @@ import { AuthService } from './auth.service';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AccessTokenResponseDto } from './dto/access-token-response.dto';
 import { CurrentUser } from '../users/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
@@ -46,6 +48,22 @@ export class AuthController {
     const { accessToken, refreshToken } = await this._authService.login(loginDto, req.context);
     this._setRefreshTokenCookie(res, refreshToken);
     return { accessToken };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @swagger.ApiForgotPassword()
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<void> {
+    await this._authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @swagger.ApiResetPassword()
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<void> {
+    await this._authService.resetPassword(resetPasswordDto);
   }
 
   @Throttle({ default: { limit: 20, ttl: 60000 } })

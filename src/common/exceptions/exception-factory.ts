@@ -125,6 +125,14 @@ export class ExceptionFactory {
     return new AppException(ExceptionCode.AUTH_INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
   }
 
+  static tokenExpired() {
+    return new AppException(ExceptionCode.AUTH_TOKEN_EXPIRED, HttpStatus.BAD_REQUEST);
+  }
+
+  static tokenUsed() {
+    return new AppException(ExceptionCode.AUTH_TOKEN_USED, HttpStatus.BAD_REQUEST);
+  }
+
   static unauthorized() {
     return new AppException(ExceptionCode.AUTH_UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
   }
