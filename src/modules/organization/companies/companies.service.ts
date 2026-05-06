@@ -36,7 +36,12 @@ export class CompaniesService {
       country,
       city,
       address: street,
+      postalCode,
       taxId,
+      registrationNumber,
+      industry,
+      employeeCount,
+      companySize,
       phone,
       email,
       website,
@@ -47,17 +52,22 @@ export class CompaniesService {
       ...companyData,
       profile: {
         taxId,
+        registrationNumber,
+        industry,
+        employeeCount,
+        companySize,
         phone,
         email,
         website,
       },
       addresses:
-        country || city || street
+        country || city || street || postalCode
           ? [
               {
                 country: country || 'Unknown',
                 city: city || 'Unknown',
                 street: street || 'Unknown',
+                postalCode: postalCode || null,
                 type: AddressType.LEGAL,
               },
             ]
@@ -122,7 +132,12 @@ export class CompaniesService {
       country,
       city,
       address: street,
+      postalCode,
       taxId,
+      registrationNumber,
+      industry,
+      employeeCount,
+      companySize,
       phone,
       email,
       website,
@@ -137,12 +152,21 @@ export class CompaniesService {
       company.profile = { company_id: company.id } as unknown as CompanyProfile;
     }
     if (taxId !== undefined) company.profile.taxId = taxId;
+    if (registrationNumber !== undefined) company.profile.registrationNumber = registrationNumber;
+    if (industry !== undefined) company.profile.industry = industry;
+    if (employeeCount !== undefined) company.profile.employeeCount = employeeCount;
+    if (companySize !== undefined) company.profile.companySize = companySize;
     if (phone !== undefined) company.profile.phone = phone;
     if (email !== undefined) company.profile.email = email;
     if (website !== undefined) company.profile.website = website;
 
     // Update address (assume primary/legal address for simplicity in this DTO)
-    if (country !== undefined || city !== undefined || street !== undefined) {
+    if (
+      country !== undefined ||
+      city !== undefined ||
+      street !== undefined ||
+      postalCode !== undefined
+    ) {
       if (!company.addresses) company.addresses = [];
       let legalAddress = company.addresses.find((a) => a.type === AddressType.LEGAL);
       if (!legalAddress) {
@@ -150,6 +174,7 @@ export class CompaniesService {
           country: country || 'Unknown',
           city: city || 'Unknown',
           street: street || 'Unknown',
+          postalCode: postalCode || null,
           type: AddressType.LEGAL,
           company,
         } as unknown as Address;
@@ -160,6 +185,7 @@ export class CompaniesService {
         if (country !== undefined) legalAddress.country = country;
         if (city !== undefined) legalAddress.city = city;
         if (street !== undefined) legalAddress.street = street;
+        if (postalCode !== undefined) legalAddress.postalCode = postalCode;
       }
     }
 

@@ -33,4 +33,20 @@ export const CompanyFields = {
   employeeCount: {
     description: 'Company employees count',
   },
+  registrationNumber: {
+    example: 'REG-123456',
+    description: 'Company registration number',
+  },
+  industry: {
+    example: 'IT',
+    description: 'Company industry',
+  },
+  companySize: {
+    example: '1-10',
+    description: 'Company size range',
+  },
+  postalCode: {
+    example: '10115',
+    description: 'Postal code',
+  },
 } as const satisfies SwaggerFieldsMap;

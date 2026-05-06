@@ -38,6 +38,10 @@ export class CompanyResponseDto {
   address: string | null;
 
   @Expose()
+  @ApiPropertyOptional(CompanyFields.postalCode)
+  postalCode: string | null;
+
+  @Expose()
   @ApiPropertyOptional(CommonFields.phone)
   phone: string | null;
 
@@ -52,6 +56,18 @@ export class CompanyResponseDto {
   @Expose()
   @ApiPropertyOptional(CommonFields.taxId)
   taxId: string | null;
+
+  @Expose()
+  @ApiPropertyOptional(CompanyFields.registrationNumber)
+  registrationNumber: string | null;
+
+  @Expose()
+  @ApiPropertyOptional(CompanyFields.industry)
+  industry: string | null;
+
+  @Expose()
+  @ApiPropertyOptional(CompanyFields.companySize)
+  companySize: string | null;
 
   @Expose()
   @ApiProperty(CompanyFields.employeeCount)

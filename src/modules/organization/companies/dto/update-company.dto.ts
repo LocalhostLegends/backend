@@ -40,6 +40,11 @@ export class UpdateCompanyDto {
   @IsString()
   address?: string;
 
+  @ApiPropertyOptional(CompanyFields.postalCode)
+  @IsOptional()
+  @IsString()
+  postalCode?: string;
+
   @ApiPropertyOptional(CommonFields.phone)
   @IsOptional()
   @IsString()
@@ -59,6 +64,25 @@ export class UpdateCompanyDto {
   @IsOptional()
   @IsString()
   taxId?: string;
+
+  @ApiPropertyOptional(CompanyFields.registrationNumber)
+  @IsOptional()
+  @IsString()
+  registrationNumber?: string;
+
+  @ApiPropertyOptional(CompanyFields.industry)
+  @IsOptional()
+  @IsString()
+  industry?: string;
+
+  @ApiPropertyOptional(CompanyFields.employeeCount)
+  @IsOptional()
+  employeeCount?: number;
+
+  @ApiPropertyOptional(CompanyFields.companySize)
+  @IsOptional()
+  @IsString()
+  companySize?: string;
 
   @ApiPropertyOptional(CompanyFields.isActive)
   @IsOptional()

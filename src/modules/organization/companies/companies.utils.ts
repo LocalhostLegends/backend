@@ -25,6 +25,9 @@ export function toCompanyResponse(
       subscriptionExpiresAt: company.subscriptionExpiresAt,
       // From profile
       taxId: company.profile?.taxId || null,
+      registrationNumber: company.profile?.registrationNumber || null,
+      industry: company.profile?.industry || null,
+      companySize: company.profile?.companySize || null,
       phone: company.profile?.phone || null,
       email: company.profile?.email || null,
       website: company.profile?.website || null,
@@ -33,6 +36,7 @@ export function toCompanyResponse(
       country: legalAddress?.country || null,
       city: legalAddress?.city || null,
       address: legalAddress?.street || null,
+      postalCode: legalAddress?.postalCode || null,
     };
   };
 
