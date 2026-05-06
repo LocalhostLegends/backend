@@ -16,6 +16,8 @@ import { JwtPayload, JwtRefreshPayload, AuthResponse } from './auth.types';
 
 import { TokenService } from '../token/token.service';
 import { UsersService } from '../users/users.service';
+import { toUserResponse } from '../users/users.utils';
+import { UserResponseDto } from '@modules/core/users/dto/user-response.dto';
 import { EmailService } from '../email/email.service';
 import { AuditLogService } from '../../audit/audit-log.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -62,10 +64,13 @@ export class AuthService {
 
     const user = await this._usersService.create(userData);
 
-    const accessToken = await this._generateAccessToken(user);
+    const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
+    const userResponse = (await toUserResponse(user, (userId) =>
+      this._usersService.getUserPermissions(userId),
+    )) as UserResponseDto;
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, user: userResponse };
   }
 
   async login(loginDto: LoginDto, context?: AppRequestContext): Promise<AuthResponse> {
@@ -156,10 +161,13 @@ export class AuthService {
     });
     await this._usersService.updateLastLogin(user.id, context?.ip, context?.userAgent);
 
-    const accessToken = await this._generateAccessToken(user);
+    const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
+    const userResponse = (await toUserResponse(user, (userId) =>
+      this._usersService.getUserPermissions(userId),
+    )) as UserResponseDto;
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, user: userResponse };
   }
 
   async refresh(userId: string): Promise<AuthResponse> {
@@ -169,10 +177,13 @@ export class AuthService {
       throw ExceptionFactory.userNotActive();
     }
 
-    const accessToken = await this._generateAccessToken(user);
+    const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
+    const userResponse = (await toUserResponse(user, (userId) =>
+      this._usersService.getUserPermissions(userId),
+    )) as UserResponseDto;
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, user: userResponse };
   }
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<void> {
@@ -229,16 +240,13 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  private async _generateAccessToken(user: User): Promise<string> {
-    const permissions = await this._usersService.getUserPermissions(user.id);
+  private _generateAccessToken(user: User): string {
     const roles = user.roles?.map((r) => r.code as UserRole) || [];
 
     const payload: JwtPayload = {
       sub: user.id,
-      email: user.email,
       roles,
       companyId: user.company.id,
-      permissions,
       pv: user.permissionsVersion,
     };
 

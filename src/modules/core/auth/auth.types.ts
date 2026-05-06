@@ -1,11 +1,10 @@
 import { UserRole } from '@common/enums/user-role.enum';
+import { UserResponseDto } from '@modules/core/users/dto/user-response.dto';
 
 export interface JwtPayload {
   sub: string;
-  email: string;
   roles: UserRole[];
   companyId: string;
-  permissions: string[];
   pv: number; // permission version
 }
 
@@ -17,4 +16,5 @@ export interface JwtRefreshPayload {
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
+  user: UserResponseDto;
 }

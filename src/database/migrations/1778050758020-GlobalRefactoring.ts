@@ -148,7 +148,6 @@ export class GlobalRefactoring1778050758020 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "users" ADD "password" character varying(255)`);
     await queryRunner.query(`ALTER TABLE "companies" ADD "settings" jsonb NOT NULL DEFAULT '{}'`);
 
-    // Restore Data: CompanyProfiles & Addresses -> Companies
     await queryRunner.query(`
             UPDATE "companies"
             SET settings = jsonb_build_object(
@@ -164,7 +163,6 @@ export class GlobalRefactoring1778050758020 implements MigrationInterface {
             WHERE "companies".id = cp.company_id
         `);
 
-    // Restore Data: UserSecurity -> Users
     await queryRunner.query(`
             UPDATE "users"
             SET "password" = us.password,
@@ -179,7 +177,6 @@ export class GlobalRefactoring1778050758020 implements MigrationInterface {
             WHERE "users".id = us.user_id
         `);
 
-    // Restore Data: UserSettings -> Users
     await queryRunner.query(`
             UPDATE "users"
             SET "preferences" = jsonb_build_object(

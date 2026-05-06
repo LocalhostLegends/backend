@@ -254,14 +254,17 @@ export class UsersService {
 
     return {
       ...result,
-      items: toUserResponse(result.items),
+      items: (await toUserResponse(
+        result.items,
+        this.getUserPermissions.bind(this),
+      )) as UserResponseDto[],
     };
   }
 
   async findOne(id: string, currentUser: AuthorizedUser): Promise<UserResponseDto> {
     const user = await this.findById(id);
     await this._permissions.assertCan(currentUser, PermissionAction.USER_READ, user);
-    return toUserResponse(user);
+    return (await toUserResponse(user, this.getUserPermissions.bind(this))) as UserResponseDto;
   }
 
   async findById(id: string): Promise<User> {
@@ -320,20 +323,31 @@ export class UsersService {
   ): Promise<UserResponseDto> {
     const user = await this.findById(id);
 
-    await this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, {
+    const isSelfUpdate = user.id === currentUser.id;
+    const action = isSelfUpdate ? PermissionAction.USER_UPDATE_SELF : PermissionAction.USER_UPDATE;
+
+    await this._permissions.assertCan(currentUser, action, {
       ...user,
       new: updateUserDto as unknown as Record<string, unknown>,
     });
 
-    if (updateUserDto.email && updateUserDto.email !== user.email) {
-      await this._ensureEmailUniqueInCompany(updateUserDto.email, currentUser.companyId);
-    }
-
     const updateData: Partial<User> = {};
+
+    if (updateUserDto.email !== undefined && updateUserDto.email !== user.email) {
+      // Check specific permission for email update
+      await this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE_EMAIL, {
+        ...user,
+        new: { email: updateUserDto.email },
+      });
+
+      await this._ensureEmailUniqueInCompany(updateUserDto.email, currentUser.companyId);
+      updateData.email = updateUserDto.email;
+
+      await this._tokenService.revokeUserTokens(user.id);
+    }
 
     if (updateUserDto.firstName !== undefined) updateData.firstName = updateUserDto.firstName;
     if (updateUserDto.lastName !== undefined) updateData.lastName = updateUserDto.lastName;
-    if (updateUserDto.email !== undefined) updateData.email = updateUserDto.email;
     if (updateUserDto.phone !== undefined) updateData.phone = updateUserDto.phone;
     if (updateUserDto.avatar !== undefined) updateData.avatar = updateUserDto.avatar;
     if (updateUserDto.dateOfBirth !== undefined) updateData.dateOfBirth = updateUserDto.dateOfBirth;
@@ -398,11 +412,7 @@ export class UsersService {
     const updatedUser = this._usersRepository.merge(user, updateData);
     const savedUser = await this._usersRepository.save(updatedUser);
 
-    if (updateUserDto.roles !== undefined) {
-      return this.findOne(savedUser.id, currentUser);
-    }
-
-    return toUserResponse(savedUser);
+    return await this.findOne(savedUser.id, currentUser);
   }
 
   async remove(id: string, currentUser: AuthorizedUser): Promise<void> {
@@ -504,7 +514,7 @@ export class UsersService {
 
     await this._tokenService.revokeUserTokens(id);
     const savedUser = await this._usersRepository.save(user);
-    return toUserResponse(savedUser);
+    return (await toUserResponse(savedUser, this.getUserPermissions.bind(this))) as UserResponseDto;
   }
 
   async unblockUser(id: string, currentUser: AuthorizedUser): Promise<UserResponseDto> {
@@ -515,7 +525,7 @@ export class UsersService {
       user.security.resetFailedLoginAttempts();
     }
     const savedUser = await this._usersRepository.save(user);
-    return toUserResponse(savedUser);
+    return (await toUserResponse(savedUser, this.getUserPermissions.bind(this))) as UserResponseDto;
   }
 
   async getUsersByRole(currentUser: AuthorizedUser, role: UserRole): Promise<UserResponseDto[]> {
@@ -542,7 +552,7 @@ export class UsersService {
     this._applyRoleBasedAccess(queryBuilder, currentUser);
 
     const users = await queryBuilder.getMany();
-    return toUserResponse(users);
+    return (await toUserResponse(users, this.getUserPermissions.bind(this))) as UserResponseDto[];
   }
 
   async getCompanyUsers(companyId: string): Promise<User[]> {

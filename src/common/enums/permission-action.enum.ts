@@ -20,6 +20,8 @@ export enum PermissionAction {
   USER_CREATE = 'user.create',
   USER_READ = 'user.read',
   USER_UPDATE = 'user.update',
+  USER_UPDATE_SELF = 'user.update_self',
+  USER_UPDATE_EMAIL = 'user.update_email',
   USER_DELETE = 'user.delete',
   USER_MANAGE_ROLES = 'user.manage_roles',
 

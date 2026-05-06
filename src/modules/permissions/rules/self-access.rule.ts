@@ -13,17 +13,21 @@ export class SelfAccessRule implements PolicyRule {
   private readonly ALLOWED_SELF_UPDATE_FIELDS = ['firstName', 'lastName', 'phone', 'avatar'];
 
   supports(action: string): boolean {
-    return [PermissionAction.USER_READ, PermissionAction.USER_UPDATE].includes(
-      action as PermissionAction,
-    );
+    return [
+      PermissionAction.USER_READ,
+      PermissionAction.USER_UPDATE,
+      PermissionAction.USER_UPDATE_SELF,
+    ].includes(action as PermissionAction);
   }
 
   check(user: AuthorizedUser, action: string, resource?: PermissionResource | null): PolicyResult {
     const resourceId = (resource as WrappedResource | undefined)?.id;
     if (!resourceId || resourceId !== user.id) return { effect: 'SKIP' };
 
+    const actionEnum = action as PermissionAction;
+
     if (
-      user.permissions.includes(PermissionAction.USER_UPDATE) &&
+      actionEnum === PermissionAction.USER_UPDATE &&
       user.roles.some((role) =>
         [UserRole.HR, UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER].includes(role),
       )
@@ -31,13 +35,15 @@ export class SelfAccessRule implements PolicyRule {
       return { effect: 'SKIP' };
     }
 
-    const actionEnum = action as PermissionAction;
-
     if (actionEnum === PermissionAction.USER_READ) {
       return { effect: 'ALLOW' };
     }
 
-    if (actionEnum === PermissionAction.USER_UPDATE && resource) {
+    if (
+      (actionEnum === PermissionAction.USER_UPDATE ||
+        actionEnum === PermissionAction.USER_UPDATE_SELF) &&
+      resource
+    ) {
       const wrappedRes = resource;
       const updateData = (wrappedRes.new || wrappedRes) as Record<string, any>;
       const updateKeys = Object.keys(updateData).filter(

@@ -30,9 +30,10 @@ export class AuthController {
     @Body() registerDto: RegisterCompanyDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AccessTokenResponseDto> {
-    const { accessToken, refreshToken } = await this._authService.registerCompany(registerDto);
+    const { accessToken, refreshToken, user } =
+      await this._authService.registerCompany(registerDto);
     this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken };
+    return { accessToken, user };
   }
 
   @Public()
@@ -45,9 +46,12 @@ export class AuthController {
     @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AccessTokenResponseDto> {
-    const { accessToken, refreshToken } = await this._authService.login(loginDto, req.context);
+    const { accessToken, refreshToken, user } = await this._authService.login(
+      loginDto,
+      req.context,
+    );
     this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken };
+    return { accessToken, user };
   }
 
   @Public()
@@ -75,9 +79,9 @@ export class AuthController {
     @CurrentUser() user: AuthorizedUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AccessTokenResponseDto> {
-    const { accessToken, refreshToken } = await this._authService.refresh(user.id);
+    const { accessToken, refreshToken, user: userData } = await this._authService.refresh(user.id);
     this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken };
+    return { accessToken, user: userData };
   }
 
   @Post('logout')
