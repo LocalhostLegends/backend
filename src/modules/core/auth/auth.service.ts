@@ -117,7 +117,12 @@ export class AuthService {
       throw ExceptionFactory.userBlocked();
     }
 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password!);
+    const password = user.security?.password;
+    if (!password) {
+      throw ExceptionFactory.invalidCredentials();
+    }
+
+    const isPasswordValid = await bcrypt.compare(loginDto.password, password);
 
     if (!isPasswordValid) {
       await this.auditLogService.createAuthLog({

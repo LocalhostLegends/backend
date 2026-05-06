@@ -5,6 +5,8 @@ import * as bcrypt from 'bcryptjs';
 
 import config from '@config/app.config';
 import { User } from '@database/entities/user.entity';
+import { UserSecurity } from '@database/entities/user-security.entity';
+import { UserSettings } from '@database/entities/user-settings.entity';
 import { Department } from '@database/entities/department.entity';
 import { Position } from '@database/entities/position.entity';
 import { Company } from '@database/entities/company.entity';
@@ -151,17 +153,18 @@ export class UsersService {
       phone: createUserDto.phone || null,
       status: hasPassword ? UserStatus.ACTIVE : UserStatus.INVITED,
       createdBy: currentUser?.id || null,
-      metadata: {
-        invitedBy: currentUser?.id,
-        invitedAt: new Date(),
-        source: 'manual',
-      },
+      security: {
+        password: hasPassword ? await this._hashPassword(createUserDto.password!) : null,
+        emailVerifiedAt: hasPassword ? new Date() : null,
+      } as unknown as UserSecurity,
+      settings: {
+        metadata: {
+          invitedBy: currentUser?.id,
+          invitedAt: new Date(),
+          source: 'manual',
+        },
+      } as unknown as UserSettings,
     };
-
-    if (hasPassword) {
-      userData.password = await this._hashPassword(createUserDto.password!);
-      userData.emailVerifiedAt = new Date();
-    }
 
     const user = this._usersRepository.create(userData);
 
@@ -200,11 +203,13 @@ export class UsersService {
       status: UserStatus.INVITED,
       company,
       createdBy: createdBy || null,
-      metadata: {
-        invitedBy: createdBy,
-        invitedAt: new Date(),
-        source: 'invite',
-      },
+      settings: {
+        metadata: {
+          invitedBy: createdBy,
+          invitedAt: new Date(),
+          source: 'invite',
+        },
+      } as unknown as UserSettings,
     });
 
     const systemRoles = await this._roleRepository.find({
@@ -262,7 +267,7 @@ export class UsersService {
   async findById(id: string): Promise<User> {
     const user = await this._usersRepository.findOne({
       where: { id },
-      relations: ['company', 'department', 'position', 'roles'],
+      relations: ['company', 'department', 'position', 'roles', 'security', 'settings'],
     });
 
     if (!user) {
@@ -283,6 +288,8 @@ export class UsersService {
       .leftJoinAndSelect('user.department', 'department')
       .leftJoinAndSelect('user.position', 'position')
       .leftJoinAndSelect('user.roles', 'roles')
+      .leftJoinAndSelect('user.security', 'security')
+      .leftJoinAndSelect('user.settings', 'settings')
       .where('user.email = :email', { email });
 
     if (companyId) {
@@ -290,7 +297,7 @@ export class UsersService {
     }
 
     if (includePassword) {
-      queryBuilder.addSelect('user.password');
+      queryBuilder.addSelect('security.password');
     }
 
     return queryBuilder.getOne();
@@ -414,23 +421,19 @@ export class UsersService {
   async activateUser(token: string, password: string, _ip?: string): Promise<User> {
     const invite = await this._inviteRepository.findOne({
       where: { token },
-      relations: ['company'],
+      relations: ['company', 'department', 'position', 'invitedBy'],
     });
 
     if (!invite) {
       throw ExceptionFactory.invalidToken();
     }
 
-    const department = invite.departmentId
-      ? await this._findDepartmentById(invite.departmentId, invite.company.id)
-      : null;
-
-    const position = invite.positionId
-      ? await this._findPositionById(invite.positionId, invite.company.id)
-      : null;
+    const department = invite.department;
+    const position = invite.position;
 
     let user = await this._usersRepository.findOne({
       where: { email: invite.email, company: { id: invite.company.id } },
+      relations: ['security', 'settings', 'roles'],
     });
 
     if (!user) {
@@ -441,11 +444,14 @@ export class UsersService {
         hireDate: new Date(),
         status: UserStatus.INVITED,
         company: invite.company,
-        metadata: {
-          invitedBy: invite.invitedBy?.id,
-          invitedAt: new Date(),
-          source: 'invite',
-        },
+        security: {},
+        settings: {
+          metadata: {
+            invitedBy: invite.invitedBy?.id,
+            invitedAt: new Date(),
+            source: 'invite',
+          },
+        } as unknown as UserSettings,
       });
       const systemRoles = await this._roleRepository.find({
         where: { code: invite.role, isSystem: true },
@@ -462,9 +468,12 @@ export class UsersService {
       user.position = position;
     }
 
-    user.password = await this._hashPassword(password);
+    if (!user.security) {
+      user.security = new UserSecurity();
+    }
+    user.security.password = await this._hashPassword(password);
+    user.security.emailVerifiedAt = new Date();
     user.status = UserStatus.ACTIVE;
-    user.emailVerifiedAt = new Date();
 
     const systemRoles = await this._roleRepository.find({
       where: { code: invite.role, isSystem: true },
@@ -502,7 +511,9 @@ export class UsersService {
     const user = await this.findById(id);
     await this._permissions.assertCan(currentUser, PermissionAction.USER_UPDATE, user);
     user.status = UserStatus.ACTIVE;
-    user.resetFailedLoginAttempts();
+    if (user.security) {
+      user.security.resetFailedLoginAttempts();
+    }
     const savedUser = await this._usersRepository.save(user);
     return toUserResponse(savedUser);
   }
@@ -546,28 +557,36 @@ export class UsersService {
     ipAddress?: string,
     userAgent?: string | null,
   ): Promise<void> {
-    await this._usersRepository.update(userId, {
-      lastLoginAt: new Date(),
-      lastLoginIp: ipAddress ?? null,
-      lastLoginUserAgent: userAgent ?? null,
-      failedLoginAttempts: 0,
-      lockedUntil: null,
-    });
+    const user = await this.findById(userId);
+    if (!user.security) {
+      user.security = new UserSecurity();
+    }
+    user.security.lastLoginAt = new Date();
+    user.security.lastLoginIp = ipAddress ?? null;
+    user.security.lastLoginUserAgent = userAgent ?? null;
+    user.security.resetFailedLoginAttempts();
+
+    await this._usersRepository.save(user);
   }
 
   async updatePassword(userId: string, password: string): Promise<void> {
     const hashedPassword = await this._hashPassword(password);
-    await this._usersRepository.update(userId, {
-      password: hashedPassword,
-      failedLoginAttempts: 0,
-      lockedUntil: null,
-    });
+    const user = await this.findById(userId);
+    if (!user.security) {
+      user.security = new UserSecurity();
+    }
+    user.security.password = hashedPassword;
+    user.security.resetFailedLoginAttempts();
+
+    await this._usersRepository.save(user);
   }
 
   async incrementFailedLoginAttempts(userId: string): Promise<void> {
     const user = await this.findById(userId);
-    user.incrementFailedLoginAttempts();
-    user.lastFailedLoginAt = new Date();
+    if (!user.security) {
+      user.security = new UserSecurity();
+    }
+    user.security.incrementFailedLoginAttempts();
     await this._usersRepository.save(user);
   }
 

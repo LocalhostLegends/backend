@@ -14,6 +14,8 @@ import { UserRole } from '@common/enums/user-role.enum';
 
 import { Company } from './company.entity';
 import { User } from './user.entity';
+import { Department } from './department.entity';
+import { Position } from './position.entity';
 
 @Entity('invites')
 @Index(['email', 'company', 'status'])
@@ -43,11 +45,13 @@ export class Invite {
   @JoinColumn({ name: 'invited_by' })
   invitedBy: User;
 
-  @Column({ type: 'uuid', nullable: true, name: 'department_id' })
-  departmentId: string | null;
+  @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'department_id' })
+  department: Department | null;
 
-  @Column({ type: 'uuid', nullable: true, name: 'position_id' })
-  positionId: string | null;
+  @ManyToOne(() => Position, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'position_id' })
+  position: Position | null;
 
   @Column({ type: 'timestamp', name: 'expires_at' })
   expiresAt: Date;

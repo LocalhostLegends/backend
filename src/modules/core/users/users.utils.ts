@@ -20,7 +20,7 @@ export function toUserResponse(data: User | User[]): UserResponseDto | UserRespo
     department: user.department,
     position: user.position,
     company: user.company,
-    lastLoginAt: user.lastLoginAt,
+    lastLoginAt: user.security?.lastLoginAt,
     dateOfBirth: user.dateOfBirth,
     hireDate: user.hireDate,
     roles: user.roles?.map((role) => role.code) ?? [],

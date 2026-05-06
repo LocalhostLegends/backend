@@ -96,8 +96,8 @@ export class InviteService {
         role: dto.role,
         company: { id: currentUser.companyId },
         invitedBy: { id: currentUser.id },
-        departmentId: dto.departmentId || null,
-        positionId: dto.positionId || null,
+        department: dto.departmentId ? { id: dto.departmentId } : null,
+        position: dto.positionId ? { id: dto.positionId } : null,
         expiresAt: expiresAt,
         status: InviteStatus.PENDING,
         sentCount: 1,
@@ -253,7 +253,7 @@ export class InviteService {
 
     const where: FindOptionsWhere<Invite> = { company: { id: currentUser.companyId } };
     if (currentUser.roles.includes(UserRole.MANAGER) && currentUser.departmentId) {
-      where.departmentId = currentUser.departmentId;
+      where.department = { id: currentUser.departmentId };
     }
 
     return this._inviteRepository.find({
@@ -273,7 +273,7 @@ export class InviteService {
     };
 
     if (currentUser.roles.includes(UserRole.MANAGER) && currentUser.departmentId) {
-      where.departmentId = currentUser.departmentId;
+      where.department = { id: currentUser.departmentId };
     }
 
     return this._inviteRepository.find({
