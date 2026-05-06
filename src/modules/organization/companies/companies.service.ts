@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DeepPartial } from 'typeorm';
 
 import { Company } from '@database/entities/company.entity';
+import { CompanyProfile } from '@database/entities/company-profile.entity';
+import { AddressType } from '@common/enums/address-type.enum';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { PermissionsService } from '@modules/permissions/permissions.service';
@@ -10,6 +12,7 @@ import { ExceptionFactory } from '@common/exceptions/exception-factory';
 
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
+import { Address } from '@/database/entities/address.entity';
 
 @Injectable()
 export class CompaniesService {
@@ -29,7 +32,38 @@ export class CompaniesService {
       await this._ensureSubdomainUnique(createCompanyDto.subdomain);
     }
 
-    const company = this._companyRepository.create(createCompanyDto);
+    const {
+      country,
+      city,
+      address: street,
+      taxId,
+      phone,
+      email,
+      website,
+      ...companyData
+    } = createCompanyDto;
+
+    const company = this._companyRepository.create({
+      ...companyData,
+      profile: {
+        taxId,
+        phone,
+        email,
+        website,
+      },
+      addresses:
+        country || city || street
+          ? [
+              {
+                country: country || 'Unknown',
+                city: city || 'Unknown',
+                street: street || 'Unknown',
+                type: AddressType.LEGAL,
+              },
+            ]
+          : [],
+    } as DeepPartial<Company>);
+
     return this._companyRepository.save(company);
   }
 
@@ -39,7 +73,7 @@ export class CompaniesService {
     }
 
     return this._companyRepository.find({
-      relations: ['users', 'departments', 'positions'],
+      relations: ['users', 'departments', 'positions', 'profile', 'addresses'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -47,7 +81,7 @@ export class CompaniesService {
   async findById(id: string, currentUser?: AuthorizedUser): Promise<Company> {
     const company = await this._companyRepository.findOne({
       where: { id },
-      relations: ['users', 'departments', 'positions'],
+      relations: ['users', 'departments', 'positions', 'profile', 'addresses'],
     });
 
     if (!company) {
@@ -64,6 +98,7 @@ export class CompaniesService {
   async findBySubdomain(subdomain: string): Promise<Company | null> {
     return this._companyRepository.findOne({
       where: { subdomain },
+      relations: ['profile', 'addresses'],
     });
   }
 
@@ -83,7 +118,51 @@ export class CompaniesService {
       await this._ensureSubdomainUnique(updateCompanyDto.subdomain);
     }
 
-    Object.assign(company, updateCompanyDto);
+    const {
+      country,
+      city,
+      address: street,
+      taxId,
+      phone,
+      email,
+      website,
+      ...companyData
+    } = updateCompanyDto;
+
+    // Update main company fields
+    Object.assign(company, companyData);
+
+    // Update profile
+    if (!company.profile) {
+      company.profile = { company_id: company.id } as unknown as CompanyProfile;
+    }
+    if (taxId !== undefined) company.profile.taxId = taxId;
+    if (phone !== undefined) company.profile.phone = phone;
+    if (email !== undefined) company.profile.email = email;
+    if (website !== undefined) company.profile.website = website;
+
+    // Update address (assume primary/legal address for simplicity in this DTO)
+    if (country !== undefined || city !== undefined || street !== undefined) {
+      if (!company.addresses) company.addresses = [];
+      let legalAddress = company.addresses.find((a) => a.type === AddressType.LEGAL);
+      if (!legalAddress) {
+        legalAddress = {
+          country: country || 'Unknown',
+          city: city || 'Unknown',
+          street: street || 'Unknown',
+          type: AddressType.LEGAL,
+          company,
+        } as unknown as Address;
+        if (legalAddress) {
+          company.addresses.push(legalAddress);
+        }
+      } else {
+        if (country !== undefined) legalAddress.country = country;
+        if (city !== undefined) legalAddress.city = city;
+        if (street !== undefined) legalAddress.street = street;
+      }
+    }
+
     return this._companyRepository.save(company);
   }
 
@@ -98,11 +177,21 @@ export class CompaniesService {
   }
 
   async incrementEmployeeCount(id: string): Promise<void> {
-    await this._companyRepository.increment({ id }, 'employeeCount', 1);
+    await this._companyRepository.manager.increment(
+      CompanyProfile,
+      { company_id: id },
+      'employeeCount',
+      1,
+    );
   }
 
   async decrementEmployeeCount(id: string): Promise<void> {
-    await this._companyRepository.decrement({ id }, 'employeeCount', 1);
+    await this._companyRepository.manager.decrement(
+      CompanyProfile,
+      { company_id: id },
+      'employeeCount',
+      1,
+    );
   }
 
   async updateSubscription(

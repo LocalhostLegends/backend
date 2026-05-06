@@ -15,11 +15,11 @@ import { CurrentUser } from '@modules/core/users/decorators/current-user.decorat
 import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
 import { RequireUserRoles } from '@modules/core/users/decorators/require-user-roles.decorator';
 import { UserRole } from '@common/enums/user-role.enum';
-import { transformToDto } from '@/common/utils/dto.utils';
 import { USER_ROLES } from '@/common/constants/common.constants';
 import type { AuthorizedUser } from '@/modules/core/users/users.types';
 
 import { CompaniesService } from './companies.service';
+import { toCompanyResponse } from './companies.utils';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
@@ -39,25 +39,21 @@ export class CompaniesController {
     @Body(ValidationPipe) createCompanyDto: CreateCompanyDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<CompanyResponseDto> {
-    return transformToDto(
-      CompanyResponseDto,
-      await this._companiesService.create(createCompanyDto, currentUser),
-    );
+    return toCompanyResponse(await this._companiesService.create(createCompanyDto, currentUser));
   }
 
   @Get()
   @RequireUserRoles(UserRole.ADMIN)
   @swagger.ApiFindAll()
   async findAll(@CurrentUser() currentUser: AuthorizedUser): Promise<CompanyResponseDto[]> {
-    return transformToDto(CompanyResponseDto, await this._companiesService.findAll(currentUser));
+    return toCompanyResponse(await this._companiesService.findAll(currentUser));
   }
 
   @Get('my-company')
   @RequireUserRoles(...USER_ROLES)
   @swagger.ApiGetMyCompany()
   async getMyCompany(@CurrentUser() currentUser: AuthorizedUser): Promise<CompanyResponseDto> {
-    return transformToDto(
-      CompanyResponseDto,
+    return toCompanyResponse(
       await this._companiesService.findById(currentUser.companyId, currentUser),
     );
   }
@@ -76,10 +72,7 @@ export class CompaniesController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<CompanyResponseDto> {
-    return transformToDto(
-      CompanyResponseDto,
-      await this._companiesService.findById(id, currentUser),
-    );
+    return toCompanyResponse(await this._companiesService.findById(id, currentUser));
   }
 
   @Patch(':id')
@@ -90,8 +83,7 @@ export class CompaniesController {
     @Body(ValidationPipe) updateCompanyDto: UpdateCompanyDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<CompanyResponseDto> {
-    return transformToDto(
-      CompanyResponseDto,
+    return toCompanyResponse(
       await this._companiesService.update(id, updateCompanyDto, currentUser),
     );
   }
@@ -114,8 +106,7 @@ export class CompaniesController {
     @Body(ValidationPipe) updateSubscriptionDto: UpdateSubscriptionDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ) {
-    return transformToDto(
-      CompanyResponseDto,
+    return toCompanyResponse(
       await this._companiesService.updateSubscription(
         id,
         updateSubscriptionDto.plan,

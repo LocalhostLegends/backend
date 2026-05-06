@@ -16,11 +16,11 @@ import type { Request } from 'express';
 
 import { UserRole } from '@common/enums/user-role.enum';
 import type { AuthorizedUser } from '@/modules/core/users/users.types';
-import { transformToDto } from '@/common/utils/dto.utils';
 import { UserRolesGuard } from '@modules/core/users/guards/user-roles.guard';
 import { RequireUserRoles } from '@modules/core/users/decorators/require-user-roles.decorator';
 
 import { InviteService } from './invite.service';
+import { toInviteResponse } from './invite.utils';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { ResendInviteDto } from './dto/resend-invite.dto';
 import { ValidateInviteDto } from './dto/validate-invite.dto';
@@ -44,17 +44,14 @@ export class InviteController {
     @Body() dto: CreateInviteDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<InviteResponseDto> {
-    return transformToDto(
-      InviteResponseDto,
-      await this._inviteService.createInvite(dto, currentUser),
-    );
+    return toInviteResponse(await this._inviteService.createInvite(dto, currentUser));
   }
 
   @Public()
   @Get('validate')
   @swagger.ApiValidateInvite()
   async validateInvite(@Query() query: ValidateInviteDto): Promise<InviteResponseDto> {
-    return transformToDto(InviteResponseDto, await this._inviteService.validateInvite(query.token));
+    return toInviteResponse(await this._inviteService.validateInvite(query.token));
   }
 
   @Public()
@@ -79,10 +76,7 @@ export class InviteController {
     @Body() dto: ResendInviteDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<InviteResponseDto> {
-    return transformToDto(
-      InviteResponseDto,
-      await this._inviteService.resendInvite(dto.inviteId, currentUser),
-    );
+    return toInviteResponse(await this._inviteService.resendInvite(dto.inviteId, currentUser));
   }
 
   @Delete(':id')
@@ -104,10 +98,7 @@ export class InviteController {
   async getCompanyInvites(
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<InviteResponseDto[]> {
-    return transformToDto(
-      InviteResponseDto,
-      await this._inviteService.getCompanyInvites(currentUser),
-    );
+    return toInviteResponse(await this._inviteService.getCompanyInvites(currentUser));
   }
 
   @Get('pending')
@@ -117,9 +108,6 @@ export class InviteController {
   async getPendingInvites(
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<InviteResponseDto[]> {
-    return transformToDto(
-      InviteResponseDto,
-      await this._inviteService.getPendingInvites(currentUser),
-    );
+    return toInviteResponse(await this._inviteService.getPendingInvites(currentUser));
   }
 }
