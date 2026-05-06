@@ -19,6 +19,22 @@ export const UserFilterFields = {
   createdBefore: {
     description: 'Created before date',
   },
+  hiredAfter: {
+    description: 'Hired after date',
+  },
+  hiredBefore: {
+    description: 'Hired before date',
+  },
+  lastLoginAfter: {
+    description: 'Last login after date',
+  },
+  lastLoginBefore: {
+    description: 'Last login before date',
+  },
+  dobMonth: {
+    description: 'Filter by month of birth (1-12)',
+    example: '5',
+  },
   pendingOnly: {
     description: 'Only invited users',
   },
