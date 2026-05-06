@@ -173,6 +173,19 @@ export class ExceptionFactory {
     ]);
   }
 
+  // Recruitment
+  static jobNotFound(id: string) {
+    return new AppException(ExceptionCode.JOB_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
+  static candidateNotFound(id: string) {
+    return new AppException(ExceptionCode.CANDIDATE_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
+  static applicationNotFound(id: string) {
+    return new AppException(ExceptionCode.APPLICATION_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
   // Common
   static commonRequiredField(field: string) {
     return new AppException(ExceptionCode.COMMON_REQUIRED_FIELD, HttpStatus.BAD_REQUEST, [field]);

@@ -63,6 +63,11 @@ export const ExceptionMessages: {
   [ExceptionCode.COMPANY_SUBDOMAIN_TAKEN]: (subdomain: string) =>
     `Subdomain "${subdomain}" is already taken`,
 
+  // Recruitment
+  [ExceptionCode.JOB_NOT_FOUND]: (id: string) => `Job with id "${id}" not found`,
+  [ExceptionCode.CANDIDATE_NOT_FOUND]: (id: string) => `Candidate with id "${id}" not found`,
+  [ExceptionCode.APPLICATION_NOT_FOUND]: (id: string) => `Application with id "${id}" not found`,
+
   // Common
   [ExceptionCode.COMMON_REQUIRED_FIELD]: (field: string) => `${field} is required`,
 };

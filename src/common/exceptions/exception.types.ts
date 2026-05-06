@@ -49,6 +49,11 @@ export type ExceptionParams = {
   [ExceptionCode.COMPANY_WITH_ID_NOT_FOUND]: [id: string];
   [ExceptionCode.COMPANY_SUBDOMAIN_TAKEN]: [subdomain: string];
 
+  // Recruitment
+  [ExceptionCode.JOB_NOT_FOUND]: [id: string];
+  [ExceptionCode.CANDIDATE_NOT_FOUND]: [id: string];
+  [ExceptionCode.APPLICATION_NOT_FOUND]: [id: string];
+
   // Common
   [ExceptionCode.COMMON_REQUIRED_FIELD]: [field: string];
 };

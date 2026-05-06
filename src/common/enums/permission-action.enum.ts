@@ -30,4 +30,22 @@ export enum PermissionAction {
   INVITE_READ = 'invite.read',
   INVITE_RESEND = 'invite.resend',
   INVITE_CANCEL = 'invite.cancel',
+
+  // Recruitment - Jobs
+  JOB_CREATE = 'job.create',
+  JOB_READ = 'job.read',
+  JOB_UPDATE = 'job.update',
+  JOB_DELETE = 'job.delete',
+
+  // Recruitment - Candidates
+  CANDIDATE_CREATE = 'candidate.create',
+  CANDIDATE_READ = 'candidate.read',
+  CANDIDATE_UPDATE = 'candidate.update',
+  CANDIDATE_DELETE = 'candidate.delete',
+
+  // Recruitment - Applications
+  APPLICATION_CREATE = 'application.create',
+  APPLICATION_READ = 'application.read',
+  APPLICATION_UPDATE_STAGE = 'application.update_stage',
+  APPLICATION_DELETE = 'application.delete',
 }
