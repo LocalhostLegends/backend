@@ -48,4 +48,10 @@ export enum PermissionAction {
   APPLICATION_READ = 'application.read',
   APPLICATION_UPDATE_STAGE = 'application.update_stage',
   APPLICATION_DELETE = 'application.delete',
+
+  // Calendar
+  CALENDAR_CREATE = 'calendar.create',
+  CALENDAR_READ = 'calendar.read',
+  CALENDAR_UPDATE = 'calendar.update',
+  CALENDAR_DELETE = 'calendar.delete',
 }

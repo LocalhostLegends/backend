@@ -33,6 +33,8 @@ import { TokenService } from '../token/token.service';
 import { Role } from '@database/entities/role.entity';
 import { toUserResponse } from './users.utils';
 import { UserResponseDto } from './dto/user-response.dto';
+import { UserDirectoryResponseDto } from './dto/user-directory-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UsersService {
@@ -258,6 +260,33 @@ export class UsersService {
         result.items,
         this.getUserPermissions.bind(this),
       )) as UserResponseDto[],
+    };
+  }
+
+  async getDirectoryPaginated(
+    filters: UserFilterDto,
+    currentUser: AuthorizedUser,
+  ): Promise<PaginatedResult<UserDirectoryResponseDto>> {
+    const queryBuilder = this._usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.department', 'department')
+      .leftJoinAndSelect('user.position', 'position')
+      .where('user.company_id = :companyId', { companyId: currentUser.companyId })
+      .andWhere('user.status = :status', { status: UserStatus.ACTIVE })
+      .andWhere('user.deletedAt IS NULL');
+
+    this._userFilterBuilder.buildFilters(queryBuilder, filters);
+
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 10;
+
+    const result = await this._paginationService.paginate(queryBuilder, page, limit);
+
+    return {
+      ...result,
+      items: plainToInstance(UserDirectoryResponseDto, result.items, {
+        excludeExtraneousValues: true,
+      }),
     };
   }
 

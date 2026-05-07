@@ -27,6 +27,7 @@ import { UsersService } from '../users.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserFilterDto } from '../dto/user-filter.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
+import { UserDirectoryResponseDto } from '../dto/user-directory-response.dto';
 
 import { swagger } from '../swagger';
 
@@ -43,6 +44,15 @@ export class UsersController {
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<PaginatedResult<UserResponseDto>> {
     return this._usersService.findAllPaginated(filters, currentUser);
+  }
+
+  @Get('directory')
+  @swagger.ApiFindAll() // Reuse for now or create specific one
+  async getDirectory(
+    @Query(new ValidationPipe({ transform: true })) filters: UserFilterDto,
+    @CurrentUser() currentUser: AuthorizedUser,
+  ): Promise<PaginatedResult<UserDirectoryResponseDto>> {
+    return this._usersService.getDirectoryPaginated(filters, currentUser);
   }
 
   @Get('me')
