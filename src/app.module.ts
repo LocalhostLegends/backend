@@ -11,6 +11,7 @@ import { PaginationModule } from '@modules/pagination/pagination.module';
 import { OrganizationModule } from '@modules/organization/organization.module';
 import { RecruitmentModule } from '@modules/recruitment/recruitment.module';
 import { CalendarModule } from '@modules/calendar/calendar.module';
+import { TasksModule } from '@modules/tasks/tasks.module';
 import { PermissionsModule } from '@modules/permissions/permissions.module';
 import { SeedModule } from '@database/seed/seed.module';
 import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
@@ -45,6 +46,7 @@ import config from '@config/app.config';
     PermissionsModule,
     RecruitmentModule,
     CalendarModule,
+    TasksModule,
     StorageModule,
     SeedModule,
     PaginationModule,

@@ -1,9 +1,6 @@
 import { ExceptionCode } from './exception-codes';
-import { ExceptionParams } from './exception.types';
 
-export const ExceptionMessages: {
-  [K in ExceptionCode]: (...args: ExceptionParams[K]) => string;
-} = {
+export const ExceptionMessages: Record<string, (...args: any[]) => string> = {
   // Users
   [ExceptionCode.USER_NOT_FOUND]: () => 'User not found',
   [ExceptionCode.USER_WITH_ID_NOT_FOUND]: (id: string) => `User with id "${id}" not found`,
@@ -67,6 +64,9 @@ export const ExceptionMessages: {
   [ExceptionCode.JOB_NOT_FOUND]: (id: string) => `Job with id "${id}" not found`,
   [ExceptionCode.CANDIDATE_NOT_FOUND]: (id: string) => `Candidate with id "${id}" not found`,
   [ExceptionCode.APPLICATION_NOT_FOUND]: (id: string) => `Application with id "${id}" not found`,
+
+  // Tasks
+  [ExceptionCode.TASK_NOT_FOUND]: (id: string) => `Task with id "${id}" not found`,
 
   // Common
   [ExceptionCode.COMMON_REQUIRED_FIELD]: (field: string) => `${field} is required`,

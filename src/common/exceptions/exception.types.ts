@@ -54,6 +54,9 @@ export type ExceptionParams = {
   [ExceptionCode.CANDIDATE_NOT_FOUND]: [id: string];
   [ExceptionCode.APPLICATION_NOT_FOUND]: [id: string];
 
+  // Tasks
+  [ExceptionCode.TASK_NOT_FOUND]: [id: string];
+
   // Common
   [ExceptionCode.COMMON_REQUIRED_FIELD]: [field: string];
 };

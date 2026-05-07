@@ -186,6 +186,11 @@ export class ExceptionFactory {
     return new AppException(ExceptionCode.APPLICATION_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
   }
 
+  // Tasks
+  static taskNotFound(id: string) {
+    return new AppException(ExceptionCode.TASK_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
   // Common
   static commonRequiredField(field: string) {
     return new AppException(ExceptionCode.COMMON_REQUIRED_FIELD, HttpStatus.BAD_REQUEST, [field]);

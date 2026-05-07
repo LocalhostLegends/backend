@@ -54,4 +54,11 @@ export enum PermissionAction {
   CALENDAR_READ = 'calendar.read',
   CALENDAR_UPDATE = 'calendar.update',
   CALENDAR_DELETE = 'calendar.delete',
+
+  // Tasks
+  TASK_CREATE = 'task.create',
+  TASK_READ = 'task.read',
+  TASK_UPDATE = 'task.update',
+  TASK_UPDATE_STAGE = 'task.update_stage',
+  TASK_DELETE = 'task.delete',
 }
