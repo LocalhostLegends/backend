@@ -109,6 +109,15 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       'application.update_stage',
       'department.read',
       'position.read',
+      'task.read',
+      'task.create',
+      'task.update',
+      'task.update_stage',
+      'task.delete',
+      'calendar.read',
+      'calendar.create',
+      'calendar.update',
+      'calendar.delete',
     ];
     for (const p of hrPermissions) {
       await queryRunner.query(
@@ -130,8 +139,16 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       'task.read',
       'task.create',
       'task.update',
+      'task.update_stage',
+      'task.delete',
       'calendar.read',
       'calendar.create',
+      'calendar.update',
+      'calendar.delete',
+      'job.read',
+      'candidate.read',
+      'application.read',
+      'application.update_stage',
     ];
     for (const p of managerPermissions) {
       await queryRunner.query(
@@ -146,7 +163,19 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
     }
 
     // Employee permissions
-    const employeePermissions = ['user.read', 'user.update_self', 'task.read', 'calendar.read'];
+    const employeePermissions = [
+      'user.read',
+      'user.update_self',
+      'task.read',
+      'task.create',
+      'task.update',
+      'task.update_stage',
+      'task.delete',
+      'calendar.read',
+      'calendar.create',
+      'calendar.update',
+      'calendar.delete',
+    ];
     for (const p of employeePermissions) {
       await queryRunner.query(
         `

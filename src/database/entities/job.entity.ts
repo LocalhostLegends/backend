@@ -8,11 +8,13 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  OneToMany,
 } from 'typeorm';
 
 import { Company } from './company.entity';
 import { Department } from './department.entity';
 import { User } from './user.entity';
+import { JobApplication } from './job-application.entity';
 import { JobStatus } from '@common/enums/job-status.enum';
 import { JobType } from '@common/enums/job-type.enum';
 
@@ -62,6 +64,11 @@ export class Job {
 
   @Column({ name: 'creator_id' })
   creatorId: string;
+
+  @OneToMany(() => JobApplication, (application) => application.job)
+  applications: JobApplication[];
+
+  candidatesCount?: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

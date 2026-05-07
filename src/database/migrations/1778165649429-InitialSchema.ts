@@ -77,7 +77,7 @@ export class InitialSchema1778165649429 implements MigrationInterface {
       `CREATE TYPE "public"."tasks_priority_enum" AS ENUM('low', 'medium', 'high', 'urgent')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "tasks" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying(255) NOT NULL, "description" text, "stage" "public"."tasks_stage_enum" NOT NULL DEFAULT 'todo', "priority" "public"."tasks_priority_enum" NOT NULL DEFAULT 'medium', "due_date" TIMESTAMP WITH TIME ZONE, "order" integer NOT NULL DEFAULT '0', "creator_id" uuid NOT NULL, "assignee_id" uuid, "company_id" uuid NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, CONSTRAINT "PK_8d12ff38fcc62aaba2cab748772" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "tasks" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying(255) NOT NULL, "description" text, "stage" "public"."tasks_stage_enum" NOT NULL DEFAULT 'todo', "priority" "public"."tasks_priority_enum" NOT NULL DEFAULT 'medium', "due_date" TIMESTAMP WITH TIME ZONE, "order" integer NOT NULL DEFAULT '0', "creator_id" uuid NOT NULL, "assignee_id" uuid, "company_id" uuid NOT NULL, "department_id" uuid, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, CONSTRAINT "PK_8d12ff38fcc62aaba2cab748772" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_53fbfb9d05347278ea35ccb3ac" ON "tasks" ("company_id") `,
@@ -85,6 +85,10 @@ export class InitialSchema1778165649429 implements MigrationInterface {
     await queryRunner.query(
       `CREATE INDEX "IDX_59ae04b1b1ba8ab9fdd9b84701" ON "tasks" ("company_id", "stage") `,
     );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_tasks_company_department" ON "tasks" ("company_id", "department_id")`,
+    );
+    await queryRunner.query(`CREATE INDEX "IDX_tasks_department" ON "tasks" ("department_id")`);
     await queryRunner.query(
       `CREATE TYPE "public"."jobs_status_enum" AS ENUM('draft', 'open', 'on_hold', 'closed')`,
     );
@@ -245,6 +249,9 @@ export class InitialSchema1778165649429 implements MigrationInterface {
       `ALTER TABLE "tasks" ADD CONSTRAINT "FK_53fbfb9d05347278ea35ccb3aca" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
+      `ALTER TABLE "tasks" ADD CONSTRAINT "FK_tasks_department" FOREIGN KEY ("department_id") REFERENCES "departments"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "jobs" ADD CONSTRAINT "FK_087a773c50525e348e26188e7cc" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
@@ -349,6 +356,7 @@ export class InitialSchema1778165649429 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "jobs" DROP CONSTRAINT "FK_cf18ff30eda17e5d526125c9630"`);
     await queryRunner.query(`ALTER TABLE "jobs" DROP CONSTRAINT "FK_fa8f106c019cb050738fd165271"`);
     await queryRunner.query(`ALTER TABLE "jobs" DROP CONSTRAINT "FK_087a773c50525e348e26188e7cc"`);
+    await queryRunner.query(`ALTER TABLE "tasks" DROP CONSTRAINT "FK_tasks_department"`);
     await queryRunner.query(`ALTER TABLE "tasks" DROP CONSTRAINT "FK_53fbfb9d05347278ea35ccb3aca"`);
     await queryRunner.query(`ALTER TABLE "tasks" DROP CONSTRAINT "FK_855d484825b715c545349212c7f"`);
     await queryRunner.query(`ALTER TABLE "tasks" DROP CONSTRAINT "FK_f4cb489461bc751498a28852356"`);
@@ -422,6 +430,8 @@ export class InitialSchema1778165649429 implements MigrationInterface {
     await queryRunner.query(`DROP TYPE "public"."jobs_status_enum"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_59ae04b1b1ba8ab9fdd9b84701"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_53fbfb9d05347278ea35ccb3ac"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_tasks_department"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_tasks_company_department"`);
     await queryRunner.query(`DROP TABLE "tasks"`);
     await queryRunner.query(`DROP TYPE "public"."tasks_priority_enum"`);
     await queryRunner.query(`DROP TYPE "public"."tasks_stage_enum"`);

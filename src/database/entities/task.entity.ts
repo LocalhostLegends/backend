@@ -12,11 +12,13 @@ import {
 
 import { User } from './user.entity';
 import { Company } from './company.entity';
+import { Department } from './department.entity';
 import { TaskStage } from '@common/enums/task-stage.enum';
 import { TaskPriority } from '@common/enums/task-priority.enum';
 
 @Entity('tasks')
 @Index(['companyId', 'stage'])
+@Index(['companyId', 'departmentId'])
 export class Task {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -60,6 +62,14 @@ export class Task {
   @Column({ name: 'company_id' })
   @Index()
   companyId: string;
+
+  @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'department_id' })
+  department: Department | null;
+
+  @Column({ name: 'department_id', nullable: true })
+  @Index()
+  departmentId: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

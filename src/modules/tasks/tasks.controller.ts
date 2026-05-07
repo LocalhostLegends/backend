@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  Query,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
@@ -6,7 +16,7 @@ import type { AuthorizedUser } from '@modules/core/users/users.types';
 import { Task } from '@database/entities/task.entity';
 
 import { TasksService } from './tasks.service';
-import { CreateTaskDto, UpdateTaskDto, UpdateTaskStageDto } from './dto/task.dto';
+import { CreateTaskDto, UpdateTaskDto, UpdateTaskStageDto, GetTasksQueryDto } from './dto/task.dto';
 
 @ApiTags('Tasks')
 @ApiBearerAuth()
@@ -21,9 +31,9 @@ export class TasksController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all company tasks' })
-  findAll(@CurrentUser() user: AuthorizedUser): Promise<Task[]> {
-    return this._tasksService.findAll(user);
+  @ApiOperation({ summary: 'Get all company tasks with filtering' })
+  findAll(@CurrentUser() user: AuthorizedUser, @Query() query: GetTasksQueryDto): Promise<Task[]> {
+    return this._tasksService.findAll(user, query);
   }
 
   @Get(':id')

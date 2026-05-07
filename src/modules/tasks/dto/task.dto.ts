@@ -8,6 +8,7 @@ import {
   IsNotEmpty,
   IsDateString,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TaskStage } from '@common/enums/task-stage.enum';
 import { TaskPriority } from '@common/enums/task-priority.enum';
@@ -43,6 +44,49 @@ export class CreateTaskDto {
   @IsUUID()
   @IsOptional()
   assigneeId?: string;
+
+  @ApiPropertyOptional({ example: 'uuid-of-department' })
+  @IsUUID()
+  @IsOptional()
+  departmentId?: string;
+}
+
+export class GetTasksQueryDto {
+  @ApiPropertyOptional({ enum: TaskStage })
+  @IsEnum(TaskStage)
+  @IsOptional()
+  stage?: TaskStage;
+
+  @ApiPropertyOptional({ enum: TaskPriority })
+  @IsEnum(TaskPriority)
+  @IsOptional()
+  priority?: TaskPriority;
+
+  @ApiPropertyOptional({ example: 'uuid-of-assignee' })
+  @IsUUID()
+  @IsOptional()
+  assigneeId?: string;
+
+  @ApiPropertyOptional({ example: 'uuid-of-creator' })
+  @IsUUID()
+  @IsOptional()
+  creatorId?: string;
+
+  @ApiPropertyOptional({ example: 'uuid-of-department' })
+  @IsUUID()
+  @IsOptional()
+  departmentId?: string;
+
+  @ApiPropertyOptional({ example: 'search term' })
+  @IsString()
+  @IsOptional()
+  search?: string;
+
+  @ApiPropertyOptional({ example: 100 })
+  @IsInt()
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number;
 }
 
 export class UpdateTaskDto {

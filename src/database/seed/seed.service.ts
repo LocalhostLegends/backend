@@ -180,10 +180,9 @@ export class SeedService implements OnModuleInit {
                 originalname: userData.avatar,
                 mimetype: `image/${ext === 'webp' ? 'webp' : 'jpeg'}`,
               } as Express.Multer.File;
-              const uploadResult = await this._storageService.uploadAvatar(
+              const uploadResult = await this._storageService.uploadSeedAvatar(
                 file,
-                company.id,
-                userData.email,
+                userData.avatar,
               );
               avatarUrl = uploadResult.url;
             } else {

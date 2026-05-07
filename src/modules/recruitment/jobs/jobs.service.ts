@@ -34,20 +34,27 @@ export class JobsService {
   async findAll(user: AuthorizedUser): Promise<Job[]> {
     await this._permissions.assertCan(user, PermissionAction.JOB_READ);
 
-    return this._jobRepository.find({
-      where: { companyId: user.companyId },
-      relations: ['department', 'creator'],
-      order: { createdAt: 'DESC' },
-    });
+    return this._jobRepository
+      .createQueryBuilder('job')
+      .leftJoinAndSelect('job.department', 'department')
+      .leftJoinAndSelect('job.creator', 'creator')
+      .loadRelationCountAndMap('job.candidatesCount', 'job.applications')
+      .where('job.companyId = :companyId', { companyId: user.companyId })
+      .orderBy('job.createdAt', 'DESC')
+      .getMany();
   }
 
   async findOne(id: string, user: AuthorizedUser): Promise<Job> {
     await this._permissions.assertCan(user, PermissionAction.JOB_READ);
 
-    const job = await this._jobRepository.findOne({
-      where: { id, companyId: user.companyId },
-      relations: ['department', 'creator'],
-    });
+    const job = await this._jobRepository
+      .createQueryBuilder('job')
+      .leftJoinAndSelect('job.department', 'department')
+      .leftJoinAndSelect('job.creator', 'creator')
+      .loadRelationCountAndMap('job.candidatesCount', 'job.applications')
+      .where('job.id = :id', { id })
+      .andWhere('job.companyId = :companyId', { companyId: user.companyId })
+      .getOne();
 
     if (!job) {
       throw ExceptionFactory.jobNotFound(id);

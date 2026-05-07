@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsWhere, ILike } from 'typeorm';
 
 import { Task } from '@database/entities/task.entity';
 import { AuthorizedUser } from '@modules/core/users/users.types';
@@ -8,7 +8,7 @@ import { ExceptionFactory } from '@common/exceptions/exception-factory';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { PermissionsService } from '@modules/permissions/permissions.service';
 
-import { CreateTaskDto, UpdateTaskDto, UpdateTaskStageDto } from './dto/task.dto';
+import { CreateTaskDto, UpdateTaskDto, UpdateTaskStageDto, GetTasksQueryDto } from './dto/task.dto';
 
 @Injectable()
 export class TasksService {
@@ -25,18 +25,31 @@ export class TasksService {
       ...createDto,
       creatorId: user.id,
       companyId: user.companyId,
+      departmentId: createDto.departmentId || user.departmentId,
     });
 
     return this._taskRepository.save(task);
   }
 
-  async findAll(user: AuthorizedUser): Promise<Task[]> {
+  async findAll(user: AuthorizedUser, query: GetTasksQueryDto = {}): Promise<Task[]> {
     await this._permissions.assertCan(user, PermissionAction.TASK_READ);
 
+    const { stage, priority, assigneeId, creatorId, departmentId, search, limit } = query;
+
+    const where: FindOptionsWhere<Task> = { companyId: user.companyId };
+
+    if (stage) where.stage = stage;
+    if (priority) where.priority = priority;
+    if (assigneeId) where.assigneeId = assigneeId;
+    if (creatorId) where.creatorId = creatorId;
+    if (departmentId) where.departmentId = departmentId;
+    if (search) where.title = ILike(`%${search}%`);
+
     return this._taskRepository.find({
-      where: { companyId: user.companyId },
+      where,
       relations: ['creator', 'assignee'],
       order: { order: 'ASC', createdAt: 'DESC' },
+      take: limit || 100,
     });
   }
 
