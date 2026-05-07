@@ -13,11 +13,9 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 
-import { UserRole } from '@common/enums/user-role.enum';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import type { AuthorizedUser } from '@modules/core/users/users.types';
 import { PaginatedResult } from '@modules/pagination/pagination.interfaces';
-import { UserStatus } from '@common/enums/user-status.enum';
 import { RequirePermission } from '@modules/permissions/decorators/require-permission.decorator';
 import { Resource } from '@modules/permissions/decorators/resource.decorator';
 import { User } from '@database/entities/user.entity';
@@ -47,7 +45,7 @@ export class UsersController {
   }
 
   @Get('directory')
-  @swagger.ApiFindAll() // Reuse for now or create specific one
+  @swagger.ApiGetDirectory()
   async getDirectory(
     @Query(new ValidationPipe({ transform: true })) filters: UserFilterDto,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -59,29 +57,6 @@ export class UsersController {
   @swagger.ApiGetCurrentUser()
   async getCurrentUser(@CurrentUser() currentUser: AuthorizedUser): Promise<UserResponseDto> {
     return this._usersService.findOne(currentUser.id, currentUser);
-  }
-
-  @Get('role/:role')
-  @RequirePermission(PermissionAction.USER_READ)
-  @swagger.ApiGetUsersByRole()
-  async getUsersByRole(
-    @Param('role') role: UserRole,
-    @CurrentUser() currentUser: AuthorizedUser,
-  ): Promise<UserResponseDto[]> {
-    return this._usersService.getUsersByRole(currentUser, role);
-  }
-
-  @Get('status/:status')
-  @RequirePermission(PermissionAction.USER_READ)
-  @swagger.ApiGetUsersByStatus()
-  async getUsersByStatus(
-    @Param('status') status: UserStatus,
-    @CurrentUser() currentUser: AuthorizedUser,
-  ): Promise<UserResponseDto[]> {
-    const filters = { status };
-    const result = await this._usersService.findAllPaginated(filters, currentUser);
-
-    return result.items;
   }
 
   @Get(':id')

@@ -49,24 +49,15 @@ export class CompaniesController {
     return toCompanyResponse(await this._companiesService.findAll(currentUser));
   }
 
-  @Get('my-company')
-  @RequireUserRoles(...USER_ROLES)
-  @swagger.ApiGetMyCompany()
-  async getMyCompany(@CurrentUser() currentUser: AuthorizedUser): Promise<CompanyResponseDto> {
-    return toCompanyResponse(
-      await this._companiesService.findById(currentUser.companyId, currentUser),
-    );
-  }
-
   @Get('stats')
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
-  @swagger.ApiGetStats()
+  @swagger.ApiGetCompanyStats()
   async getStats(@CurrentUser() currentUser: AuthorizedUser) {
     return this._companiesService.getCompanyStats(currentUser.companyId, currentUser);
   }
 
   @Get(':id')
-  @RequireUserRoles(UserRole.ADMIN)
+  @RequireUserRoles(...USER_ROLES)
   @swagger.ApiFindOne()
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,

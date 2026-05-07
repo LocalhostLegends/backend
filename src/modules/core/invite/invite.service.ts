@@ -248,29 +248,20 @@ export class InviteService {
     await this._inviteRepository.save(invite);
   }
 
-  async getCompanyInvites(currentUser: AuthorizedUser): Promise<Invite[]> {
+  async getCompanyInvites(
+    currentUser: AuthorizedUser,
+    filters?: { status?: InviteStatus },
+  ): Promise<Invite[]> {
     await this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
 
     const where: FindOptionsWhere<Invite> = { company: { id: currentUser.companyId } };
-    if (currentUser.roles.includes(UserRole.MANAGER) && currentUser.departmentId) {
-      where.department = { id: currentUser.departmentId };
+
+    if (filters?.status) {
+      where.status = filters.status;
+      if (filters.status === InviteStatus.PENDING) {
+        where.expiresAt = MoreThan(new Date());
+      }
     }
-
-    return this._inviteRepository.find({
-      where,
-      relations: ['invitedBy'],
-      order: { createdAt: 'DESC' },
-    });
-  }
-
-  async getPendingInvites(currentUser: AuthorizedUser): Promise<Invite[]> {
-    await this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
-
-    const where: FindOptionsWhere<Invite> = {
-      company: { id: currentUser.companyId },
-      status: InviteStatus.PENDING,
-      expiresAt: MoreThan(new Date()),
-    };
 
     if (currentUser.roles.includes(UserRole.MANAGER) && currentUser.departmentId) {
       where.department = { id: currentUser.departmentId };

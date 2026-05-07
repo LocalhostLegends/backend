@@ -6,9 +6,8 @@ import { UserFilterFields } from './user-filter.fields';
 export const swagger = {
   ApiTags: userDecorators.ApiUserTags,
   ApiFindAll: userDecorators.ApiFindAllUsers,
+  ApiGetDirectory: userDecorators.ApiGetDirectory,
   ApiGetCurrentUser: userDecorators.ApiGetCurrentUser,
-  ApiGetUsersByRole: userDecorators.ApiGetUsersByRole,
-  ApiGetUsersByStatus: userDecorators.ApiGetUsersByStatus,
   ApiFindOne: userDecorators.ApiFindOneUser,
   ApiUpdateUser: userDecorators.ApiUpdateUser,
   ApiBlockUser: userDecorators.ApiBlockUser,

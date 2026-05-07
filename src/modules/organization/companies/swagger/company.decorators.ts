@@ -23,15 +23,6 @@ export const ApiFindAllCompanies = () => {
   );
 };
 
-// GET /companies/my-company - getMyCompany
-export const ApiGetMyCompany = () => {
-  return applyDecorators(
-    ApiBearerAuth('JWT-auth'),
-    ApiOperation({ summary: 'Get current user company' }),
-    ApiResponse({ status: HttpStatus.OK, type: CompanyResponseDto }),
-  );
-};
-
 // GET /companies/stats - getStats
 export const ApiGetCompanyStats = () => {
   return applyDecorators(

@@ -557,33 +557,6 @@ export class UsersService {
     return (await toUserResponse(savedUser, this.getUserPermissions.bind(this))) as UserResponseDto;
   }
 
-  async getUsersByRole(currentUser: AuthorizedUser, role: UserRole): Promise<UserResponseDto[]> {
-    await this._permissions.assertCan(currentUser, PermissionAction.USER_READ);
-    const queryBuilder = this._usersRepository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.department', 'department')
-      .leftJoinAndSelect('user.position', 'position')
-      .leftJoinAndSelect('user.roles', 'roles')
-      .where('user.company_id = :companyId', { companyId: currentUser.companyId })
-      .andWhere((qb) => {
-        const subQuery = qb
-          .subQuery()
-          .select('ur.user_id')
-          .from('user_roles', 'ur')
-          .innerJoin('roles', 'r', 'r.id = ur.role_id')
-          .where('r.code = :role', { role })
-          .getQuery();
-        return `user.id IN ${subQuery}`;
-      })
-      .andWhere('user.status = :status', { status: UserStatus.ACTIVE })
-      .andWhere('user.deletedAt IS NULL');
-
-    this._applyRoleBasedAccess(queryBuilder, currentUser);
-
-    const users = await queryBuilder.getMany();
-    return (await toUserResponse(users, this.getUserPermissions.bind(this))) as UserResponseDto[];
-  }
-
   async getCompanyUsers(companyId: string): Promise<User[]> {
     return this._usersRepository.find({
       where: { company: { id: companyId }, deletedAt: IsNull() },

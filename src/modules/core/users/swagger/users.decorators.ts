@@ -9,6 +9,8 @@ import {
 } from '@nestjs/swagger';
 
 import { UserResponseDto } from '../dto/user-response.dto';
+import { UserPaginatedResponseDto } from '../dto/user-paginated-response.dto';
+import { UserDirectoryPaginatedResponseDto } from '../dto/user-directory-paginated-response.dto';
 import { AvatarUploadResponseDto } from '../dto/avatar-upload-response.dto';
 import { AvatarDeleteResponseDto } from '../dto/avatar-delete-response.dto';
 
@@ -19,7 +21,16 @@ export const ApiFindAllUsers = () => {
   return applyDecorators(
     ApiBearerAuth('JWT-auth'),
     ApiOperation({ summary: 'Get all users with pagination and filters' }),
-    ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] }),
+    ApiResponse({ status: HttpStatus.OK, type: UserPaginatedResponseDto }),
+  );
+};
+
+// GET /users/directory - getDirectory
+export const ApiGetDirectory = () => {
+  return applyDecorators(
+    ApiBearerAuth('JWT-auth'),
+    ApiOperation({ summary: 'Get users directory with minimal information (Active only)' }),
+    ApiResponse({ status: HttpStatus.OK, type: UserDirectoryPaginatedResponseDto }),
   );
 };
 
@@ -29,24 +40,6 @@ export const ApiGetCurrentUser = () => {
     ApiBearerAuth('JWT-auth'),
     ApiOperation({ summary: 'Get current user profile' }),
     ApiResponse({ status: HttpStatus.OK, type: UserResponseDto }),
-  );
-};
-
-// GET /users/role/:role - getUsersByRole
-export const ApiGetUsersByRole = () => {
-  return applyDecorators(
-    ApiBearerAuth('JWT-auth'),
-    ApiOperation({ summary: 'Get users by role' }),
-    ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] }),
-  );
-};
-
-// GET /users/status/:status - getUsersByStatus
-export const ApiGetUsersByStatus = () => {
-  return applyDecorators(
-    ApiBearerAuth('JWT-auth'),
-    ApiOperation({ summary: 'Get users by status' }),
-    ApiResponse({ status: HttpStatus.OK, type: [UserResponseDto] }),
   );
 };
 

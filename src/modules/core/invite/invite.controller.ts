@@ -26,6 +26,7 @@ import { ResendInviteDto } from './dto/resend-invite.dto';
 import { ValidateInviteDto } from './dto/validate-invite.dto';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { InviteResponseDto } from './dto/invite-response.dto';
+import { InviteFilterDto } from './dto/invite-filter.dto';
 
 import { CurrentUser } from '../users/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
@@ -91,23 +92,14 @@ export class InviteController {
     await this._inviteService.cancelInvite(id, currentUser);
   }
 
-  @Get('company')
+  @Get()
   @UseGuards(UserRolesGuard)
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
   @swagger.ApiGetCompanyInvites()
   async getCompanyInvites(
+    @Query() filters: InviteFilterDto,
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<InviteResponseDto[]> {
-    return toInviteResponse(await this._inviteService.getCompanyInvites(currentUser));
-  }
-
-  @Get('pending')
-  @UseGuards(UserRolesGuard)
-  @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
-  @swagger.ApiGetPendingInvites()
-  async getPendingInvites(
-    @CurrentUser() currentUser: AuthorizedUser,
-  ): Promise<InviteResponseDto[]> {
-    return toInviteResponse(await this._inviteService.getPendingInvites(currentUser));
+    return toInviteResponse(await this._inviteService.getCompanyInvites(currentUser, filters));
   }
 }

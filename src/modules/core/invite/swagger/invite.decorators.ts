@@ -87,21 +87,11 @@ export const ApiCancelInvite = () => {
   );
 };
 
-// GET /invites/company - all company invites
+// GET /invites - all company invites
 export const ApiGetCompanyInvites = () => {
   return applyDecorators(
     ApiBearerAuth('JWT-auth'),
-    ApiOperation({ summary: 'Get all company invites' }),
-    ApiResponse({ status: HttpStatus.OK, type: [InviteResponseDto] }),
-    ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Insufficient permissions' }),
-  );
-};
-
-// GET /invites/pending - pending invites
-export const ApiGetPendingInvites = () => {
-  return applyDecorators(
-    ApiBearerAuth('JWT-auth'),
-    ApiOperation({ summary: 'Get pending invites' }),
+    ApiOperation({ summary: 'Get all company invites (with optional status filtering)' }),
     ApiResponse({ status: HttpStatus.OK, type: [InviteResponseDto] }),
     ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Insufficient permissions' }),
   );
