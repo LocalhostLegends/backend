@@ -2,7 +2,6 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class SeedRolesAndPermissions1778165649430 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // 1. Permissions
     const permissions = [
       // Company
       { action: 'company.read', description: 'Permission to read company' },
@@ -66,7 +65,6 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       );
     }
 
-    // 2. Roles
     const roles = [
       { name: 'Super Admin', code: 'super_admin' },
       { name: 'Admin', code: 'admin' },
@@ -82,7 +80,7 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       );
     }
 
-    // 3. Junction: role_permissions
+    // role_permissions
     // Super Admin & Admin - All permissions
     await queryRunner.query(`
       INSERT INTO "role_permissions" (role_id, permission_id)
@@ -91,31 +89,44 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       ON CONFLICT DO NOTHING
     `);
 
-    // HR Manager permissions
     const hrPermissions = [
       'user.read',
       'user.create',
       'user.update',
+      'user.update_self',
+      'user.manage_roles',
+      'user.delete',
       'invite.create',
       'invite.read',
-      'job.read',
+      'invite.resend',
+      'invite.cancel',
       'job.create',
+      'job.read',
       'job.update',
-      'candidate.read',
+      'job.delete',
       'candidate.create',
+      'candidate.read',
       'candidate.update',
-      'application.read',
+      'candidate.delete',
       'application.create',
+      'application.read',
       'application.update_stage',
+      'application.delete',
+      'department.create',
       'department.read',
+      'department.update',
+      'department.delete',
+      'position.create',
       'position.read',
-      'task.read',
+      'position.update',
+      'position.delete',
       'task.create',
+      'task.read',
       'task.update',
       'task.update_stage',
       'task.delete',
-      'calendar.read',
       'calendar.create',
+      'calendar.read',
       'calendar.update',
       'calendar.delete',
     ];
@@ -131,24 +142,29 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       );
     }
 
-    // Manager permissions
     const managerPermissions = [
       'user.read',
+      'user.update_self',
       'department.read',
       'position.read',
-      'task.read',
+      'job.create',
+      'job.read',
+      'job.update',
+      'candidate.create',
+      'candidate.read',
+      'candidate.update',
+      'application.create',
+      'application.read',
+      'application.update_stage',
       'task.create',
+      'task.read',
       'task.update',
       'task.update_stage',
       'task.delete',
-      'calendar.read',
       'calendar.create',
+      'calendar.read',
       'calendar.update',
       'calendar.delete',
-      'job.read',
-      'candidate.read',
-      'application.read',
-      'application.update_stage',
     ];
     for (const p of managerPermissions) {
       await queryRunner.query(
@@ -162,17 +178,16 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       );
     }
 
-    // Employee permissions
     const employeePermissions = [
       'user.read',
       'user.update_self',
-      'task.read',
       'task.create',
+      'task.read',
       'task.update',
       'task.update_stage',
       'task.delete',
-      'calendar.read',
       'calendar.create',
+      'calendar.read',
       'calendar.update',
       'calendar.delete',
     ];

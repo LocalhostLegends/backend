@@ -130,6 +130,8 @@ export class SeedService implements OnModuleInit {
       const hashedPassword = await bcrypt.hash(DEFAULT_SEED_PASSWORD, 10);
       const usersByKey = new Map<string, User>();
 
+      this.logger.log('⏳ Checking and processing avatars, please wait...');
+
       for (const userData of usersData) {
         const department = userData.departmentKey
           ? this._getFromMap(departmentsByKey, userData.departmentKey, 'department')
@@ -222,6 +224,7 @@ export class SeedService implements OnModuleInit {
           company: company,
           department,
           position,
+          roles: roleEntities,
           phone: userData.phone ?? null,
           avatar: avatarUrl,
           createdAt,
@@ -257,12 +260,6 @@ export class SeedService implements OnModuleInit {
         });
 
         const savedUser = await userRepository.save(user);
-
-        if (roleEntities.length > 0) {
-          savedUser.roles = roleEntities;
-          await userRepository.save(savedUser);
-        }
-
         usersByKey.set(userData.key, savedUser);
       }
       this.logger.log(`✅ Created ${usersByKey.size} users`);
