@@ -31,6 +31,7 @@ describe('UsersService', () => {
   let service: UsersService;
   let usersRepo: jest.Mocked<Repository<User>>;
   let tokenService: jest.Mocked<TokenService>;
+  let permissionsService: jest.Mocked<PermissionsService>;
 
   const mockUser = {
     id: 'user-id',
@@ -74,7 +75,18 @@ describe('UsersService', () => {
         { provide: getRepositoryToken(Department), useValue: { findOne: jest.fn() } },
         { provide: getRepositoryToken(Position), useValue: { findOne: jest.fn() } },
         { provide: getRepositoryToken(Invite), useValue: { findOne: jest.fn() } },
-        { provide: getRepositoryToken(Role), useValue: { find: jest.fn() } },
+        {
+          provide: getRepositoryToken(Role),
+          useValue: {
+            find: jest.fn(),
+            createQueryBuilder: jest.fn().mockReturnValue({
+              innerJoin: jest.fn().mockReturnThis(),
+              innerJoinAndSelect: jest.fn().mockReturnThis(),
+              where: jest.fn().mockReturnThis(),
+              getMany: jest.fn().mockResolvedValue([]),
+            }),
+          },
+        },
         { provide: PaginationService, useValue: {} },
         { provide: UserFilterBuilder, useValue: {} },
         { provide: EmailService, useValue: {} },
@@ -96,6 +108,7 @@ describe('UsersService', () => {
     service = module.get<UsersService>(UsersService);
     usersRepo = module.get(getRepositoryToken(User));
     tokenService = module.get(TokenService);
+    permissionsService = module.get(PermissionsService);
   });
 
   describe('Permissions Version Cache', () => {
@@ -135,6 +148,7 @@ describe('UsersService', () => {
       usersRepo.findOne.mockResolvedValueOnce(null);
       usersRepo.merge.mockReturnValue({ ...mockUser, email: updateDto.email } as User);
       usersRepo.save.mockResolvedValue({ ...mockUser, email: updateDto.email } as User);
+      usersRepo.findOne.mockResolvedValueOnce({ ...mockUser, email: updateDto.email } as User);
 
       await service.update(mockUser.id, updateDto, adminUser);
 
@@ -145,6 +159,7 @@ describe('UsersService', () => {
     it('should throw Forbidden if HR tries to change email', async () => {
       const updateDto: UpdateUserDto = { email: 'new@example.com' };
       usersRepo.findOne.mockResolvedValueOnce(mockUser);
+      permissionsService.assertCan.mockRejectedValueOnce(ExceptionFactory.forbidden());
 
       await expect(service.update(mockUser.id, updateDto, hrUser)).rejects.toThrow(
         ExceptionFactory.forbidden(),
@@ -158,6 +173,10 @@ describe('UsersService', () => {
       usersRepo.findOne.mockResolvedValueOnce(mockUser);
       usersRepo.merge.mockReturnValue({ ...mockUser, firstName: updateDto.firstName } as User);
       usersRepo.save.mockResolvedValue({ ...mockUser, firstName: updateDto.firstName } as User);
+      usersRepo.findOne.mockResolvedValueOnce({
+        ...mockUser,
+        firstName: updateDto.firstName,
+      } as User);
 
       await service.update(mockUser.id, updateDto, hrUser);
 

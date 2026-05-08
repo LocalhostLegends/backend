@@ -1,9 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
+jest.mock('@config/app.config', () => ({
+  __esModule: true,
+  default: {
+    jwt: {
+      secret: 'test-secret',
+    },
+    isProduction: false,
+  },
+}));
+
 import { JwtStrategy } from './jwt.strategy';
 import { UsersService } from '@modules/core/users/users.service';
 import { UserStatus } from '@common/enums/user-status.enum';
 import { UserRole } from '@common/enums/user-role.enum';
-import { ExceptionFactory } from '@common/exceptions/exception-factory';
 
 describe('JwtStrategy', () => {
   let strategy: JwtStrategy;

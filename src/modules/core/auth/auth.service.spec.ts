@@ -1,5 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+
+jest.mock('@config/app.config', () => ({
+  __esModule: true,
+  default: {
+    jwt: {
+      secret: 'test-secret',
+      expiresIn: '1h',
+      refreshSecret: 'refresh-secret',
+      refreshExpiresIn: '7d',
+    },
+    isProduction: false,
+  },
+}));
+
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { CompaniesService } from '@modules/organization/companies/companies.service';
