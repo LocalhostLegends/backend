@@ -33,7 +33,7 @@ export class SeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    if (config.isProduction) {
+    if (config.isProduction && process.env.RUN_SEED !== 'true') {
       return;
     }
 
