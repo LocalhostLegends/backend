@@ -33,7 +33,7 @@ export class StorageService {
       forcePathStyle: config.storage.provider === 'minio',
     });
 
-    this.logger.log(`✅ Storage initialized with ${config.storage.provider}`);
+    this.logger.log(`Storage initialized with ${config.storage.provider}`);
   }
 
   private sanitizeEmail(email: string): string {
@@ -81,10 +81,10 @@ export class StorageService {
               Key: oldKey,
             }),
           );
-          this.logger.log(`✅ Deleted old avatar`);
+          this.logger.log(`Deleted old avatar`);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          this.logger.error(`❌ Failed to delete old avatar: ${errorMessage}`);
+          this.logger.error(`Failed to delete old avatar: ${errorMessage}`);
         }
       }
     }
@@ -102,7 +102,7 @@ export class StorageService {
       }),
     );
 
-    this.logger.log(`✅ Avatar uploaded: ${key}`);
+    this.logger.log(`Avatar uploaded: ${key}`);
 
     return { url: `${config.storage.publicUrl.replace(/\/$/, '')}/${key}` };
   }
@@ -139,8 +139,29 @@ export class StorageService {
       }),
     );
 
-    this.logger.log(`✅ Seed avatar uploaded: ${key}`);
+    this.logger.log(`Seed avatar uploaded: ${key}`);
     return { url: `${config.storage.publicUrl.replace(/\/$/, '')}/${key}` };
+  }
+
+  async uploadFile(file: Express.Multer.File, path: string): Promise<{ url: string; key: string }> {
+    const fileName = this.generateFileName(file.originalname);
+    const key = `${path}/${fileName}`;
+
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: config.storage.bucketName,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      }),
+    );
+
+    this.logger.log(`File uploaded: ${key}`);
+
+    return {
+      url: `${config.storage.publicUrl.replace(/\/$/, '')}/${key}`,
+      key,
+    };
   }
 
   async deleteFile(key: string): Promise<void> {
@@ -150,7 +171,7 @@ export class StorageService {
         Key: key,
       }),
     );
-    this.logger.log(`✅ File deleted: ${key}`);
+    this.logger.log(`File deleted: ${key}`);
   }
 
   extractKeyFromUrl(url: string): string | null {

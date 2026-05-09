@@ -43,6 +43,12 @@ export class Company {
   @Column({ type: 'timestamp', nullable: true, name: 'subscription_expires_at' })
   subscriptionExpiresAt: Date | null;
 
+  @Column({ type: 'varchar', length: 10, default: 'SCM', name: 'task_prefix' })
+  taskPrefix: string;
+
+  @Column({ type: 'int', default: 0, name: 'task_counter' })
+  taskCounter: number;
+
   @OneToOne(() => CompanyProfile, (profile) => profile.company, { cascade: true })
   profile: CompanyProfile;
 

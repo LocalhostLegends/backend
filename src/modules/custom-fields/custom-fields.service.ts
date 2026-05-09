@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In } from 'typeorm';
+import { Repository, DataSource, In, EntityManager } from 'typeorm';
 
 import { CustomFieldDefinition } from '@database/entities/custom-field-definition.entity';
 import { CustomFieldValue } from '@database/entities/custom-field-value.entity';
@@ -102,7 +102,19 @@ export class CustomFieldsService {
     entityId: string,
     values: Record<string, CustomFieldValueType>,
   ): Promise<void> {
-    const definitions = await this.definitionRepository.find({
+    await this.dataSource.transaction(async (manager) => {
+      await this.setValuesWithManager(manager, companyId, entityType, entityId, values);
+    });
+  }
+
+  async setValuesWithManager(
+    manager: EntityManager,
+    companyId: string,
+    entityType: EntityType,
+    entityId: string,
+    values: Record<string, CustomFieldValueType>,
+  ): Promise<void> {
+    const definitions = await manager.find(CustomFieldDefinition, {
       where: {
         company: { id: companyId },
         entityType,
@@ -110,40 +122,40 @@ export class CustomFieldsService {
       },
     });
 
-    const definitionsMap = new Map(definitions.map((d) => [d.key, d]));
+    const definitionsMap = new Map<string, CustomFieldDefinition>(
+      definitions.map((d) => [d.key, d]),
+    );
 
-    await this.dataSource.transaction(async (manager) => {
-      for (const [key, value] of Object.entries(values)) {
-        const definition = definitionsMap.get(key);
-        if (!definition) continue;
+    for (const [key, value] of Object.entries(values)) {
+      const definition = definitionsMap.get(key);
+      if (!definition) continue;
 
-        let existingValue = await manager.findOne(CustomFieldValue, {
-          where: {
-            entityType,
-            entityId,
-            field: { id: definition.id },
-          },
-        });
+      let existingValue = await manager.findOne(CustomFieldValue, {
+        where: {
+          entityType,
+          entityId,
+          field: { id: definition.id },
+        },
+      });
 
-        if (value === null || value === undefined) {
-          if (existingValue) {
-            await manager.remove(existingValue);
-          }
-          continue;
+      if (value === null || value === undefined) {
+        if (existingValue) {
+          await manager.remove(existingValue);
         }
-
-        if (!existingValue) {
-          existingValue = manager.create(CustomFieldValue, {
-            entityType,
-            entityId,
-            field: definition,
-          });
-        }
-
-        this.assignValue(existingValue, definition, value);
-        await manager.save(existingValue);
+        continue;
       }
-    });
+
+      if (!existingValue) {
+        existingValue = manager.create(CustomFieldValue, {
+          entityType,
+          entityId,
+          field: definition,
+        });
+      }
+
+      this.assignValue(existingValue, definition, value);
+      await manager.save(existingValue);
+    }
   }
 
   async getValues(

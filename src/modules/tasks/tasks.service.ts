@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, ILike } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 
 import { Task } from '@database/entities/task.entity';
+import { Company } from '@database/entities/company.entity';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { ExceptionFactory } from '@common/exceptions/exception-factory';
 import { PermissionAction } from '@common/enums/permission-action.enum';
@@ -10,10 +11,17 @@ import { PermissionsService } from '@modules/permissions/permissions.service';
 import { CustomFieldsService } from '@modules/custom-fields/custom-fields.service';
 import { EntityType } from '@common/enums/entity-type.enum';
 import { CustomFieldsMap } from '@modules/custom-fields/custom-fields.types';
+import { TaskActivityType } from '@common/enums/task-activity-type.enum';
 
 import { CreateTaskDto, UpdateTaskDto, UpdateTaskStageDto, GetTasksQueryDto } from './dto/task.dto';
+import { TaskActivityService } from './task-activity.service';
 
 export type TaskWithCustomFields = Task & { customFields: CustomFieldsMap };
+
+type TaskWithCounts = Task & {
+  commentsCount: number;
+  attachmentsCount: number;
+};
 
 @Injectable()
 export class TasksService {
@@ -22,6 +30,8 @@ export class TasksService {
     private readonly _taskRepository: Repository<Task>,
     private readonly _permissions: PermissionsService,
     private readonly _customFieldsService: CustomFieldsService,
+    private readonly _activityService: TaskActivityService,
+    private readonly _dataSource: DataSource,
   ) {}
 
   async create(createDto: CreateTaskDto, user: AuthorizedUser): Promise<TaskWithCustomFields> {
@@ -29,25 +39,53 @@ export class TasksService {
 
     const { customFields, ...taskData } = createDto;
 
-    const task = this._taskRepository.create({
-      ...taskData,
-      creatorId: user.id,
-      companyId: user.companyId,
-      departmentId: taskData.departmentId || user.departmentId,
+    const taskId = await this._dataSource.transaction(async (manager) => {
+      const company = await manager.findOne(Company, {
+        where: { id: user.companyId },
+        select: ['id', 'taskPrefix', 'taskCounter'],
+      });
+
+      if (!company) {
+        throw new Error('Company not found');
+      }
+
+      company.taskCounter += 1;
+      await manager.save(company);
+
+      const taskKey = `${company.taskPrefix}-${company.taskCounter}`;
+
+      const task = manager.create(Task, {
+        ...taskData,
+        key: taskKey,
+        creatorId: user.id,
+        companyId: user.companyId,
+        departmentId: taskData.departmentId || user.departmentId,
+      });
+
+      const saved = await manager.save(task);
+
+      if (customFields) {
+        await this._customFieldsService.setValuesWithManager(
+          manager,
+          user.companyId,
+          EntityType.TASK,
+          saved.id,
+          customFields,
+        );
+      }
+
+      await this._activityService.log(
+        saved.id,
+        user.id,
+        TaskActivityType.TASK_CREATED,
+        undefined,
+        manager,
+      );
+
+      return saved.id;
     });
 
-    const saved = await this._taskRepository.save(task);
-
-    if (customFields) {
-      await this._customFieldsService.setValues(
-        user.companyId,
-        EntityType.TASK,
-        saved.id,
-        customFields,
-      );
-    }
-
-    return this.findOne(saved.id, user);
+    return this.findOne(taskId, user);
   }
 
   async findAll(
@@ -58,21 +96,26 @@ export class TasksService {
 
     const { stage, priority, assigneeId, creatorId, departmentId, search, limit } = query;
 
-    const where: FindOptionsWhere<Task> = { companyId: user.companyId };
+    const queryBuilder = this._taskRepository
+      .createQueryBuilder('task')
+      .leftJoinAndSelect('task.creator', 'creator')
+      .leftJoinAndSelect('task.assignee', 'assignee')
+      .loadRelationCountAndMap('task.commentsCount', 'task.comments')
+      .loadRelationCountAndMap('task.attachmentsCount', 'task.attachments')
+      .where('task.companyId = :companyId', { companyId: user.companyId });
 
-    if (stage) where.stage = stage;
-    if (priority) where.priority = priority;
-    if (assigneeId) where.assigneeId = assigneeId;
-    if (creatorId) where.creatorId = creatorId;
-    if (departmentId) where.departmentId = departmentId;
-    if (search) where.title = ILike(`%${search}%`);
+    if (stage) queryBuilder.andWhere('task.stage = :stage', { stage });
+    if (priority) queryBuilder.andWhere('task.priority = :priority', { priority });
+    if (assigneeId) queryBuilder.andWhere('task.assigneeId = :assigneeId', { assigneeId });
+    if (creatorId) queryBuilder.andWhere('task.creatorId = :creatorId', { creatorId });
+    if (departmentId) queryBuilder.andWhere('task.departmentId = :departmentId', { departmentId });
+    if (search) queryBuilder.andWhere('task.title ILIKE :search', { search: `%${search}%` });
 
-    const tasks = await this._taskRepository.find({
-      where,
-      relations: ['creator', 'assignee'],
-      order: { order: 'ASC', createdAt: 'DESC' },
-      take: limit || 100,
-    });
+    queryBuilder.orderBy('task.order', 'ASC').addOrderBy('task.createdAt', 'DESC');
+
+    if (limit) queryBuilder.take(limit);
+
+    const tasks = (await queryBuilder.getMany()) as TaskWithCounts[];
 
     if (tasks.length === 0) return [];
 
@@ -104,7 +147,17 @@ export class TasksService {
 
     const task = await this._taskRepository.findOne({
       where: { id, companyId: user.companyId },
-      relations: ['creator', 'assignee'],
+      relations: [
+        'creator',
+        'assignee',
+        'comments',
+        'comments.author',
+        'attachments',
+        'attachments.uploadedBy',
+        'references',
+        'activities',
+        'activities.actor',
+      ],
     });
 
     if (!task) {
@@ -140,9 +193,33 @@ export class TasksService {
 
     const { customFields, ...taskData } = updateDto;
 
+    const oldStage = task.stage;
+    const oldPriority = task.priority;
+    const oldAssigneeId = task.assigneeId;
+
     Object.assign(task, taskData);
 
     const saved = await this._taskRepository.save(task);
+
+    // Activity logging
+    if (taskData.stage && taskData.stage !== oldStage) {
+      await this._activityService.log(saved.id, user.id, TaskActivityType.STATUS_CHANGED, {
+        old: oldStage,
+        new: taskData.stage,
+      });
+    }
+    if (taskData.priority && taskData.priority !== oldPriority) {
+      await this._activityService.log(saved.id, user.id, TaskActivityType.PRIORITY_CHANGED, {
+        old: oldPriority,
+        new: taskData.priority,
+      });
+    }
+    if (taskData.assigneeId !== undefined && taskData.assigneeId !== oldAssigneeId) {
+      await this._activityService.log(saved.id, user.id, TaskActivityType.ASSIGNEE_CHANGED, {
+        old: oldAssigneeId,
+        new: taskData.assigneeId,
+      });
+    }
 
     if (customFields !== undefined) {
       await this._customFieldsService.setValues(
@@ -164,6 +241,7 @@ export class TasksService {
     await this._permissions.assertCan(user, PermissionAction.TASK_UPDATE_STAGE);
 
     const task = await this.findOne(id, user);
+    const oldStage = task.stage;
 
     task.stage = updateDto.stage;
     if (updateDto.order !== undefined) {
@@ -171,6 +249,14 @@ export class TasksService {
     }
 
     const saved = await this._taskRepository.save(task);
+
+    if (updateDto.stage !== oldStage) {
+      await this._activityService.log(saved.id, user.id, TaskActivityType.STATUS_CHANGED, {
+        old: oldStage,
+        new: updateDto.stage,
+      });
+    }
+
     return this.findOne(saved.id, user);
   }
 

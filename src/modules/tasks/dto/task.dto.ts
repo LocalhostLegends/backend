@@ -51,6 +51,26 @@ export class CreateTaskDto {
   @IsOptional()
   departmentId?: string;
 
+  @ApiPropertyOptional({ example: '2h' })
+  @IsString()
+  @IsOptional()
+  estimate?: string;
+
+  @ApiPropertyOptional({ example: 5 })
+  @IsInt()
+  @IsOptional()
+  storyPoints?: number;
+
+  @ApiPropertyOptional({ example: 'uuid-of-sprint' })
+  @IsUUID()
+  @IsOptional()
+  sprintId?: string;
+
+  @ApiPropertyOptional({ example: ['backend', 'auth'] })
+  @IsString({ each: true })
+  @IsOptional()
+  labels?: string[];
+
   @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
   @IsOptional()
   customFields?: Record<string, CustomFieldValueType>;
@@ -130,6 +150,26 @@ export class UpdateTaskDto {
   @IsInt()
   @IsOptional()
   order?: number;
+
+  @ApiPropertyOptional({ example: '2h' })
+  @IsString()
+  @IsOptional()
+  estimate?: string;
+
+  @ApiPropertyOptional({ example: 5 })
+  @IsInt()
+  @IsOptional()
+  storyPoints?: number;
+
+  @ApiPropertyOptional({ example: 'uuid-of-sprint' })
+  @IsUUID()
+  @IsOptional()
+  sprintId?: string;
+
+  @ApiPropertyOptional({ example: ['backend', 'auth'] })
+  @IsString({ each: true })
+  @IsOptional()
+  labels?: string[];
 
   @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
   @IsOptional()
