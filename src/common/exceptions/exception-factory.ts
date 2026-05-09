@@ -125,6 +125,14 @@ export class ExceptionFactory {
     return new AppException(ExceptionCode.AUTH_INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
   }
 
+  static tokenExpired() {
+    return new AppException(ExceptionCode.AUTH_TOKEN_EXPIRED, HttpStatus.BAD_REQUEST);
+  }
+
+  static tokenUsed() {
+    return new AppException(ExceptionCode.AUTH_TOKEN_USED, HttpStatus.BAD_REQUEST);
+  }
+
   static unauthorized() {
     return new AppException(ExceptionCode.AUTH_UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
   }
@@ -163,6 +171,24 @@ export class ExceptionFactory {
     return new AppException(ExceptionCode.COMPANY_SUBDOMAIN_TAKEN, HttpStatus.CONFLICT, [
       subdomain,
     ]);
+  }
+
+  // Recruitment
+  static jobNotFound(id: string) {
+    return new AppException(ExceptionCode.JOB_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
+  static candidateNotFound(id: string) {
+    return new AppException(ExceptionCode.CANDIDATE_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
+  static applicationNotFound(id: string) {
+    return new AppException(ExceptionCode.APPLICATION_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
+  // Tasks
+  static taskNotFound(id: string) {
+    return new AppException(ExceptionCode.TASK_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
   }
 
   // Common

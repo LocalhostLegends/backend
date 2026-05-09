@@ -16,7 +16,13 @@ import { JwtPayload, JwtRefreshPayload, AuthResponse } from './auth.types';
 
 import { TokenService } from '../token/token.service';
 import { UsersService } from '../users/users.service';
+import { toUserResponse } from '../users/users.utils';
+import { UserResponseDto } from '@modules/core/users/dto/user-response.dto';
+import { EmailService } from '../email/email.service';
 import { AuditLogService } from '../../audit/audit-log.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { TokenType } from '@common/enums/token-type.enum';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +31,7 @@ export class AuthService {
     private readonly _companiesService: CompaniesService,
     private readonly _tokenService: TokenService,
     private readonly _jwtService: JwtService,
+    private readonly _emailService: EmailService,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -57,10 +64,13 @@ export class AuthService {
 
     const user = await this._usersService.create(userData);
 
-    const accessToken = await this._generateAccessToken(user);
+    const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
+    const userResponse = (await toUserResponse(user, (userId) =>
+      this._usersService.getUserPermissions(userId),
+    )) as UserResponseDto;
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, user: userResponse };
   }
 
   async login(loginDto: LoginDto, context?: AppRequestContext): Promise<AuthResponse> {
@@ -112,7 +122,12 @@ export class AuthService {
       throw ExceptionFactory.userBlocked();
     }
 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password!);
+    const password = user.security?.password;
+    if (!password) {
+      throw ExceptionFactory.invalidCredentials();
+    }
+
+    const isPasswordValid = await bcrypt.compare(loginDto.password, password);
 
     if (!isPasswordValid) {
       await this.auditLogService.createAuthLog({
@@ -146,10 +161,13 @@ export class AuthService {
     });
     await this._usersService.updateLastLogin(user.id, context?.ip, context?.userAgent);
 
-    const accessToken = await this._generateAccessToken(user);
+    const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
+    const userResponse = (await toUserResponse(user, (userId) =>
+      this._usersService.getUserPermissions(userId),
+    )) as UserResponseDto;
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, user: userResponse };
   }
 
   async refresh(userId: string): Promise<AuthResponse> {
@@ -159,10 +177,60 @@ export class AuthService {
       throw ExceptionFactory.userNotActive();
     }
 
-    const accessToken = await this._generateAccessToken(user);
+    const accessToken = this._generateAccessToken(user);
     const refreshToken = this._generateRefreshToken(user);
+    const userResponse = (await toUserResponse(user, (userId) =>
+      this._usersService.getUserPermissions(userId),
+    )) as UserResponseDto;
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, user: userResponse };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<void> {
+    const user = await this._usersService.findByEmail(dto.email);
+
+    if (user && user.isActive()) {
+      await this._tokenService.revokeUserTokens(user.id, TokenType.RESET_PASSWORD);
+
+      const token = await this._tokenService.createToken(user.id, TokenType.RESET_PASSWORD, 24);
+
+      const resetLink = `${config.frontend.url}/reset-password?token=${token.token}`;
+
+      await this._emailService.sendPasswordResetEmail(user.email, user.firstName, resetLink);
+
+      await this.auditLogService.createAuthLog({
+        eventType: 'auth.password.reset.requested',
+        userId: user.id,
+        emailAttempted: dto.email,
+        success: true,
+      });
+    } else if (user) {
+      await this.auditLogService.createAuthLog({
+        eventType: 'auth.password.reset.request_failed',
+        userId: user.id,
+        emailAttempted: dto.email,
+        success: false,
+        failureReason: 'user_not_active',
+      });
+    }
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const tokenRecord = await this._tokenService.validateToken(dto.token, TokenType.RESET_PASSWORD);
+
+    if (!tokenRecord.user) {
+      throw ExceptionFactory.invalidToken();
+    }
+
+    await this._usersService.updatePassword(tokenRecord.user.id, dto.newPassword);
+    await this._tokenService.markTokenAsUsed(tokenRecord.id);
+
+    await this.auditLogService.createAuthLog({
+      eventType: 'auth.password.reset.success',
+      userId: tokenRecord.user.id,
+      emailAttempted: tokenRecord.user.email,
+      success: true,
+    });
   }
 
   async logout(userId?: string): Promise<{ message: string }> {
@@ -172,16 +240,13 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  private async _generateAccessToken(user: User): Promise<string> {
-    const permissions = await this._usersService.getUserPermissions(user.id);
+  private _generateAccessToken(user: User): string {
     const roles = user.roles?.map((r) => r.code as UserRole) || [];
 
     const payload: JwtPayload = {
       sub: user.id,
-      email: user.email,
       roles,
       companyId: user.company.id,
-      permissions,
       pv: user.permissionsVersion,
     };
 

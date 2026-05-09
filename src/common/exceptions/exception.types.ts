@@ -41,11 +41,21 @@ export type ExceptionParams = {
   [ExceptionCode.AUTH_HAS_ADMIN]: [];
   [ExceptionCode.AUTH_FORBIDDEN_NON_OWNERSHIP]: [resourceName: string];
   [ExceptionCode.AUTH_FORBIDDEN_RESOURCE]: [requiredRole: string, isOwnerable?: boolean];
+  [ExceptionCode.AUTH_TOKEN_EXPIRED]: [];
+  [ExceptionCode.AUTH_TOKEN_USED]: [];
 
   // Companies
   [ExceptionCode.COMPANY_NOT_FOUND]: [];
   [ExceptionCode.COMPANY_WITH_ID_NOT_FOUND]: [id: string];
   [ExceptionCode.COMPANY_SUBDOMAIN_TAKEN]: [subdomain: string];
+
+  // Recruitment
+  [ExceptionCode.JOB_NOT_FOUND]: [id: string];
+  [ExceptionCode.CANDIDATE_NOT_FOUND]: [id: string];
+  [ExceptionCode.APPLICATION_NOT_FOUND]: [id: string];
+
+  // Tasks
+  [ExceptionCode.TASK_NOT_FOUND]: [id: string];
 
   // Common
   [ExceptionCode.COMMON_REQUIRED_FIELD]: [field: string];

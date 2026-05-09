@@ -58,6 +58,16 @@ export class UserResponseDto {
   company: CompanyResponseDto | null;
 
   @Expose()
+  @ApiProperty({ description: 'Company ID', format: 'uuid' })
+  get companyId(): string | null {
+    return this.company?.id || null;
+  }
+
+  @Expose()
+  @ApiProperty({ description: 'User permissions', isArray: true, type: String })
+  permissions: string[];
+
+  @Expose()
   @ApiPropertyOptional(UserFields.lastLoginAt)
   lastLoginAt: Date | null;
 

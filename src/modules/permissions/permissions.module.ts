@@ -8,6 +8,7 @@ import { HrRestrictionRule } from './rules/hr-restriction.rule';
 import { DepartmentScopeRule } from './rules/department-scope.rule';
 import { CompanyBoundaryRule } from './rules/company-boundary.rule';
 import { SelfAccessRule } from './rules/self-access.rule';
+import { CalendarRule } from './rules/calendar.rule';
 import { ResourceHelper } from './utils/resource-helper.service';
 
 @Global()
@@ -20,6 +21,7 @@ import { ResourceHelper } from './utils/resource-helper.service';
     DepartmentScopeRule,
     CompanyBoundaryRule,
     SelfAccessRule,
+    CalendarRule,
     {
       provide: POLICY_RULES,
       useFactory: (
@@ -27,8 +29,15 @@ import { ResourceHelper } from './utils/resource-helper.service';
         dept: DepartmentScopeRule,
         boundary: CompanyBoundaryRule,
         self: SelfAccessRule,
-      ) => [hr, dept, boundary, self],
-      inject: [HrRestrictionRule, DepartmentScopeRule, CompanyBoundaryRule, SelfAccessRule],
+        calendar: CalendarRule,
+      ) => [hr, dept, boundary, self, calendar],
+      inject: [
+        HrRestrictionRule,
+        DepartmentScopeRule,
+        CompanyBoundaryRule,
+        SelfAccessRule,
+        CalendarRule,
+      ],
     },
   ],
   exports: [PermissionsService, ResourceHelper],

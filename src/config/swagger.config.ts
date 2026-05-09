@@ -3,7 +3,7 @@ import { DocumentBuilder } from '@nestjs/swagger';
 export const swaggerConfig = new DocumentBuilder()
   .setTitle('Hirely API')
   .setDescription('Hirely — HR Technology Platform for Modern Teams')
-  .setVersion('1.0.1')
+  .setVersion('1.0.2')
   .addBearerAuth(
     {
       type: 'http',

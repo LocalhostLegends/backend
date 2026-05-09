@@ -7,6 +7,8 @@ export const swagger = {
   ApiLogin: authDecorators.ApiLogin,
   ApiRefreshToken: authDecorators.ApiRefreshToken,
   ApiLogout: authDecorators.ApiLogout,
+  ApiForgotPassword: authDecorators.ApiForgotPassword,
+  ApiResetPassword: authDecorators.ApiResetPassword,
 };
 
 export { AuthFields };

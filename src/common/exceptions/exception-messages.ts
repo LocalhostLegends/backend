@@ -1,9 +1,6 @@
 import { ExceptionCode } from './exception-codes';
-import { ExceptionParams } from './exception.types';
 
-export const ExceptionMessages: {
-  [K in ExceptionCode]: (...args: ExceptionParams[K]) => string;
-} = {
+export const ExceptionMessages: Record<string, (...args: any[]) => string> = {
   // Users
   [ExceptionCode.USER_NOT_FOUND]: () => 'User not found',
   [ExceptionCode.USER_WITH_ID_NOT_FOUND]: (id: string) => `User with id "${id}" not found`,
@@ -54,12 +51,22 @@ export const ExceptionMessages: {
     `This endpoint requires ownership of ${resourceName}`,
   [ExceptionCode.AUTH_FORBIDDEN_RESOURCE]: (requiredRole: string, isOwnerable = true) =>
     `This endpoint requires ${requiredRole} role ${isOwnerable ? ' or ownership of the resource' : ''}`,
+  [ExceptionCode.AUTH_TOKEN_EXPIRED]: () => 'Token has expired',
+  [ExceptionCode.AUTH_TOKEN_USED]: () => 'Token has already been used',
 
   // Companies
   [ExceptionCode.COMPANY_NOT_FOUND]: () => 'Company not found',
   [ExceptionCode.COMPANY_WITH_ID_NOT_FOUND]: (id: string) => `Company with id "${id}" not found`,
   [ExceptionCode.COMPANY_SUBDOMAIN_TAKEN]: (subdomain: string) =>
     `Subdomain "${subdomain}" is already taken`,
+
+  // Recruitment
+  [ExceptionCode.JOB_NOT_FOUND]: (id: string) => `Job with id "${id}" not found`,
+  [ExceptionCode.CANDIDATE_NOT_FOUND]: (id: string) => `Candidate with id "${id}" not found`,
+  [ExceptionCode.APPLICATION_NOT_FOUND]: (id: string) => `Application with id "${id}" not found`,
+
+  // Tasks
+  [ExceptionCode.TASK_NOT_FOUND]: (id: string) => `Task with id "${id}" not found`,
 
   // Common
   [ExceptionCode.COMMON_REQUIRED_FIELD]: (field: string) => `${field} is required`,

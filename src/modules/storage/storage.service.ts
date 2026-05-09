@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   ListObjectsV2Command,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import * as crypto from 'crypto';
 import 'multer';
@@ -103,6 +104,42 @@ export class StorageService {
 
     this.logger.log(`✅ Avatar uploaded: ${key}`);
 
+    return { url: `${config.storage.publicUrl.replace(/\/$/, '')}/${key}` };
+  }
+
+  async getFileUrlIfExists(key: string): Promise<string | null> {
+    try {
+      await this.s3Client.send(
+        new HeadObjectCommand({
+          Bucket: config.storage.bucketName,
+          Key: key,
+        }),
+      );
+      return `${config.storage.publicUrl.replace(/\/$/, '')}/${key}`;
+    } catch {
+      return null;
+    }
+  }
+
+  async uploadSeedAvatar(file: Express.Multer.File, fileName: string): Promise<{ url: string }> {
+    const key = `seed/avatars/${fileName}`;
+
+    // Check if exists first to save bandwidth and operations
+    const existingUrl = await this.getFileUrlIfExists(key);
+    if (existingUrl) {
+      return { url: existingUrl };
+    }
+
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: config.storage.bucketName,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      }),
+    );
+
+    this.logger.log(`✅ Seed avatar uploaded: ${key}`);
     return { url: `${config.storage.publicUrl.replace(/\/$/, '')}/${key}` };
   }
 

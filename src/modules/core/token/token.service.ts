@@ -1,11 +1,12 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository, LessThan, FindOptionsWhere } from 'typeorm';
 import { randomUUID } from 'crypto';
 
 import { Token } from '@database/entities/token.entity';
 import { TokenType } from '@/common/enums/token-type.enum';
 import { User } from '@database/entities/user.entity';
+import { ExceptionFactory } from '@/common/exceptions/exception-factory';
 
 @Injectable()
 export class TokenService {
@@ -44,15 +45,15 @@ export class TokenService {
     });
 
     if (!tokenRecord) {
-      throw new NotFoundException('Invalid token');
+      throw ExceptionFactory.invalidToken();
     }
 
     if (tokenRecord.isUsed) {
-      throw new BadRequestException('Token has already been used');
+      throw ExceptionFactory.tokenUsed();
     }
 
     if (tokenRecord.expiresAt < new Date()) {
-      throw new BadRequestException('Token has expired');
+      throw ExceptionFactory.tokenExpired();
     }
 
     return tokenRecord;
@@ -67,7 +68,7 @@ export class TokenService {
   }
 
   async revokeUserTokens(userId: string, type?: TokenType): Promise<number> {
-    const where: { userId: string; isUsed: false; type?: TokenType } = { userId, isUsed: false };
+    const where: FindOptionsWhere<Token> = { user: { id: userId }, isUsed: false };
 
     if (type) {
       where.type = type;

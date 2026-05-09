@@ -6,7 +6,11 @@ import {
   IsEmail,
   IsDateString,
   IsArray,
+  IsInt,
+  Min,
+  Max,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 import { UserRole } from '@common/enums/user-role.enum';
@@ -99,6 +103,34 @@ export class UserFilterDto {
   @IsOptional()
   @IsDateString()
   createdBefore?: string;
+
+  @ApiPropertyOptional(UserFilterFields.hiredAfter)
+  @IsOptional()
+  @IsDateString()
+  hiredAfter?: string;
+
+  @ApiPropertyOptional(UserFilterFields.hiredBefore)
+  @IsOptional()
+  @IsDateString()
+  hiredBefore?: string;
+
+  @ApiPropertyOptional(UserFilterFields.lastLoginAfter)
+  @IsOptional()
+  @IsDateString()
+  lastLoginAfter?: string;
+
+  @ApiPropertyOptional(UserFilterFields.lastLoginBefore)
+  @IsOptional()
+  @IsDateString()
+  lastLoginBefore?: string;
+
+  @ApiPropertyOptional(UserFilterFields.dobMonth)
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  dobMonth?: number;
 
   @ApiPropertyOptional(UserFilterFields.pendingOnly)
   @IsOptional()

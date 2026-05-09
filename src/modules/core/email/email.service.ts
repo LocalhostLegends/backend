@@ -7,6 +7,7 @@ import config from '@config/app.config';
 
 import { getInviteEmailTemplate } from './templates/invite-email.template';
 import { getWelcomeEmailTemplate } from './templates/welcome-email.template';
+import { getPasswordResetEmailTemplate } from './templates/password-reset.template';
 
 @Injectable()
 export class EmailService {
@@ -72,6 +73,16 @@ export class EmailService {
     await this._sendEmail({
       to,
       subject: 'Welcome to our platform! 🎉',
+      html,
+    });
+  }
+
+  async sendPasswordResetEmail(to: string, firstName: string, resetLink: string): Promise<void> {
+    const html = getPasswordResetEmailTemplate(firstName, resetLink);
+
+    await this._sendEmail({
+      to,
+      subject: 'Reset Your Password',
       html,
     });
   }

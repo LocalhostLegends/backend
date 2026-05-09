@@ -49,3 +49,33 @@ export const ApiLogout = () => {
     ApiResponse({ status: HttpStatus.OK, description: 'Logged out successfully' }),
   );
 };
+
+// POST /auth/forgot-password
+export const ApiForgotPassword = () => {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Forgot Password (Request Reset Link)',
+      description:
+        'Sends a reset link to the user email. Used for both forgotten passwords and security-mandated resets from profile.',
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Reset link sent if user exists and is active',
+    }),
+  );
+};
+
+// POST /auth/reset-password
+export const ApiResetPassword = () => {
+  return applyDecorators(
+    ApiOperation({ summary: 'Reset password using token' }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Password reset successfully',
+    }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Invalid or expired token',
+    }),
+  );
+};

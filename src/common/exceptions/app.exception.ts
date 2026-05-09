@@ -13,9 +13,10 @@ export class AppException<K extends ExceptionCode = ExceptionCode> extends HttpE
     params?: ExceptionParams[K],
     context?: Record<string, unknown>,
   ) {
-    const messageFn = ExceptionMessages[code] as (...args: ExceptionParams[K]) => string;
-    const args = (params ?? []) as ExceptionParams[K];
-    const message = messageFn(...args);
+    const messages = ExceptionMessages as Record<ExceptionCode, (...args: unknown[]) => string>;
+    const messageFn = messages[code];
+    const args = (params ?? []) as unknown[];
+    const message = typeof messageFn === 'function' ? messageFn(...args) : code;
 
     super(message, status);
     this.code = code;

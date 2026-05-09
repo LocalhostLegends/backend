@@ -2,6 +2,7 @@ import {
   Entity,
   Column,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
@@ -12,6 +13,8 @@ import {
 import { User } from './user.entity';
 import { Department } from './department.entity';
 import { Position } from './position.entity';
+import { CompanyProfile } from './company-profile.entity';
+import { Address } from './address.entity';
 
 @Entity('companies')
 export class Company {
@@ -40,20 +43,11 @@ export class Company {
   @Column({ type: 'timestamp', nullable: true, name: 'subscription_expires_at' })
   subscriptionExpiresAt: Date | null;
 
-  @Column({ type: 'jsonb', default: {}, name: 'settings' })
-  settings: {
-    email?: string;
-    phone?: string;
-    website?: string;
-    address?: string;
-    city?: string;
-    country?: string;
-    taxId?: string;
-    registrationNumber?: string;
-    employeeCount?: number;
-    industry?: string;
-    companySize?: '1-10' | '11-50' | '51-200' | '201-500' | '500+';
-  };
+  @OneToOne(() => CompanyProfile, (profile) => profile.company, { cascade: true })
+  profile: CompanyProfile;
+
+  @OneToMany(() => Address, (address) => address.company, { cascade: true })
+  addresses: Address[];
 
   @OneToMany(() => User, (user) => user.company)
   users: User[];

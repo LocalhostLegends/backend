@@ -10,6 +10,8 @@ import { AuthService } from './auth.service';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AccessTokenResponseDto } from './dto/access-token-response.dto';
 import { CurrentUser } from '../users/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
@@ -28,9 +30,10 @@ export class AuthController {
     @Body() registerDto: RegisterCompanyDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AccessTokenResponseDto> {
-    const { accessToken, refreshToken } = await this._authService.registerCompany(registerDto);
+    const { accessToken, refreshToken, user } =
+      await this._authService.registerCompany(registerDto);
     this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken };
+    return { accessToken, user };
   }
 
   @Public()
@@ -43,9 +46,28 @@ export class AuthController {
     @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AccessTokenResponseDto> {
-    const { accessToken, refreshToken } = await this._authService.login(loginDto, req.context);
+    const { accessToken, refreshToken, user } = await this._authService.login(
+      loginDto,
+      req.context,
+    );
     this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken };
+    return { accessToken, user };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @swagger.ApiForgotPassword()
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<void> {
+    await this._authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @swagger.ApiResetPassword()
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<void> {
+    await this._authService.resetPassword(resetPasswordDto);
   }
 
   @Throttle({ default: { limit: 20, ttl: 60000 } })
@@ -57,9 +79,9 @@ export class AuthController {
     @CurrentUser() user: AuthorizedUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AccessTokenResponseDto> {
-    const { accessToken, refreshToken } = await this._authService.refresh(user.id);
+    const { accessToken, refreshToken, user: userData } = await this._authService.refresh(user.id);
     this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken };
+    return { accessToken, user: userData };
   }
 
   @Post('logout')

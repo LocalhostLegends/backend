@@ -13,11 +13,9 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 
-import { UserRole } from '@common/enums/user-role.enum';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import type { AuthorizedUser } from '@modules/core/users/users.types';
 import { PaginatedResult } from '@modules/pagination/pagination.interfaces';
-import { UserStatus } from '@common/enums/user-status.enum';
 import { RequirePermission } from '@modules/permissions/decorators/require-permission.decorator';
 import { Resource } from '@modules/permissions/decorators/resource.decorator';
 import { User } from '@database/entities/user.entity';
@@ -27,6 +25,7 @@ import { UsersService } from '../users.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserFilterDto } from '../dto/user-filter.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
+import { UserDirectoryResponseDto } from '../dto/user-directory-response.dto';
 
 import { swagger } from '../swagger';
 
@@ -45,33 +44,19 @@ export class UsersController {
     return this._usersService.findAllPaginated(filters, currentUser);
   }
 
+  @Get('directory')
+  @swagger.ApiGetDirectory()
+  async getDirectory(
+    @Query(new ValidationPipe({ transform: true })) filters: UserFilterDto,
+    @CurrentUser() currentUser: AuthorizedUser,
+  ): Promise<PaginatedResult<UserDirectoryResponseDto>> {
+    return this._usersService.getDirectoryPaginated(filters, currentUser);
+  }
+
   @Get('me')
   @swagger.ApiGetCurrentUser()
   async getCurrentUser(@CurrentUser() currentUser: AuthorizedUser): Promise<UserResponseDto> {
     return this._usersService.findOne(currentUser.id, currentUser);
-  }
-
-  @Get('role/:role')
-  @RequirePermission(PermissionAction.USER_READ)
-  @swagger.ApiGetUsersByRole()
-  async getUsersByRole(
-    @Param('role') role: UserRole,
-    @CurrentUser() currentUser: AuthorizedUser,
-  ): Promise<UserResponseDto[]> {
-    return this._usersService.getUsersByRole(currentUser, role);
-  }
-
-  @Get('status/:status')
-  @RequirePermission(PermissionAction.USER_READ)
-  @swagger.ApiGetUsersByStatus()
-  async getUsersByStatus(
-    @Param('status') status: UserStatus,
-    @CurrentUser() currentUser: AuthorizedUser,
-  ): Promise<UserResponseDto[]> {
-    const filters = { status };
-    const result = await this._usersService.findAllPaginated(filters, currentUser);
-
-    return result.items;
   }
 
   @Get(':id')

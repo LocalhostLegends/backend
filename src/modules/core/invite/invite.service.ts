@@ -96,8 +96,8 @@ export class InviteService {
         role: dto.role,
         company: { id: currentUser.companyId },
         invitedBy: { id: currentUser.id },
-        departmentId: dto.departmentId || null,
-        positionId: dto.positionId || null,
+        department: dto.departmentId ? { id: dto.departmentId } : null,
+        position: dto.positionId ? { id: dto.positionId } : null,
         expiresAt: expiresAt,
         status: InviteStatus.PENDING,
         sentCount: 1,
@@ -248,32 +248,23 @@ export class InviteService {
     await this._inviteRepository.save(invite);
   }
 
-  async getCompanyInvites(currentUser: AuthorizedUser): Promise<Invite[]> {
+  async getCompanyInvites(
+    currentUser: AuthorizedUser,
+    filters?: { status?: InviteStatus },
+  ): Promise<Invite[]> {
     await this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
 
     const where: FindOptionsWhere<Invite> = { company: { id: currentUser.companyId } };
-    if (currentUser.roles.includes(UserRole.MANAGER) && currentUser.departmentId) {
-      where.departmentId = currentUser.departmentId;
+
+    if (filters?.status) {
+      where.status = filters.status;
+      if (filters.status === InviteStatus.PENDING) {
+        where.expiresAt = MoreThan(new Date());
+      }
     }
 
-    return this._inviteRepository.find({
-      where,
-      relations: ['invitedBy'],
-      order: { createdAt: 'DESC' },
-    });
-  }
-
-  async getPendingInvites(currentUser: AuthorizedUser): Promise<Invite[]> {
-    await this._permissions.assertCan(currentUser, PermissionAction.INVITE_READ);
-
-    const where: FindOptionsWhere<Invite> = {
-      company: { id: currentUser.companyId },
-      status: InviteStatus.PENDING,
-      expiresAt: MoreThan(new Date()),
-    };
-
     if (currentUser.roles.includes(UserRole.MANAGER) && currentUser.departmentId) {
-      where.departmentId = currentUser.departmentId;
+      where.department = { id: currentUser.departmentId };
     }
 
     return this._inviteRepository.find({

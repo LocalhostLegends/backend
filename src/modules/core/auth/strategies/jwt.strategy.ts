@@ -33,6 +33,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw ExceptionFactory.unauthorized();
     }
 
+    const permissions = await this._usersService.getUserPermissions(user.id);
+
     return {
       id: user.id,
       email: user.email,
@@ -41,7 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       departmentId: user.department?.id || null,
       firstName: user.firstName,
       lastName: user.lastName,
-      permissions: payload.permissions || [],
+      permissions,
       permissionsVersion: user.permissionsVersion,
     };
   }

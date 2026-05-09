@@ -39,6 +39,11 @@ export class CreateCompanyDto {
   @IsString()
   address?: string;
 
+  @ApiPropertyOptional(CompanyFields.postalCode)
+  @IsOptional()
+  @IsString()
+  postalCode?: string;
+
   @ApiPropertyOptional(CommonFields.phone)
   @IsOptional()
   @IsString()
@@ -58,4 +63,23 @@ export class CreateCompanyDto {
   @IsOptional()
   @IsString()
   taxId?: string;
+
+  @ApiPropertyOptional(CompanyFields.registrationNumber)
+  @IsOptional()
+  @IsString()
+  registrationNumber?: string;
+
+  @ApiPropertyOptional(CompanyFields.industry)
+  @IsOptional()
+  @IsString()
+  industry?: string;
+
+  @ApiPropertyOptional(CompanyFields.employeeCount)
+  @IsOptional()
+  employeeCount?: number;
+
+  @ApiPropertyOptional(CompanyFields.companySize)
+  @IsOptional()
+  @IsString()
+  companySize?: string;
 }

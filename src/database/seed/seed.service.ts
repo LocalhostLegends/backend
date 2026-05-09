@@ -33,7 +33,7 @@ export class SeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    if (config.isProduction) {
+    if (config.isProduction && process.env.RUN_SEED !== 'true') {
       return;
     }
 
@@ -75,8 +75,14 @@ export class SeedService implements OnModuleInit {
           isActive: companyData.isActive,
           subscriptionPlan: companyData.subscriptionPlan,
           subscriptionExpiresAt,
-          settings: {
-            ...companyData.settings,
+          profile: {
+            email: companyData.settings.email,
+            phone: companyData.settings.phone,
+            website: companyData.settings.website,
+            taxId: companyData.settings.taxId,
+            registrationNumber: companyData.settings.registrationNumber,
+            industry: companyData.settings.industry,
+            companySize: companyData.settings.companySize,
             employeeCount: usersData.length,
           },
         }),
@@ -92,7 +98,7 @@ export class SeedService implements OnModuleInit {
             code: departmentData.code,
             budget: departmentData.budget,
             isActive: departmentData.isActive,
-            company,
+            company: company,
           }),
         );
         departmentsByKey.set(departmentData.key, department);
@@ -110,7 +116,7 @@ export class SeedService implements OnModuleInit {
             maxSalary: positionData.maxSalary,
             gradeLevel: positionData.gradeLevel,
             isActive: positionData.isActive,
-            company,
+            company: company,
           }),
         );
         positionsByKey.set(positionData.key, position);
@@ -123,6 +129,8 @@ export class SeedService implements OnModuleInit {
 
       const hashedPassword = await bcrypt.hash(DEFAULT_SEED_PASSWORD, 10);
       const usersByKey = new Map<string, User>();
+
+      this.logger.log('⏳ Checking and processing avatars, please wait...');
 
       for (const userData of usersData) {
         const department = userData.departmentKey
@@ -174,10 +182,9 @@ export class SeedService implements OnModuleInit {
                 originalname: userData.avatar,
                 mimetype: `image/${ext === 'webp' ? 'webp' : 'jpeg'}`,
               } as Express.Multer.File;
-              const uploadResult = await this._storageService.uploadAvatar(
+              const uploadResult = await this._storageService.uploadSeedAvatar(
                 file,
-                company.id,
-                userData.email,
+                userData.avatar,
               );
               avatarUrl = uploadResult.url;
             } else {
@@ -211,32 +218,29 @@ export class SeedService implements OnModuleInit {
           firstName: userData.firstName,
           lastName: userData.lastName,
           email: userData.email,
-          password: hasPassword ? hashedPassword : null,
           dateOfBirth,
           hireDate,
           status: userData.status,
-          company,
+          company: company,
           department,
           position,
+          roles: roleEntities,
           phone: userData.phone ?? null,
           avatar: avatarUrl,
-          lastLoginAt: userData.status === UserStatus.ACTIVE ? now : null,
-          lastLoginIp: userData.lastLoginIp ?? null,
-          failedLoginAttempts: userData.failedLoginAttempts ?? 0,
-          lockedUntil:
-            userData.status === UserStatus.BLOCKED
-              ? this._addHours(now, userData.lockedForHours ?? 12)
-              : null,
-          emailVerifiedAt: hasPassword ? now : null,
           createdAt,
           updatedAt,
-          metadata: {
-            invitedAt: hireDate,
-            source: userData.source,
-            welcomeEmailSent: hasPassword,
-            lastPasswordChange: hasPassword ? now : undefined,
+          security: {
+            password: hasPassword ? hashedPassword : null,
+            lastLoginAt: userData.status === UserStatus.ACTIVE ? now : null,
+            lastLoginIp: userData.lastLoginIp ?? null,
+            failedLoginAttempts: userData.failedLoginAttempts ?? 0,
+            lockedUntil:
+              userData.status === UserStatus.BLOCKED
+                ? this._addHours(now, userData.lockedForHours ?? 12)
+                : null,
+            emailVerifiedAt: hasPassword ? now : null,
           },
-          preferences: {
+          settings: {
             language: userData.preferences?.language ?? 'en',
             timezone: userData.preferences?.timezone ?? company.timezone,
             notifications: {
@@ -246,16 +250,16 @@ export class SeedService implements OnModuleInit {
               ...userData.preferences?.notifications,
             },
             theme: userData.preferences?.theme ?? 'system',
+            metadata: {
+              invitedAt: hireDate,
+              source: userData.source,
+              welcomeEmailSent: hasPassword,
+              lastPasswordChange: hasPassword ? now : undefined,
+            },
           },
         });
 
         const savedUser = await userRepository.save(user);
-
-        if (roleEntities.length > 0) {
-          savedUser.roles = roleEntities;
-          await userRepository.save(savedUser);
-        }
-
         usersByKey.set(userData.key, savedUser);
       }
       this.logger.log(`✅ Created ${usersByKey.size} users`);

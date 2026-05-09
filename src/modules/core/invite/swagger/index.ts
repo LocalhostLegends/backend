@@ -9,7 +9,6 @@ export const swagger = {
   ApiResendInvite: inviteDecorators.ApiResendInvite,
   ApiCancelInvite: inviteDecorators.ApiCancelInvite,
   ApiGetCompanyInvites: inviteDecorators.ApiGetCompanyInvites,
-  ApiGetPendingInvites: inviteDecorators.ApiGetPendingInvites,
 };
 
 export { InviteFields };

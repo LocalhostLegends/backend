@@ -4,9 +4,10 @@ import { PermissionAction } from '@common/enums/permission-action.enum';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { ExceptionCode } from '@common/exceptions/exception-codes';
 import { AppException } from '@common/exceptions/app.exception';
-import { ExceptionParams } from '@common/exceptions/exception.types';
 
 import { PolicyRule } from './interfaces/policy-rule.interface';
+
+import { ExceptionParams } from '@common/exceptions/exception.types';
 
 export const POLICY_RULES = 'POLICY_RULES';
 
