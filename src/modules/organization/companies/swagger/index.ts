@@ -1,15 +1,24 @@
-import * as companyDecorators from './company.decorators';
+import {
+  ApiCompanyTags,
+  ApiCreateCompany,
+  ApiFindAllCompanies,
+  ApiGetCompanyStats,
+  ApiFindOneCompany,
+  ApiUpdateCompany,
+  ApiRemoveCompany,
+  ApiUpdateSubscription,
+} from './company.decorators';
 import { CompanyFields } from './company.fields';
 
 export const swagger = {
-  ApiTags: companyDecorators.ApiCompanyTags,
-  ApiCreate: companyDecorators.ApiCreateCompany,
-  ApiFindAll: companyDecorators.ApiFindAllCompanies,
-  ApiGetCompanyStats: companyDecorators.ApiGetCompanyStats,
-  ApiFindOne: companyDecorators.ApiFindOneCompany,
-  ApiUpdate: companyDecorators.ApiUpdateCompany,
-  ApiRemove: companyDecorators.ApiRemoveCompany,
-  ApiUpdateSubscription: companyDecorators.ApiUpdateSubscription,
+  ApiTags: ApiCompanyTags,
+  ApiCreate: ApiCreateCompany,
+  ApiFindAll: ApiFindAllCompanies,
+  ApiGetStats: ApiGetCompanyStats,
+  ApiFindOne: ApiFindOneCompany,
+  ApiUpdate: ApiUpdateCompany,
+  ApiRemove: ApiRemoveCompany,
+  ApiUpdateSubscription: ApiUpdateSubscription,
 };
 
 export { CompanyFields };

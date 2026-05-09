@@ -11,55 +11,50 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import type { AuthorizedUser } from '@modules/core/users/users.types';
-import { JobApplication } from '@database/entities/job-application.entity';
 
-import { ApplicationsService } from './applications.service';
+import { ApplicationsService, ApplicationWithCustomFields } from './applications.service';
 import { CreateApplicationDto, UpdateApplicationStageDto } from './dto/application.dto';
+import { swagger } from './swagger';
 
-@ApiTags('Job Applications')
+@swagger.ApiTags()
 @Controller('applications')
 export class ApplicationsController {
   constructor(private readonly _applicationsService: ApplicationsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new job application' })
-  @ApiResponse({ status: HttpStatus.CREATED, type: JobApplication })
+  @swagger.ApiCreate()
   async create(
     @Body(ValidationPipe) createDto: CreateApplicationDto,
     @CurrentUser() user: AuthorizedUser,
-  ): Promise<JobApplication> {
+  ): Promise<ApplicationWithCustomFields> {
     return this._applicationsService.create(createDto, user);
   }
 
   @Get('by-job/:jobId')
-  @ApiOperation({ summary: 'Get all applications for a specific job (Kanban board data)' })
-  @ApiResponse({ status: HttpStatus.OK, type: [JobApplication] })
+  @swagger.ApiGetByJob()
   async findByJob(
     @Param('jobId', ParseUUIDPipe) jobId: string,
     @CurrentUser() user: AuthorizedUser,
-  ): Promise<JobApplication[]> {
+  ): Promise<ApplicationWithCustomFields[]> {
     return this._applicationsService.findByJob(jobId, user);
   }
 
   @Patch(':id/stage')
-  @ApiOperation({ summary: 'Update application stage (Kanban move)' })
-  @ApiResponse({ status: HttpStatus.OK, type: JobApplication })
+  @swagger.ApiUpdateStage()
   async updateStage(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(ValidationPipe) updateDto: UpdateApplicationStageDto,
     @CurrentUser() user: AuthorizedUser,
-  ): Promise<JobApplication> {
+  ): Promise<ApplicationWithCustomFields> {
     return this._applicationsService.updateStage(id, updateDto, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove application' })
-  @ApiResponse({ status: HttpStatus.NO_CONTENT })
+  @swagger.ApiDelete()
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthorizedUser,

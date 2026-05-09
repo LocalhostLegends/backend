@@ -15,6 +15,7 @@ import { UsersController } from './controllers/users.controller';
 import { AvatarController } from './controllers/avatar.controller';
 
 import { PaginationModule } from '../../pagination/pagination.module';
+import { CustomFieldsModule } from '../../custom-fields/custom-fields.module';
 import { EmailService } from '../email/email.service';
 import { TokenService } from '../token/token.service';
 import { Token } from '@database/entities/token.entity';
@@ -23,6 +24,7 @@ import { Token } from '@database/entities/token.entity';
   imports: [
     TypeOrmModule.forFeature([User, Role, Company, Department, Position, Invite, Token]),
     PaginationModule,
+    CustomFieldsModule,
   ],
   controllers: [UsersController, AvatarController],
   providers: [UsersService, UserFilterBuilder, EmailService, TokenService],

@@ -12,6 +12,7 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TaskStage } from '@common/enums/task-stage.enum';
 import { TaskPriority } from '@common/enums/task-priority.enum';
+import { CustomFieldValueType } from '@modules/custom-fields/custom-fields.types';
 
 export class CreateTaskDto {
   @ApiProperty({ example: 'Implement task management backend' })
@@ -49,6 +50,10 @@ export class CreateTaskDto {
   @IsUUID()
   @IsOptional()
   departmentId?: string;
+
+  @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
+  @IsOptional()
+  customFields?: Record<string, CustomFieldValueType>;
 }
 
 export class GetTasksQueryDto {
@@ -125,6 +130,10 @@ export class UpdateTaskDto {
   @IsInt()
   @IsOptional()
   order?: number;
+
+  @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
+  @IsOptional()
+  customFields?: Record<string, CustomFieldValueType>;
 }
 
 export class UpdateTaskStageDto {

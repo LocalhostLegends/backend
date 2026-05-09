@@ -8,6 +8,7 @@ import { DepartmentResponseDto } from '@modules/organization/departments/dto/dep
 import { PositionResponseDto } from '@modules/organization/positions/dto/position-response.dto';
 import { CompanyResponseDto } from '@modules/organization/companies/dto/company-response.dto';
 import { UserFields } from '@modules/core/users/swagger/user.fields';
+import { CustomFieldValueType } from '@modules/custom-fields/custom-fields.types';
 
 export class UserResponseDto {
   @Expose()
@@ -80,8 +81,12 @@ export class UserResponseDto {
   hireDate: Date;
 
   @Expose()
-  @ApiPropertyOptional(UserFields.fullName)
+  @ApiPropertyOptional({ description: 'User fullName' })
   get fullName(): string {
     return `${this.firstName} ${this.lastName}`;
   }
+
+  @Expose()
+  @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
+  customFields?: Record<string, CustomFieldValueType>;
 }

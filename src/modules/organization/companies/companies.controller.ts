@@ -51,7 +51,7 @@ export class CompaniesController {
 
   @Get('stats')
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
-  @swagger.ApiGetCompanyStats()
+  @swagger.ApiGetStats()
   async getStats(@CurrentUser() currentUser: AuthorizedUser) {
     return this._companiesService.getCompanyStats(currentUser.companyId, currentUser);
   }

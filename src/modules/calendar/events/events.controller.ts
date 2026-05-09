@@ -19,7 +19,7 @@ import { CurrentUser } from '@modules/core/users/decorators/current-user.decorat
 import type { AuthorizedUser } from '@modules/core/users/users.types';
 import { JwtAuthGuard } from '@modules/core/auth/guards/jwt-auth.guard';
 import { ParticipantStatus } from '@common/enums/participant-status.enum';
-import { EventsService } from './events.service';
+import { EventsService, CalendarEventWithCustomFields } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { QueryEventDto } from './dto/query-event.dto';
@@ -38,7 +38,7 @@ export class EventsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body('status') status: ParticipantStatus,
     @CurrentUser() user: AuthorizedUser,
-  ) {
+  ): Promise<void> {
     return this._eventsService.respond(id, status, user);
   }
 
@@ -46,7 +46,10 @@ export class EventsController {
   @RequirePermission(PermissionAction.CALENDAR_READ)
   @ApiOperation({ summary: 'Get all calendar events for current user' })
   @ApiResponse({ status: 200, description: 'Return list of events' })
-  async findAll(@Query() query: QueryEventDto, @CurrentUser() user: AuthorizedUser) {
+  async findAll(
+    @Query() query: QueryEventDto,
+    @CurrentUser() user: AuthorizedUser,
+  ): Promise<CalendarEventWithCustomFields[]> {
     return this._eventsService.findAll(query, user);
   }
 
@@ -55,7 +58,10 @@ export class EventsController {
   @ApiOperation({ summary: 'Get calendar event by ID' })
   @ApiResponse({ status: 200, description: 'Return event details' })
   @ApiResponse({ status: 404, description: 'Event not found' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthorizedUser) {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthorizedUser,
+  ): Promise<CalendarEventWithCustomFields> {
     return this._eventsService.findOne(id, user);
   }
 
@@ -63,7 +69,10 @@ export class EventsController {
   @RequirePermission(PermissionAction.CALENDAR_CREATE)
   @ApiOperation({ summary: 'Create new calendar event' })
   @ApiResponse({ status: 201, description: 'Event successfully created' })
-  async create(@Body() dto: CreateEventDto, @CurrentUser() user: AuthorizedUser) {
+  async create(
+    @Body() dto: CreateEventDto,
+    @CurrentUser() user: AuthorizedUser,
+  ): Promise<CalendarEventWithCustomFields> {
     return this._eventsService.create(dto, user);
   }
 
@@ -76,7 +85,7 @@ export class EventsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEventDto,
     @CurrentUser() user: AuthorizedUser,
-  ) {
+  ): Promise<CalendarEventWithCustomFields> {
     return this._eventsService.update(id, dto, user);
   }
 
@@ -86,7 +95,10 @@ export class EventsController {
   @ApiOperation({ summary: 'Delete calendar event' })
   @ApiResponse({ status: 204, description: 'Event successfully deleted' })
   @ApiResponse({ status: 404, description: 'Event not found' })
-  async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthorizedUser) {
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthorizedUser,
+  ): Promise<void> {
     return this._eventsService.remove(id, user);
   }
 }

@@ -54,7 +54,7 @@ export class UsersController {
   }
 
   @Get('me')
-  @swagger.ApiGetCurrentUser()
+  @swagger.ApiGetCurrent()
   async getCurrentUser(@CurrentUser() currentUser: AuthorizedUser): Promise<UserResponseDto> {
     return this._usersService.findOne(currentUser.id, currentUser);
   }
@@ -73,7 +73,7 @@ export class UsersController {
   @Patch(':id')
   @RequirePermission(PermissionAction.USER_UPDATE)
   @Resource(User)
-  @swagger.ApiUpdateUser()
+  @swagger.ApiUpdate()
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -86,7 +86,7 @@ export class UsersController {
   @RequirePermission(PermissionAction.USER_UPDATE)
   @Resource(User)
   @HttpCode(HttpStatus.OK)
-  @swagger.ApiBlockUser()
+  @swagger.ApiBlock()
   async blockUser(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -98,7 +98,7 @@ export class UsersController {
   @RequirePermission(PermissionAction.USER_UPDATE)
   @Resource(User)
   @HttpCode(HttpStatus.OK)
-  @swagger.ApiUnblockUser()
+  @swagger.ApiUnblock()
   async unblockUser(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -110,7 +110,7 @@ export class UsersController {
   @RequirePermission(PermissionAction.USER_DELETE)
   @Resource(User)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @swagger.ApiRemoveUser()
+  @swagger.ApiRemove()
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,

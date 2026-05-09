@@ -7,8 +7,13 @@ import { AuthorizedUser } from '@modules/core/users/users.types';
 import { ExceptionFactory } from '@common/exceptions/exception-factory';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { PermissionsService } from '@modules/permissions/permissions.service';
+import { CustomFieldsService } from '@modules/custom-fields/custom-fields.service';
+import { EntityType } from '@common/enums/entity-type.enum';
+import { CustomFieldsMap } from '@modules/custom-fields/custom-fields.types';
 
 import { CreateTaskDto, UpdateTaskDto, UpdateTaskStageDto, GetTasksQueryDto } from './dto/task.dto';
+
+export type TaskWithCustomFields = Task & { customFields: CustomFieldsMap };
 
 @Injectable()
 export class TasksService {
@@ -16,22 +21,39 @@ export class TasksService {
     @InjectRepository(Task)
     private readonly _taskRepository: Repository<Task>,
     private readonly _permissions: PermissionsService,
+    private readonly _customFieldsService: CustomFieldsService,
   ) {}
 
-  async create(createDto: CreateTaskDto, user: AuthorizedUser): Promise<Task> {
+  async create(createDto: CreateTaskDto, user: AuthorizedUser): Promise<TaskWithCustomFields> {
     await this._permissions.assertCan(user, PermissionAction.TASK_CREATE);
 
+    const { customFields, ...taskData } = createDto;
+
     const task = this._taskRepository.create({
-      ...createDto,
+      ...taskData,
       creatorId: user.id,
       companyId: user.companyId,
-      departmentId: createDto.departmentId || user.departmentId,
+      departmentId: taskData.departmentId || user.departmentId,
     });
 
-    return this._taskRepository.save(task);
+    const saved = await this._taskRepository.save(task);
+
+    if (customFields) {
+      await this._customFieldsService.setValues(
+        user.companyId,
+        EntityType.TASK,
+        saved.id,
+        customFields,
+      );
+    }
+
+    return this.findOne(saved.id, user);
   }
 
-  async findAll(user: AuthorizedUser, query: GetTasksQueryDto = {}): Promise<Task[]> {
+  async findAll(
+    user: AuthorizedUser,
+    query: GetTasksQueryDto = {},
+  ): Promise<TaskWithCustomFields[]> {
     await this._permissions.assertCan(user, PermissionAction.TASK_READ);
 
     const { stage, priority, assigneeId, creatorId, departmentId, search, limit } = query;
@@ -45,15 +67,39 @@ export class TasksService {
     if (departmentId) where.departmentId = departmentId;
     if (search) where.title = ILike(`%${search}%`);
 
-    return this._taskRepository.find({
+    const tasks = await this._taskRepository.find({
       where,
       relations: ['creator', 'assignee'],
       order: { order: 'ASC', createdAt: 'DESC' },
       take: limit || 100,
     });
+
+    if (tasks.length === 0) return [];
+
+    const taskIds = tasks.map((t) => t.id);
+    const allCustomFields = await this._customFieldsService.getValuesForMultipleEntities(
+      user.companyId,
+      EntityType.TASK,
+      taskIds,
+    );
+
+    const customFieldsMap = new Map<string, CustomFieldsMap>();
+    allCustomFields.forEach((cf) => {
+      let entry = customFieldsMap.get(cf.entityId);
+      if (!entry) {
+        entry = {};
+        customFieldsMap.set(cf.entityId, entry);
+      }
+      entry[cf.fieldKey] = cf.value;
+    });
+
+    return tasks.map((t) => ({
+      ...t,
+      customFields: customFieldsMap.get(t.id) || {},
+    }));
   }
 
-  async findOne(id: string, user: AuthorizedUser): Promise<Task> {
+  async findOne(id: string, user: AuthorizedUser): Promise<TaskWithCustomFields> {
     await this._permissions.assertCan(user, PermissionAction.TASK_READ);
 
     const task = await this._taskRepository.findOne({
@@ -65,24 +111,56 @@ export class TasksService {
       throw ExceptionFactory.taskNotFound(id);
     }
 
-    return task;
+    const customFields = await this._customFieldsService.getValues(
+      user.companyId,
+      EntityType.TASK,
+      task.id,
+    );
+
+    return {
+      ...task,
+      customFields,
+    };
   }
 
-  async update(id: string, updateDto: UpdateTaskDto, user: AuthorizedUser): Promise<Task> {
+  async update(
+    id: string,
+    updateDto: UpdateTaskDto,
+    user: AuthorizedUser,
+  ): Promise<TaskWithCustomFields> {
     await this._permissions.assertCan(user, PermissionAction.TASK_UPDATE);
 
-    const task = await this.findOne(id, user);
+    const task = await this._taskRepository.findOne({
+      where: { id, companyId: user.companyId },
+    });
 
-    Object.assign(task, updateDto);
+    if (!task) {
+      throw ExceptionFactory.taskNotFound(id);
+    }
 
-    return this._taskRepository.save(task);
+    const { customFields, ...taskData } = updateDto;
+
+    Object.assign(task, taskData);
+
+    const saved = await this._taskRepository.save(task);
+
+    if (customFields !== undefined) {
+      await this._customFieldsService.setValues(
+        user.companyId,
+        EntityType.TASK,
+        saved.id,
+        customFields,
+      );
+    }
+
+    return this.findOne(saved.id, user);
   }
 
   async updateStage(
     id: string,
     updateDto: UpdateTaskStageDto,
     user: AuthorizedUser,
-  ): Promise<Task> {
+  ): Promise<TaskWithCustomFields> {
     await this._permissions.assertCan(user, PermissionAction.TASK_UPDATE_STAGE);
 
     const task = await this.findOne(id, user);
@@ -92,7 +170,8 @@ export class TasksService {
       task.order = updateDto.order;
     }
 
-    return this._taskRepository.save(task);
+    const saved = await this._taskRepository.save(task);
+    return this.findOne(saved.id, user);
   }
 
   async remove(id: string, user: AuthorizedUser): Promise<void> {

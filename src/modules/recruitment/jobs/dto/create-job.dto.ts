@@ -3,29 +3,31 @@ import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { JobStatus } from '@common/enums/job-status.enum';
 import { JobType } from '@common/enums/job-type.enum';
+import { CustomFieldValueType } from '@modules/custom-fields/custom-fields.types';
+import { JobFields } from '../swagger/job.fields';
 
 export class CreateJobDto {
-  @ApiProperty({ example: 'Senior NestJS Developer' })
+  @ApiProperty(JobFields.title)
   @IsString()
   @MaxLength(255)
   title: string;
 
-  @ApiPropertyOptional({ example: 'Job description text' })
+  @ApiPropertyOptional(JobFields.description)
   @IsString()
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ example: 'Requirements text' })
+  @ApiPropertyOptional(JobFields.requirements)
   @IsString()
   @IsOptional()
   requirements?: string;
 
-  @ApiPropertyOptional({ example: 'Benefits text' })
+  @ApiPropertyOptional(JobFields.benefits)
   @IsString()
   @IsOptional()
   benefits?: string;
 
-  @ApiPropertyOptional({ enum: JobStatus, default: JobStatus.DRAFT })
+  @ApiPropertyOptional(JobFields.status)
   @IsEnum(JobStatus)
   @IsOptional()
   @Transform(
@@ -34,7 +36,7 @@ export class CreateJobDto {
   )
   status?: JobStatus;
 
-  @ApiPropertyOptional({ enum: JobType, default: JobType.FULL_TIME })
+  @ApiPropertyOptional(JobFields.type)
   @IsEnum(JobType)
   @IsOptional()
   @Transform(
@@ -43,8 +45,12 @@ export class CreateJobDto {
   )
   type?: JobType;
 
-  @ApiPropertyOptional({ example: 'uuid-of-department' })
+  @ApiPropertyOptional(JobFields.departmentId)
   @IsUUID()
   @IsOptional()
   departmentId?: string;
+
+  @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
+  @IsOptional()
+  customFields?: Record<string, CustomFieldValueType>;
 }

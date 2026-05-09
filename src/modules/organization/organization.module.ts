@@ -8,6 +8,7 @@ import { User } from '@database/entities/user.entity';
 
 import { UsersModule } from '../core/users/users.module';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { CustomFieldsModule } from '../custom-fields/custom-fields.module';
 
 import { CompaniesService } from './companies/companies.service';
 import { CompaniesController } from './companies/companies.controller';
@@ -23,6 +24,7 @@ import { PositionsController } from './positions/positions.controller';
     TypeOrmModule.forFeature([Company, Department, Position, User]),
     UsersModule,
     PermissionsModule,
+    CustomFieldsModule,
   ],
   controllers: [CompaniesController, DepartmentsController, PositionsController],
   providers: [CompaniesService, DepartmentsService, PositionsService],

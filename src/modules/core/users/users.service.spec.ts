@@ -26,12 +26,14 @@ import { PermissionsService } from '@modules/permissions/permissions.service';
 import { UsersService } from './users.service';
 import { AuthorizedUser } from './users.types';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CustomFieldsService } from '@modules/custom-fields/custom-fields.service';
 
 describe('UsersService', () => {
   let service: UsersService;
   let usersRepo: jest.Mocked<Repository<User>>;
   let tokenService: jest.Mocked<TokenService>;
   let permissionsService: jest.Mocked<PermissionsService>;
+  let customFieldsService: jest.Mocked<CustomFieldsService>;
 
   const mockUser = {
     id: 'user-id',
@@ -60,8 +62,17 @@ describe('UsersService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [],
       providers: [
         UsersService,
+        {
+          provide: CustomFieldsService,
+          useValue: {
+            setValues: jest.fn(),
+            getValues: jest.fn(),
+            getValuesForMultipleEntities: jest.fn(),
+          },
+        },
         {
           provide: getRepositoryToken(User),
           useValue: {
@@ -109,6 +120,7 @@ describe('UsersService', () => {
     usersRepo = module.get(getRepositoryToken(User));
     tokenService = module.get(TokenService);
     permissionsService = module.get(PermissionsService);
+    customFieldsService = module.get(CustomFieldsService);
   });
 
   describe('Permissions Version Cache', () => {

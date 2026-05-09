@@ -12,6 +12,7 @@ import {
   Min,
 } from 'class-validator';
 import { CalendarEventType } from '@common/enums/calendar-event-type.enum';
+import { CustomFieldValueType } from '@modules/custom-fields/custom-fields.types';
 
 export class CreateEventDto {
   @ApiProperty({ example: 'Team Meeting' })
@@ -68,4 +69,8 @@ export class CreateEventDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, any>;
+
+  @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
+  @IsOptional()
+  customFields?: Record<string, CustomFieldValueType>;
 }

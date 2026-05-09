@@ -9,64 +9,68 @@ import {
   ParseUUIDPipe,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import type { AuthorizedUser } from '@modules/core/users/users.types';
-import { Task } from '@database/entities/task.entity';
 
-import { TasksService } from './tasks.service';
+import { TasksService, TaskWithCustomFields } from './tasks.service';
 import { CreateTaskDto, UpdateTaskDto, UpdateTaskStageDto, GetTasksQueryDto } from './dto/task.dto';
+import { swagger } from './swagger';
 
-@ApiTags('Tasks')
-@ApiBearerAuth()
+@swagger.ApiTags()
 @Controller('tasks')
 export class TasksController {
   constructor(private readonly _tasksService: TasksService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new task' })
-  create(@Body() createDto: CreateTaskDto, @CurrentUser() user: AuthorizedUser): Promise<Task> {
+  @swagger.ApiCreate()
+  create(
+    @Body() createDto: CreateTaskDto,
+    @CurrentUser() user: AuthorizedUser,
+  ): Promise<TaskWithCustomFields> {
     return this._tasksService.create(createDto, user);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all company tasks with filtering' })
-  findAll(@CurrentUser() user: AuthorizedUser, @Query() query: GetTasksQueryDto): Promise<Task[]> {
+  @swagger.ApiGetAll()
+  findAll(
+    @CurrentUser() user: AuthorizedUser,
+    @Query() query: GetTasksQueryDto,
+  ): Promise<TaskWithCustomFields[]> {
     return this._tasksService.findAll(user, query);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get task by id' })
+  @swagger.ApiGetOne()
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthorizedUser,
-  ): Promise<Task> {
+  ): Promise<TaskWithCustomFields> {
     return this._tasksService.findOne(id, user);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update task details' })
+  @swagger.ApiUpdate()
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDto: UpdateTaskDto,
     @CurrentUser() user: AuthorizedUser,
-  ): Promise<Task> {
+  ): Promise<TaskWithCustomFields> {
     return this._tasksService.update(id, updateDto, user);
   }
 
   @Patch(':id/stage')
-  @ApiOperation({ summary: 'Update task stage (Kanban move)' })
+  @swagger.ApiUpdateStage()
   updateStage(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDto: UpdateTaskStageDto,
     @CurrentUser() user: AuthorizedUser,
-  ): Promise<Task> {
+  ): Promise<TaskWithCustomFields> {
     return this._tasksService.updateStage(id, updateDto, user);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete task' })
+  @swagger.ApiDelete()
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthorizedUser,

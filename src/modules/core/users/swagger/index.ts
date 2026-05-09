@@ -1,20 +1,30 @@
-import * as userDecorators from './users.decorators';
+import {
+  ApiUserTags,
+  ApiFindAllUsers,
+  ApiGetDirectory,
+  ApiGetCurrentUser,
+  ApiFindOneUser,
+  ApiUpdateUser,
+  ApiBlockUser,
+  ApiUnblockUser,
+  ApiRemoveUser,
+  ApiUploadAvatar,
+  ApiDeleteAvatar,
+} from './users.decorators';
 import { UserFields } from './user.fields';
-import { AvatarFields } from './avatar.fields';
-import { UserFilterFields } from './user-filter.fields';
 
 export const swagger = {
-  ApiTags: userDecorators.ApiUserTags,
-  ApiFindAll: userDecorators.ApiFindAllUsers,
-  ApiGetDirectory: userDecorators.ApiGetDirectory,
-  ApiGetCurrentUser: userDecorators.ApiGetCurrentUser,
-  ApiFindOne: userDecorators.ApiFindOneUser,
-  ApiUpdateUser: userDecorators.ApiUpdateUser,
-  ApiBlockUser: userDecorators.ApiBlockUser,
-  ApiUnblockUser: userDecorators.ApiUnblockUser,
-  ApiRemoveUser: userDecorators.ApiRemoveUser,
-  ApiUploadAvatar: userDecorators.ApiUploadAvatar,
-  ApiDeleteAvatar: userDecorators.ApiDeleteAvatar,
+  ApiTags: ApiUserTags,
+  ApiFindAll: ApiFindAllUsers,
+  ApiGetDirectory: ApiGetDirectory,
+  ApiGetCurrent: ApiGetCurrentUser,
+  ApiFindOne: ApiFindOneUser,
+  ApiUpdate: ApiUpdateUser,
+  ApiBlock: ApiBlockUser,
+  ApiUnblock: ApiUnblockUser,
+  ApiRemove: ApiRemoveUser,
+  ApiUploadAvatar: ApiUploadAvatar,
+  ApiDeleteAvatar: ApiDeleteAvatar,
 };
 
-export { UserFields, AvatarFields, UserFilterFields };
+export { UserFields };

@@ -13,6 +13,7 @@ import { RecruitmentModule } from '@modules/recruitment/recruitment.module';
 import { CalendarModule } from '@modules/calendar/calendar.module';
 import { TasksModule } from '@modules/tasks/tasks.module';
 import { PermissionsModule } from '@modules/permissions/permissions.module';
+import { CustomFieldsModule } from '@modules/custom-fields/custom-fields.module';
 import { SeedModule } from '@database/seed/seed.module';
 import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
@@ -47,6 +48,7 @@ import config from '@config/app.config';
     RecruitmentModule,
     CalendarModule,
     TasksModule,
+    CustomFieldsModule,
     StorageModule,
     SeedModule,
     PaginationModule,

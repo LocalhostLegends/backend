@@ -3,6 +3,7 @@ import { IsString, IsOptional, IsEmail, IsUrl, IsBoolean } from 'class-validator
 
 import { CommonFields } from '@common/swagger/common.fields';
 import { CompanyFields } from '@modules/organization/companies/swagger/company.fields';
+import { CustomFieldValueType } from '@modules/custom-fields/custom-fields.types';
 
 export class UpdateCompanyDto {
   @ApiPropertyOptional(CompanyFields.name)
@@ -93,4 +94,8 @@ export class UpdateCompanyDto {
   @IsOptional()
   @IsString()
   subscriptionPlan?: string;
+
+  @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
+  @IsOptional()
+  customFields?: Record<string, CustomFieldValueType>;
 }

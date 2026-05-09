@@ -1,23 +1,29 @@
 import { IsUUID, IsEnum, IsOptional, IsInt } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ApplicationStage } from '@common/enums/application-stage.enum';
+import { CustomFieldValueType } from '@modules/custom-fields/custom-fields.types';
+import { ApplicationFields } from '../swagger/application.fields';
 
 export class CreateApplicationDto {
-  @ApiProperty({ example: 'uuid-of-job' })
+  @ApiProperty(ApplicationFields.jobId)
   @IsUUID()
   jobId: string;
 
-  @ApiProperty({ example: 'uuid-of-candidate' })
+  @ApiProperty(ApplicationFields.candidateId)
   @IsUUID()
   candidateId: string;
+
+  @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
+  @IsOptional()
+  customFields?: Record<string, CustomFieldValueType>;
 }
 
 export class UpdateApplicationStageDto {
-  @ApiProperty({ enum: ApplicationStage })
+  @ApiProperty(ApplicationFields.stage)
   @IsEnum(ApplicationStage)
   stage: ApplicationStage;
 
-  @ApiPropertyOptional({ example: 0 })
+  @ApiPropertyOptional(ApplicationFields.order)
   @IsInt()
   @IsOptional()
   order?: number;

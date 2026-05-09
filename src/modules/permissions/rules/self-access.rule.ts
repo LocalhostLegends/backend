@@ -10,7 +10,13 @@ import { ExceptionCode } from '@common/exceptions/exception-codes';
 export class SelfAccessRule implements PolicyRule {
   priority = 10;
 
-  private readonly ALLOWED_SELF_UPDATE_FIELDS = ['firstName', 'lastName', 'phone', 'avatar'];
+  private readonly ALLOWED_SELF_UPDATE_FIELDS = [
+    'firstName',
+    'lastName',
+    'phone',
+    'avatar',
+    'customFields',
+  ];
 
   supports(action: string): boolean {
     return [
@@ -27,7 +33,8 @@ export class SelfAccessRule implements PolicyRule {
     const actionEnum = action as PermissionAction;
 
     if (
-      actionEnum === PermissionAction.USER_UPDATE &&
+      (actionEnum === PermissionAction.USER_UPDATE ||
+        actionEnum === PermissionAction.USER_UPDATE_SELF) &&
       user.roles.some((role) =>
         [UserRole.HR, UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MANAGER].includes(role),
       )
