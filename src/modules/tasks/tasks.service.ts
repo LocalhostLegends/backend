@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { Task } from '@database/entities/task.entity';
 import { Company } from '@database/entities/company.entity';
@@ -12,6 +13,7 @@ import { CustomFieldsService } from '@modules/custom-fields/custom-fields.servic
 import { EntityType } from '@common/enums/entity-type.enum';
 import { CustomFieldsMap } from '@modules/custom-fields/custom-fields.types';
 import { TaskActivityType } from '@common/enums/task-activity-type.enum';
+import { TaskAssignedEvent } from '@modules/notifications/events/notification.events';
 
 import { CreateTaskDto, UpdateTaskDto, UpdateTaskStageDto, GetTasksQueryDto } from './dto/task.dto';
 import { TaskActivityService } from './task-activity.service';
@@ -32,6 +34,7 @@ export class TasksService {
     private readonly _customFieldsService: CustomFieldsService,
     private readonly _activityService: TaskActivityService,
     private readonly _dataSource: DataSource,
+    private readonly _eventBus: EventEmitter2,
   ) {}
 
   async create(createDto: CreateTaskDto, user: AuthorizedUser): Promise<TaskWithCustomFields> {
@@ -85,7 +88,19 @@ export class TasksService {
       return saved.id;
     });
 
-    return this.findOne(taskId, user);
+    const task = await this.findOne(taskId, user);
+
+    if (task.assigneeId && task.assigneeId !== user.id) {
+      this._eventBus.emit(
+        'notification.task_assigned',
+        new TaskAssignedEvent(task.assigneeId, {
+          taskId: task.id,
+          taskTitle: task.title,
+        }),
+      );
+    }
+
+    return task;
   }
 
   async findAll(

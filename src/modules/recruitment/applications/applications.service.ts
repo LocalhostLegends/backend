@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { JobApplication } from '@database/entities/job-application.entity';
 import { Job } from '@database/entities/job.entity';
@@ -12,6 +13,7 @@ import { PermissionsService } from '@modules/permissions/permissions.service';
 import { CustomFieldsService } from '@modules/custom-fields/custom-fields.service';
 import { EntityType } from '@common/enums/entity-type.enum';
 import { CustomFieldsMap } from '@modules/custom-fields/custom-fields.types';
+import { CandidateStageChangedEvent } from '@modules/notifications/events/notification.events';
 
 import { CreateApplicationDto, UpdateApplicationStageDto } from './dto/application.dto';
 
@@ -28,6 +30,7 @@ export class ApplicationsService {
     private readonly _candidateRepository: Repository<Candidate>,
     private readonly _permissions: PermissionsService,
     private readonly _customFieldsService: CustomFieldsService,
+    private readonly _eventBus: EventEmitter2,
   ) {}
 
   async create(
@@ -54,6 +57,17 @@ export class ApplicationsService {
       const { customFields, ...applicationData } = createDto;
       application = this._applicationRepository.create(applicationData);
       application = await this._applicationRepository.save(application);
+
+      // Notify Job Creator about new application
+      if (job.creatorId && job.creatorId !== user.id) {
+        this._eventBus.emit('notification.candidate_assigned', {
+          userId: job.creatorId,
+          type: 'candidate_assigned',
+          title: 'New Candidate Application',
+          message: `New application for position: ${job.title}`,
+          metadata: { applicationId: application.id, jobId: job.id, candidateId: candidate.id },
+        });
+      }
 
       if (customFields) {
         await this._customFieldsService.setValues(
@@ -135,19 +149,34 @@ export class ApplicationsService {
 
     const application = await this._applicationRepository.findOne({
       where: { id, job: { companyId: user.companyId } },
-      relations: ['job'],
+      relations: ['job', 'candidate'],
     });
 
     if (!application) {
       throw ExceptionFactory.applicationNotFound(id);
     }
 
+    const oldStage = application.stage;
     application.stage = updateDto.stage;
     if (updateDto.order !== undefined) {
       application.order = updateDto.order;
     }
 
     const saved = await this._applicationRepository.save(application);
+
+    // Notify Job Creator about stage change
+    if (saved.job.creatorId && saved.job.creatorId !== user.id) {
+      this._eventBus.emit(
+        'notification.candidate_stage_changed',
+        new CandidateStageChangedEvent(saved.job.creatorId, {
+          candidateId: saved.candidateId,
+          candidateName: `${saved.candidate.firstName} ${saved.candidate.lastName}`,
+          oldStage,
+          newStage: saved.stage,
+        }),
+      );
+    }
+
     return this.findOne(saved.id, user);
   }
 

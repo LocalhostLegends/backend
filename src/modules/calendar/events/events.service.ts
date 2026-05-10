@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Brackets } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+
 import { CalendarEvent } from '@database/entities/calendar-event.entity';
 import { CalendarEventParticipant } from '@database/entities/calendar-event-participant.entity';
 import { AuthorizedUser } from '@modules/core/users/users.types';
@@ -8,6 +10,7 @@ import { ParticipantStatus } from '@common/enums/participant-status.enum';
 import { CustomFieldsService } from '@modules/custom-fields/custom-fields.service';
 import { EntityType } from '@common/enums/entity-type.enum';
 import { CustomFieldsMap } from '@modules/custom-fields/custom-fields.types';
+import { CalendarEventInvitedEvent } from '@modules/notifications/events/notification.events';
 
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -23,6 +26,7 @@ export class EventsService {
     @InjectRepository(CalendarEventParticipant)
     private readonly _participantsRepository: Repository<CalendarEventParticipant>,
     private readonly _customFieldsService: CustomFieldsService,
+    private readonly _eventBus: EventEmitter2,
   ) {}
 
   async findAll(
@@ -160,6 +164,21 @@ export class EventsService {
 
     await this._participantsRepository.save(this._participantsRepository.create(participants));
 
+    // Notifications for participants (excluding organizer)
+    if (participantIds && participantIds.length > 0) {
+      const uniqueParticipantIds = [...new Set(participantIds.filter((id) => id !== user.id))];
+      uniqueParticipantIds.forEach((pUserId) => {
+        this._eventBus.emit(
+          'notification.calendar_invited',
+          new CalendarEventInvitedEvent(pUserId, {
+            eventId: savedEvent.id,
+            eventTitle: savedEvent.title,
+            startTime: savedEvent.startTime,
+          }),
+        );
+      });
+    }
+
     return this.findOne(savedEvent.id, user);
   }
 
@@ -214,6 +233,18 @@ export class EventsService {
           }),
         );
         await this._participantsRepository.save(newParticipants);
+
+        // Notify only newly added participants
+        toAdd.forEach((pUserId) => {
+          this._eventBus.emit(
+            'notification.calendar_invited',
+            new CalendarEventInvitedEvent(pUserId, {
+              eventId: event.id,
+              eventTitle: event.title,
+              startTime: event.startTime,
+            }),
+          );
+        });
       }
     }
 

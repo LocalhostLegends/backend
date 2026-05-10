@@ -1,13 +1,20 @@
-import * as positionDecorators from './positions.decorators';
+import {
+  ApiPositionTags,
+  ApiCreatePosition,
+  ApiFindAllPositions,
+  ApiFindOnePosition,
+  ApiUpdatePosition,
+  ApiRemovePosition,
+} from './positions.decorators';
 import { PositionFields } from './position.fields';
 
 export const swagger = {
-  ApiTags: positionDecorators.ApiPositionTags,
-  ApiCreate: positionDecorators.ApiCreatePosition,
-  ApiFindAll: positionDecorators.ApiFindAllPositions,
-  ApiFindOne: positionDecorators.ApiFindOnePosition,
-  ApiUpdate: positionDecorators.ApiUpdatePosition,
-  ApiRemove: positionDecorators.ApiRemovePosition,
+  ApiTags: ApiPositionTags,
+  ApiCreate: ApiCreatePosition,
+  ApiFindAll: ApiFindAllPositions,
+  ApiFindOne: ApiFindOnePosition,
+  ApiUpdate: ApiUpdatePosition,
+  ApiRemove: ApiRemovePosition,
 };
 
 export { PositionFields };
