@@ -15,6 +15,7 @@ import { CalendarModule } from '@modules/calendar/calendar.module';
 import { TasksModule } from '@modules/tasks/tasks.module';
 import { NotificationsModule } from '@modules/notifications/notifications.module';
 import { PermissionsModule } from '@modules/permissions/permissions.module';
+import { OnboardingModule } from '@modules/onboarding/onboarding.module';
 import { CustomFieldsModule } from '@modules/custom-fields/custom-fields.module';
 import { SeedModule } from '@database/seed/seed.module';
 import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
@@ -59,6 +60,7 @@ import config from '@config/app.config';
     TasksModule,
     NotificationsModule,
     CustomFieldsModule,
+    OnboardingModule,
     StorageModule,
     SeedModule,
     PaginationModule,

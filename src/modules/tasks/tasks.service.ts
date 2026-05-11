@@ -222,6 +222,12 @@ export class TasksService {
         old: oldStage,
         new: taskData.stage,
       });
+      this._eventBus.emit('task.stage_changed', {
+        taskId: saved.id,
+        oldStage,
+        newStage: taskData.stage,
+        companyId: user.companyId,
+      });
     }
     if (taskData.priority && taskData.priority !== oldPriority) {
       await this._activityService.log(saved.id, user.id, TaskActivityType.PRIORITY_CHANGED, {
@@ -269,6 +275,12 @@ export class TasksService {
       await this._activityService.log(saved.id, user.id, TaskActivityType.STATUS_CHANGED, {
         old: oldStage,
         new: updateDto.stage,
+      });
+      this._eventBus.emit('task.stage_changed', {
+        taskId: saved.id,
+        oldStage,
+        newStage: updateDto.stage,
+        companyId: user.companyId,
       });
     }
 

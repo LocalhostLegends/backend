@@ -51,13 +51,21 @@ export class InitialSchema1778165649429 implements MigrationInterface {
     );
 
     await queryRunner.query(
-      `CREATE TYPE "public"."custom_field_definitions_entity_type_enum" AS ENUM('user', 'job', 'department', 'company', 'candidate', 'job_application', 'task', 'calendar_event')`,
+      `CREATE TYPE "public"."custom_field_definitions_entity_type_enum" AS ENUM('user', 'job', 'department', 'company', 'candidate', 'job_application', 'task', 'calendar_event', 'onboarding_instance')`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."custom_field_definitions_type_enum" AS ENUM('string', 'number', 'date', 'boolean', 'enum', 'entity_ref', 'multi_ref')`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."custom_field_values_entity_type_enum" AS ENUM('user', 'job', 'department', 'company', 'candidate', 'job_application', 'task', 'calendar_event')`,
+      `CREATE TYPE "public"."custom_field_values_entity_type_enum" AS ENUM('user', 'job', 'department', 'company', 'candidate', 'job_application', 'task', 'calendar_event', 'onboarding_instance')`,
+    );
+
+    await queryRunner.query(
+      `CREATE TYPE "public"."notifications_type_enum" AS ENUM('leave_request_created', 'leave_request_approved', 'leave_request_rejected', 'candidate_stage_changed', 'candidate_assigned', 'employee_transferred', 'onboarding_task_assigned', 'task_assigned', 'task_comment_added', 'calendar_invitation', 'mention')`,
+    );
+
+    await queryRunner.query(
+      `CREATE TYPE "public"."user_notification_settings_type_enum" AS ENUM('leave_request_created', 'leave_request_approved', 'leave_request_rejected', 'candidate_stage_changed', 'candidate_assigned', 'employee_transferred', 'onboarding_task_assigned', 'task_assigned', 'task_comment_added', 'calendar_invitation', 'mention')`,
     );
 
     await queryRunner.query(
@@ -89,7 +97,7 @@ export class InitialSchema1778165649429 implements MigrationInterface {
     );
 
     await queryRunner.query(
-      `CREATE TABLE "users" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "first_name" character varying(100) NOT NULL, "last_name" character varying(100) NOT NULL, "email" character varying(255) NOT NULL, "date_of_birth" date, "hire_date" date NOT NULL, "status" "public"."users_status_enum" NOT NULL DEFAULT 'invited', "phone" character varying(20), "avatar" character varying(500), "permissions_version" integer NOT NULL DEFAULT '1', "created_by" uuid, "updated_by" uuid, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, "company_id" uuid NOT NULL, "department_id" uuid, "position_id" uuid, CONSTRAINT "UQ_97672ac88f789774dd47f7c8be3" UNIQUE ("email"), CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7433" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "users" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "first_name" character varying(100) NOT NULL, "last_name" character varying(100) NOT NULL, "email" character varying(255) NOT NULL, "date_of_birth" date, "hire_date" date NOT NULL, "status" "public"."users_status_enum" NOT NULL DEFAULT 'invited', "phone" character varying(20), "avatar" character varying(500), "permissions_version" integer NOT NULL DEFAULT '1', "created_by" uuid, "updated_by" uuid, "manager_id" uuid, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, "company_id" uuid NOT NULL, "department_id" uuid, "position_id" uuid, CONSTRAINT "UQ_97672ac88f789774dd47f7c8be3" UNIQUE ("email"), CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7433" PRIMARY KEY ("id"))`,
     );
 
     await queryRunner.query(
@@ -166,6 +174,30 @@ export class InitialSchema1778165649429 implements MigrationInterface {
 
     await queryRunner.query(
       `CREATE TABLE "custom_field_values" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "entity_type" "public"."custom_field_values_entity_type_enum" NOT NULL, "entity_id" uuid NOT NULL, "value_text" text, "value_number" numeric(20,4), "value_bool" boolean, "value_date" TIMESTAMP, "value_entity_id" uuid, "value_entity_type" "public"."custom_field_values_entity_type_enum", "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "field_id" uuid NOT NULL, CONSTRAINT "PK_custom_field_values" PRIMARY KEY ("id"))`,
+    );
+
+    await queryRunner.query(
+      `CREATE TABLE "notifications" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "user_id" uuid NOT NULL, "type" "public"."notifications_type_enum" NOT NULL, "title" character varying(255) NOT NULL, "message" text NOT NULL, "metadata" jsonb, "is_read" boolean NOT NULL DEFAULT false, "read_at" TIMESTAMP, "created_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_notifications" PRIMARY KEY ("id"))`,
+    );
+
+    await queryRunner.query(
+      `CREATE TABLE "user_notification_settings" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "user_id" uuid NOT NULL, "type" "public"."user_notification_settings_type_enum" NOT NULL, "is_enabled" boolean NOT NULL DEFAULT true, CONSTRAINT "UQ_user_notification_settings_user_type" UNIQUE ("user_id", "type"), CONSTRAINT "PK_user_notification_settings" PRIMARY KEY ("id"))`,
+    );
+
+    await queryRunner.query(
+      `CREATE TABLE "onboarding_templates" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying(255) NOT NULL, "description" text, "is_active" boolean NOT NULL DEFAULT true, "company_id" uuid NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_onboarding_templates" PRIMARY KEY ("id"))`,
+    );
+
+    await queryRunner.query(
+      `CREATE TABLE "onboarding_template_steps" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "template_id" uuid NOT NULL, "title" character varying(255) NOT NULL, "description" text, "type" character varying(50) NOT NULL, "assignee_role" character varying(50) NOT NULL, "order" integer NOT NULL DEFAULT 0, "duration_days" integer NOT NULL DEFAULT 0, CONSTRAINT "PK_onboarding_template_steps" PRIMARY KEY ("id"))`,
+    );
+
+    await queryRunner.query(
+      `CREATE TABLE "onboarding_instances" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "employee_id" uuid NOT NULL, "template_id" uuid NOT NULL, "company_id" uuid NOT NULL, "status" character varying(50) NOT NULL DEFAULT 'IN_PROGRESS', "progress" integer NOT NULL DEFAULT 0, "started_at" TIMESTAMP WITH TIME ZONE, "completed_at" TIMESTAMP WITH TIME ZONE, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_onboarding_instances" PRIMARY KEY ("id"))`,
+    );
+
+    await queryRunner.query(
+      `CREATE TABLE "onboarding_instance_steps" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "instance_id" uuid NOT NULL, "template_step_id" uuid NOT NULL, "assigned_to_id" uuid, "status" character varying(50) NOT NULL DEFAULT 'PENDING', "due_date" TIMESTAMP WITH TIME ZONE, "completed_at" TIMESTAMP WITH TIME ZONE, "linked_task_id" uuid, "linked_calendar_event_id" uuid, CONSTRAINT "PK_onboarding_instance_steps" PRIMARY KEY ("id"))`,
     );
 
     await queryRunner.query(
@@ -289,6 +321,23 @@ export class InitialSchema1778165649429 implements MigrationInterface {
     );
 
     await queryRunner.query(
+      `CREATE INDEX "IDX_notifications_user_id" ON "notifications" ("user_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notifications_is_read" ON "notifications" ("is_read")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notifications_created_at" ON "notifications" ("created_at")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_user_notification_settings_user_id" ON "user_notification_settings" ("user_id")`,
+    );
+
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ONBOARDING_EMPLOYEE_STATUS" ON "onboarding_instances" ("employee_id", "status")`,
+    );
+
+    await queryRunner.query(
       `ALTER TABLE "positions" ADD CONSTRAINT "FK_6844c44333df4976bc4db69aec8" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE`,
     );
     await queryRunner.query(
@@ -319,13 +368,16 @@ export class InitialSchema1778165649429 implements MigrationInterface {
       `ALTER TABLE "users" ADD CONSTRAINT "FK_8e29a9d2f1fa57ebf1a4ce17353" FOREIGN KEY ("position_id") REFERENCES "positions"("id") ON DELETE SET NULL`,
     );
     await queryRunner.query(
+      `ALTER TABLE "users" ADD CONSTRAINT "FK_users_manager_id" FOREIGN KEY ("manager_id") REFERENCES "users"("id") ON DELETE SET NULL`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "user_security" ADD CONSTRAINT "FK_8a181d611c3325dc702a8286685" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE`,
     );
     await queryRunner.query(
       `ALTER TABLE "user_settings" ADD CONSTRAINT "FK_4ed056b9344e6f7d8d46ec4b302" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE`,
     );
     await queryRunner.query(
-      `ALTER TABLE "tokens" ADD CONSTRAINT "FK_8769073e38c365f315426554ca5" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE`,
+      `ALTER TABLE "tokens" ADD CONSTRAINT "FK_8769073e38c365f315426554ca" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE`,
     );
 
     await queryRunner.query(
@@ -351,7 +403,7 @@ export class InitialSchema1778165649429 implements MigrationInterface {
       `ALTER TABLE "jobs" ADD CONSTRAINT "FK_cf18ff30eda17e5d526125c9630" FOREIGN KEY ("creator_id") REFERENCES "users"("id") ON DELETE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "candidates" ADD CONSTRAINT "FK_4889aca8e7c52f6e0d0bf9c0d8d" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE NO ACTION`,
+      `ALTER TABLE "candidates" ADD CONSTRAINT "FK_4889aca8e7c52f6e0d0bf9c0d8dd" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "job_applications" ADD CONSTRAINT "FK_99292c6cd0ed428e8f5b4e22958" FOREIGN KEY ("job_id") REFERENCES "jobs"("id") ON DELETE NO ACTION`,
@@ -424,9 +476,41 @@ export class InitialSchema1778165649429 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "custom_field_values" ADD CONSTRAINT "FK_2c7d30d8fc3d2d6d09a10a69f0a" FOREIGN KEY ("field_id") REFERENCES "custom_field_definitions"("id") ON DELETE CASCADE`,
     );
+
+    await queryRunner.query(
+      `ALTER TABLE "notifications" ADD CONSTRAINT "FK_notifications_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "user_notification_settings" ADD CONSTRAINT "FK_user_notification_settings_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+
+    await queryRunner.query(
+      `ALTER TABLE "onboarding_templates" ADD CONSTRAINT "FK_onboarding_templates_company_id" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "onboarding_template_steps" ADD CONSTRAINT "FK_onboarding_template_steps_template_id" FOREIGN KEY ("template_id") REFERENCES "onboarding_templates"("id") ON DELETE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "onboarding_instances" ADD CONSTRAINT "FK_onboarding_instances_employee_id" FOREIGN KEY ("employee_id") REFERENCES "users"("id") ON DELETE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "onboarding_instances" ADD CONSTRAINT "FK_onboarding_instances_template_id" FOREIGN KEY ("template_id") REFERENCES "onboarding_templates"("id") ON DELETE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "onboarding_instances" ADD CONSTRAINT "FK_onboarding_instances_company_id" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "onboarding_instance_steps" ADD CONSTRAINT "FK_onboarding_instance_steps_instance_id" FOREIGN KEY ("instance_id") REFERENCES "onboarding_instances"("id") ON DELETE CASCADE`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP TABLE "onboarding_instance_steps"`);
+    await queryRunner.query(`DROP TABLE "onboarding_instances"`);
+    await queryRunner.query(`DROP TABLE "onboarding_template_steps"`);
+    await queryRunner.query(`DROP TABLE "onboarding_templates"`);
+    await queryRunner.query(`DROP TABLE "user_notification_settings"`);
+    await queryRunner.query(`DROP TABLE "notifications"`);
     await queryRunner.query(`DROP TABLE "custom_field_values"`);
     await queryRunner.query(`DROP TABLE "custom_field_definitions"`);
     await queryRunner.query(`DROP TABLE "task_activities"`);
@@ -455,6 +539,8 @@ export class InitialSchema1778165649429 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "positions"`);
     await queryRunner.query(`DROP TABLE "companies"`);
 
+    await queryRunner.query(`DROP TYPE "public"."user_notification_settings_type_enum"`);
+    await queryRunner.query(`DROP TYPE "public"."notifications_type_enum"`);
     await queryRunner.query(`DROP TYPE "public"."custom_field_values_entity_type_enum"`);
     await queryRunner.query(`DROP TYPE "public"."custom_field_definitions_type_enum"`);
     await queryRunner.query(`DROP TYPE "public"."custom_field_definitions_entity_type_enum"`);

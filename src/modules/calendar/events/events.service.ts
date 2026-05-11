@@ -275,5 +275,12 @@ export class EventsService {
 
     participant.status = status;
     await this._participantsRepository.save(participant);
+
+    this._eventBus.emit('calendar.event_responded', {
+      eventId: id,
+      userId: user.id,
+      status: status,
+      companyId: user.companyId,
+    });
   }
 }

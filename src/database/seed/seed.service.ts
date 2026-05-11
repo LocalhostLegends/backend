@@ -13,12 +13,15 @@ import { companyData } from './data/company.data';
 import { departmentsData } from './data/departments.data';
 import { positionsData } from './data/positions.data';
 import { DEFAULT_SEED_PASSWORD, usersData } from './data/users.data';
+import { onboardingTemplatesData } from './data/onboarding-templates.data';
 
 import { Company } from '../entities/company.entity';
 import { Department } from '../entities/department.entity';
 import { Position } from '../entities/position.entity';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
+import { OnboardingTemplate } from '../entities/onboarding-template.entity';
+import { OnboardingTemplateStep } from '../entities/onboarding-template-step.entity';
 import { StorageService } from '../../modules/storage/storage.service';
 
 @Injectable()
@@ -62,6 +65,8 @@ export class SeedService implements OnModuleInit {
       const positionRepository = manager.getRepository(Position);
       const userRepository = manager.getRepository(User);
       const roleRepository = manager.getRepository(Role);
+      const onboardingTemplateRepository = manager.getRepository(OnboardingTemplate);
+      const onboardingTemplateStepRepository = manager.getRepository(OnboardingTemplateStep);
 
       const now = new Date();
       const subscriptionExpiresAt = this._addDays(now, companyData.subscriptionExpiresInDays);
@@ -88,6 +93,27 @@ export class SeedService implements OnModuleInit {
         }),
       );
       this.logger.log(`✅ Created company: ${company.name}`);
+
+      // --- ONBOARDING TEMPLATES SEEDING ---
+      for (const templateData of onboardingTemplatesData) {
+        const template = await onboardingTemplateRepository.save(
+          onboardingTemplateRepository.create({
+            name: templateData.name,
+            description: templateData.description,
+            companyId: company.id,
+          }),
+        );
+
+        for (const stepData of templateData.steps) {
+          await onboardingTemplateStepRepository.save(
+            onboardingTemplateStepRepository.create({
+              ...stepData,
+              templateId: template.id,
+            }),
+          );
+        }
+      }
+      this.logger.log(`✅ Created ${onboardingTemplatesData.length} onboarding templates`);
 
       const departmentsByKey = new Map<string, Department>();
       for (const departmentData of departmentsData) {
