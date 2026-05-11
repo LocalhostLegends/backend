@@ -8,12 +8,20 @@ import * as path from 'path';
 import config from '@config/app.config';
 import { UserStatus } from '@common/enums/user-status.enum';
 import { UserRole } from '@common/enums/user-role.enum';
+import { LeaveStatus } from '@common/enums/leave-status.enum';
+import { ParticipantStatus } from '@common/enums/participant-status.enum';
+import { ApplicationStage } from '@common/enums/application-stage.enum';
+import { OnboardingStatus } from '@common/enums/onboarding-status.enum';
 
 import { companyData } from './data/company.data';
 import { departmentsData } from './data/departments.data';
 import { positionsData } from './data/positions.data';
 import { DEFAULT_SEED_PASSWORD, usersData } from './data/users.data';
 import { onboardingTemplatesData } from './data/onboarding-templates.data';
+import { leaveTypesData, leaveRequestsSeedData } from './data/leave.data';
+import { tasksData } from './data/tasks.data';
+import { calendarEventsData } from './data/calendar.data';
+import { recruitmentData } from './data/recruitment.data';
 
 import { Company } from '../entities/company.entity';
 import { Department } from '../entities/department.entity';
@@ -22,6 +30,17 @@ import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 import { OnboardingTemplate } from '../entities/onboarding-template.entity';
 import { OnboardingTemplateStep } from '../entities/onboarding-template-step.entity';
+import { LeaveType } from '../entities/leave-type.entity';
+import { LeaveBalance } from '../entities/leave-balance.entity';
+import { LeaveRequest } from '../entities/leave-request.entity';
+import { Task } from '../entities/task.entity';
+import { CalendarEvent } from '../entities/calendar-event.entity';
+import { CalendarEventParticipant } from '../entities/calendar-event-participant.entity';
+import { Job } from '../entities/job.entity';
+import { Candidate } from '../entities/candidate.entity';
+import { JobApplication } from '../entities/job-application.entity';
+import { OnboardingInstance } from '../entities/onboarding-instance.entity';
+import { OnboardingInstanceStep } from '../entities/onboarding-instance-step.entity';
 import { StorageService } from '../../modules/storage/storage.service';
 
 @Injectable()
@@ -67,6 +86,17 @@ export class SeedService implements OnModuleInit {
       const roleRepository = manager.getRepository(Role);
       const onboardingTemplateRepository = manager.getRepository(OnboardingTemplate);
       const onboardingTemplateStepRepository = manager.getRepository(OnboardingTemplateStep);
+      const leaveTypeRepository = manager.getRepository(LeaveType);
+      const leaveBalanceRepository = manager.getRepository(LeaveBalance);
+      const leaveRequestRepository = manager.getRepository(LeaveRequest);
+      const taskRepository = manager.getRepository(Task);
+      const calendarEventRepository = manager.getRepository(CalendarEvent);
+      const participantRepository = manager.getRepository(CalendarEventParticipant);
+      const jobRepository = manager.getRepository(Job);
+      const candidateRepository = manager.getRepository(Candidate);
+      const jobApplicationRepository = manager.getRepository(JobApplication);
+      const onboardingInstanceRepository = manager.getRepository(OnboardingInstance);
+      const onboardingInstanceStepRepository = manager.getRepository(OnboardingInstanceStep);
 
       const now = new Date();
       const subscriptionExpiresAt = this._addDays(now, companyData.subscriptionExpiresInDays);
@@ -95,6 +125,7 @@ export class SeedService implements OnModuleInit {
       this.logger.log(`✅ Created company: ${company.name}`);
 
       // --- ONBOARDING TEMPLATES SEEDING ---
+      const onboardingTemplatesMap = new Map<string, OnboardingTemplate>();
       for (const templateData of onboardingTemplatesData) {
         const template = await onboardingTemplateRepository.save(
           onboardingTemplateRepository.create({
@@ -104,14 +135,18 @@ export class SeedService implements OnModuleInit {
           }),
         );
 
+        const steps = [];
         for (const stepData of templateData.steps) {
-          await onboardingTemplateStepRepository.save(
+          const step = await onboardingTemplateStepRepository.save(
             onboardingTemplateStepRepository.create({
               ...stepData,
               templateId: template.id,
             }),
           );
+          steps.push(step);
         }
+        template.steps = steps;
+        onboardingTemplatesMap.set(template.name, template);
       }
       this.logger.log(`✅ Created ${onboardingTemplatesData.length} onboarding templates`);
 
@@ -306,6 +341,235 @@ export class SeedService implements OnModuleInit {
         await departmentRepository.save(department);
       }
       this.logger.log('✅ Updated department managers and hierarchy');
+
+      // --- LEAVE TYPES SEEDING ---
+      const leaveTypesMap = new Map<string, LeaveType>();
+      for (const ltData of leaveTypesData) {
+        const leaveType = await leaveTypeRepository.save(
+          leaveTypeRepository.create({
+            ...ltData,
+            company,
+          }),
+        );
+        leaveTypesMap.set(ltData.code, leaveType);
+      }
+      this.logger.log(`✅ Created ${leaveTypesMap.size} leave types`);
+
+      // --- LEAVE BALANCES SEEDING ---
+      for (const user of usersByKey.values()) {
+        for (const leaveType of leaveTypesMap.values()) {
+          if (leaveType.requiresBalance) {
+            await leaveBalanceRepository.save(
+              leaveBalanceRepository.create({
+                employee: user,
+                leaveType: leaveType,
+                totalDays: leaveType.defaultDays,
+                usedDays: 0,
+                remainingDays: leaveType.defaultDays,
+              }),
+            );
+          }
+        }
+      }
+      this.logger.log('✅ Created leave balances for all users');
+
+      // --- LEAVE REQUESTS SEEDING ---
+      for (const lrData of leaveRequestsSeedData) {
+        const user = usersByKey.get(lrData.userKey);
+        const leaveType = leaveTypesMap.get(lrData.leaveTypeCode);
+        if (user && leaveType) {
+          const startDate = this._addDays(now, lrData.startDateOffset);
+          const endDate = this._addDays(now, lrData.endDateOffset);
+
+          await leaveRequestRepository.save(
+            leaveRequestRepository.create({
+              employee: user,
+              leaveType: leaveType,
+              company: company,
+              startDate,
+              endDate,
+              totalDays: this._calculateDays(startDate, endDate),
+              status: lrData.status,
+              reason: lrData.reason,
+              approvedAt: lrData.status === LeaveStatus.APPROVED ? now : null,
+            }),
+          );
+        }
+      }
+      this.logger.log(`✅ Created ${leaveRequestsSeedData.length} leave requests`);
+
+      // --- TASKS SEEDING ---
+      const engineeringDept = departmentsByKey.get('engineering');
+      if (engineeringDept) {
+        const defaultCreator = usersByKey.get('eng-lead') || Array.from(usersByKey.values())[0];
+
+        if (defaultCreator) {
+          for (let i = 0; i < tasksData.length; i++) {
+            const tData = tasksData[i];
+            const assignee = tData.assigneeKey ? usersByKey.get(tData.assigneeKey) || null : null;
+
+            await taskRepository.save(
+              taskRepository.create({
+                ...tData,
+                key: `ENG-${i + 1}`,
+                company: company,
+                department: engineeringDept,
+                creator: defaultCreator,
+                assignee: assignee,
+                order: i,
+              }),
+            );
+          }
+          this.logger.log(`✅ Created ${tasksData.length} tasks for Engineering`);
+        }
+      }
+
+      // --- CALENDAR EVENTS SEEDING ---
+      for (const ceData of calendarEventsData) {
+        const organizer = usersByKey.get(ceData.userKeys[0]) || Array.from(usersByKey.values())[0];
+        if (organizer) {
+          const startTime = new Date(now);
+          startTime.setDate(startTime.getDate() + ceData.dayOffset);
+          startTime.setHours(ceData.startHour, 0, 0, 0);
+
+          const endTime = new Date(startTime);
+          endTime.setMinutes(endTime.getMinutes() + ceData.durationMinutes);
+
+          const event = await calendarEventRepository.save(
+            calendarEventRepository.create({
+              title: ceData.title,
+              description: ceData.description,
+              type: ceData.type,
+              startTime,
+              endTime,
+              company,
+              organizer,
+              attendees: ceData.userKeys.length,
+            }),
+          );
+
+          for (const userKey of ceData.userKeys) {
+            const user = usersByKey.get(userKey);
+            if (user) {
+              await participantRepository.save(
+                participantRepository.create({
+                  event,
+                  user,
+                  status: ParticipantStatus.ACCEPTED,
+                }),
+              );
+            }
+          }
+        }
+      }
+      this.logger.log(`✅ Created ${calendarEventsData.length} calendar events`);
+
+      // --- RECRUITMENT SEEDING ---
+      const engineeringPosition =
+        positionsByKey.get('be-engineer') || Array.from(positionsByKey.values())[0];
+      const adminUser = Array.from(usersByKey.values())[0];
+
+      for (const vData of recruitmentData.vacancies) {
+        const dept = departmentsByKey.get(vData.departmentKey);
+        const job = await jobRepository.save(
+          jobRepository.create({
+            title: vData.title,
+            description: vData.description,
+            status: vData.status,
+            type: vData.type,
+            company,
+            department: dept,
+            creator: adminUser,
+          }),
+        );
+
+        for (let i = 0; i < vData.applications.length; i++) {
+          const appData = vData.applications[i];
+          const [firstName, ...lastNameParts] = appData.name.split(' ');
+          const lastName = lastNameParts.join(' ');
+
+          const candidate = await candidateRepository.save(
+            candidateRepository.create({
+              firstName,
+              lastName,
+              email: appData.email,
+              company,
+            }),
+          );
+
+          await jobApplicationRepository.save(
+            jobApplicationRepository.create({
+              job,
+              candidate,
+              stage: appData.stage,
+              order: i,
+            }),
+          );
+
+          // If hired, create User and Onboarding
+          if (appData.stage === ApplicationStage.HIRED) {
+            const hiredUser = await userRepository.save(
+              userRepository.create({
+                firstName,
+                lastName,
+                email: appData.email,
+                status: UserStatus.ACTIVE,
+                company,
+                department: dept,
+                position: engineeringPosition,
+                hireDate: now,
+                roles: [rolesMap.get(UserRole.EMPLOYEE)!],
+                security: {
+                  password: hashedPassword,
+                  emailVerifiedAt: now,
+                },
+                settings: {
+                  language: 'en',
+                  timezone: company.timezone,
+                  theme: 'system',
+                },
+              }),
+            );
+
+            // Create Onboarding Instance
+            const template =
+              onboardingTemplatesMap.get('Software Engineer Onboarding') ||
+              onboardingTemplatesMap.get('Standard Employee Onboarding');
+            if (template) {
+              const instance = await onboardingInstanceRepository.save(
+                onboardingInstanceRepository.create({
+                  employee: hiredUser,
+                  template,
+                  company,
+                  status: OnboardingStatus.IN_PROGRESS,
+                  startedAt: now,
+                }),
+              );
+
+              // Partially complete steps (e.g., first 2-3 steps)
+              const stepsToComplete = Math.floor(Math.random() * 2) + 2; // 2 or 3
+              for (let j = 0; j < template.steps.length; j++) {
+                const tStep = template.steps[j];
+                const isCompleted = j < stepsToComplete;
+
+                await onboardingInstanceStepRepository.save(
+                  onboardingInstanceStepRepository.create({
+                    instance,
+                    templateStep: tStep,
+                    status: isCompleted ? OnboardingStatus.COMPLETED : OnboardingStatus.PENDING,
+                    completedAt: isCompleted ? now : null,
+                  }),
+                );
+              }
+
+              // Update progress
+              instance.progress = Math.round((stepsToComplete / template.steps.length) * 100);
+              await onboardingInstanceRepository.save(instance);
+            }
+          }
+        }
+      }
+      this.logger.log(`✅ Created recruitment data and onboarding instances`);
     });
 
     this.logger.log('Database seed completed');
@@ -344,5 +608,11 @@ export class SeedService implements OnModuleInit {
     const date = new Date(baseDate);
     date.setDate(date.getDate() + offset);
     return date;
+  }
+
+  private _calculateDays(start: Date, end: Date): number {
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
   }
 }

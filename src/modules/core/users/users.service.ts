@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, SelectQueryBuilder, In } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as bcrypt from 'bcryptjs';
 
 import config from '@config/app.config';
@@ -59,6 +60,7 @@ export class UsersService {
     private readonly _tokenService: TokenService,
     private readonly _permissions: PermissionsService,
     private readonly _customFieldsService: CustomFieldsService,
+    private readonly _eventBus: EventEmitter2,
   ) {}
 
   /**
@@ -195,6 +197,8 @@ export class UsersService {
       await this._createAndSendInvitation(savedUser);
     }
 
+    this._eventBus.emit('user.created', savedUser);
+
     return this.findById(savedUser.id);
   }
 
@@ -234,6 +238,8 @@ export class UsersService {
 
     const savedUser = await this._usersRepository.save(user);
     await this._createAndSendInvitation(savedUser);
+
+    this._eventBus.emit('user.created', savedUser);
 
     return savedUser;
   }
@@ -587,6 +593,8 @@ export class UsersService {
     await this._inviteRepository.save(invite);
 
     await this._tokenService.revokeToken(token);
+
+    this._eventBus.emit('user.activated', savedUser);
 
     return this.findById(savedUser.id);
   }

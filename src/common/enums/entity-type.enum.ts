@@ -8,4 +8,5 @@ export enum EntityType {
   TASK = 'task',
   CALENDAR_EVENT = 'calendar_event',
   ONBOARDING_INSTANCE = 'onboarding_instance',
+  LEAVE_REQUEST = 'leave_request',
 }

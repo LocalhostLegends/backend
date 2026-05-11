@@ -27,6 +27,7 @@ import { UsersService } from './users.service';
 import { AuthorizedUser } from './users.types';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CustomFieldsService } from '@modules/custom-fields/custom-fields.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -34,6 +35,7 @@ describe('UsersService', () => {
   let tokenService: jest.Mocked<TokenService>;
   let permissionsService: jest.Mocked<PermissionsService>;
   let customFieldsService: jest.Mocked<CustomFieldsService>;
+  let eventEmitter: jest.Mocked<EventEmitter2>;
 
   const mockUser = {
     id: 'user-id',
@@ -113,6 +115,12 @@ describe('UsersService', () => {
             assertCan: jest.fn().mockResolvedValue(undefined),
           },
         },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -121,6 +129,7 @@ describe('UsersService', () => {
     tokenService = module.get(TokenService);
     permissionsService = module.get(PermissionsService);
     customFieldsService = module.get(CustomFieldsService);
+    eventEmitter = module.get(EventEmitter2);
   });
 
   describe('Permissions Version Cache', () => {

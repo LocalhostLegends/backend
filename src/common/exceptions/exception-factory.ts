@@ -191,6 +191,23 @@ export class ExceptionFactory {
     return new AppException(ExceptionCode.TASK_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
   }
 
+  // Leave Management
+  static leaveTypeNotFound(id: string) {
+    return new AppException(ExceptionCode.LEAVE_TYPE_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
+  static leaveTypeCodeExists(code: string) {
+    return new AppException(ExceptionCode.LEAVE_TYPE_CODE_EXISTS, HttpStatus.CONFLICT, [code]);
+  }
+
+  static leaveRequestNotFound(id: string) {
+    return new AppException(ExceptionCode.LEAVE_REQUEST_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
+  static leaveBalanceInsufficient() {
+    return new AppException(ExceptionCode.LEAVE_BALANCE_INSUFFICIENT, HttpStatus.BAD_REQUEST);
+  }
+
   // Common
   static commonRequiredField(field: string) {
     return new AppException(ExceptionCode.COMMON_REQUIRED_FIELD, HttpStatus.BAD_REQUEST, [field]);

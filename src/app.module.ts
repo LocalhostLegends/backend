@@ -13,6 +13,7 @@ import { OrganizationModule } from '@modules/organization/organization.module';
 import { RecruitmentModule } from '@modules/recruitment/recruitment.module';
 import { CalendarModule } from '@modules/calendar/calendar.module';
 import { TasksModule } from '@modules/tasks/tasks.module';
+import { LeaveModule } from '@modules/leave/leave.module';
 import { NotificationsModule } from '@modules/notifications/notifications.module';
 import { PermissionsModule } from '@modules/permissions/permissions.module';
 import { OnboardingModule } from '@modules/onboarding/onboarding.module';
@@ -58,6 +59,7 @@ import config from '@config/app.config';
     RecruitmentModule,
     CalendarModule,
     TasksModule,
+    LeaveModule,
     NotificationsModule,
     CustomFieldsModule,
     OnboardingModule,

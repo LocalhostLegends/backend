@@ -68,6 +68,14 @@ export const ExceptionMessages: Record<string, (...args: any[]) => string> = {
   // Tasks
   [ExceptionCode.TASK_NOT_FOUND]: (id: string) => `Task with id "${id}" not found`,
 
+  // Leave Management
+  [ExceptionCode.LEAVE_TYPE_NOT_FOUND]: (id: string) => `Leave type with id "${id}" not found`,
+  [ExceptionCode.LEAVE_TYPE_CODE_EXISTS]: (code: string) =>
+    `Leave type with code "${code}" already exists`,
+  [ExceptionCode.LEAVE_REQUEST_NOT_FOUND]: (id: string) =>
+    `Leave request with id "${id}" not found`,
+  [ExceptionCode.LEAVE_BALANCE_INSUFFICIENT]: () => 'Insufficient leave balance',
+
   // Common
   [ExceptionCode.COMMON_REQUIRED_FIELD]: (field: string) => `${field} is required`,
 };
