@@ -254,6 +254,7 @@ export class UsersService {
       .leftJoinAndSelect('user.position', 'position')
       .leftJoinAndSelect('user.company', 'company')
       .leftJoinAndSelect('user.roles', 'roles')
+      .leftJoinAndSelect('user.manager', 'manager')
       .where('user.company_id = :companyId', { companyId: currentUser.companyId });
 
     this._userFilterBuilder.buildFilters(queryBuilder, filters);
@@ -316,6 +317,7 @@ export class UsersService {
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.department', 'department')
       .leftJoinAndSelect('user.position', 'position')
+      .leftJoinAndSelect('user.manager', 'manager')
       .where('user.company_id = :companyId', { companyId: currentUser.companyId })
       .andWhere('user.status = :status', { status: UserStatus.ACTIVE })
       .andWhere('user.deletedAt IS NULL');
@@ -357,7 +359,7 @@ export class UsersService {
   async findById(id: string): Promise<User> {
     const user = await this._usersRepository.findOne({
       where: { id },
-      relations: ['company', 'department', 'position', 'roles', 'security', 'settings'],
+      relations: ['company', 'department', 'position', 'roles', 'security', 'settings', 'manager'],
     });
 
     if (!user) {
@@ -490,6 +492,22 @@ export class UsersService {
             currentUser.companyId,
           );
           updateData.position = position;
+        }
+      }
+
+      if (updateUserDto.managerId !== undefined) {
+        if (updateUserDto.managerId === null) {
+          updateData.manager = null;
+          updateData.managerId = null;
+        } else {
+          if (updateUserDto.managerId === id) {
+            throw ExceptionFactory.userCannotBeOwnManager();
+          }
+          const manager = await this.findById(updateUserDto.managerId);
+          if (manager.company.id !== currentUser.companyId) {
+            throw ExceptionFactory.userManagerNotInCompany();
+          }
+          updateData.manager = manager;
         }
       }
     }

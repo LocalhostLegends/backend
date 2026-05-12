@@ -13,6 +13,8 @@ export const ExceptionMessages: Record<string, (...args: any[]) => string> = {
   [ExceptionCode.USER_INVITED]: () => 'User account has been invited',
   [ExceptionCode.USER_BLOCKED]: () => 'User account has been blocked',
   [ExceptionCode.USER_DELETED]: () => 'User account has been deleted',
+  [ExceptionCode.USER_CANNOT_BE_OWN_MANAGER]: () => 'User cannot be their own manager',
+  [ExceptionCode.USER_MANAGER_NOT_IN_COMPANY]: () => 'Manager must belong to the same company',
 
   // Departments
   [ExceptionCode.DEPARTMENT_NOT_FOUND]: (id: string) => `Department with id "${id}" not found`,

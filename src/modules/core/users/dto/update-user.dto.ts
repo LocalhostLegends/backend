@@ -62,6 +62,11 @@ export class UpdateUserDto {
   @IsUUID()
   positionId?: string | null;
 
+  @ApiPropertyOptional({ description: 'Manager ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  managerId?: string | null;
+
   @ApiPropertyOptional(CommonFields.phone)
   @IsOptional()
   @IsPhone()

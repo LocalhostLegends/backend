@@ -204,5 +204,62 @@ describe('UsersService', () => {
       expect(tokenService.revokeUserTokens).not.toHaveBeenCalled();
       expect(usersRepo.save).toHaveBeenCalled();
     });
+
+    it('should throw BadRequest if user is assigned as their own manager', async () => {
+      const updateDto: UpdateUserDto = { managerId: mockUser.id };
+      usersRepo.findOne.mockResolvedValueOnce(mockUser);
+
+      await expect(service.update(mockUser.id, updateDto, adminUser)).rejects.toThrow(
+        ExceptionFactory.userCannotBeOwnManager(),
+      );
+    });
+
+    it('should update manager for a user', async () => {
+      const managerId = 'manager-id';
+      const updateDto: UpdateUserDto = { managerId };
+      const managerUser = {
+        id: managerId,
+        company: { id: 'company-id' },
+      } as User;
+
+      usersRepo.findOne.mockResolvedValueOnce(mockUser); // user to update
+      usersRepo.findOne.mockResolvedValueOnce(managerUser); // manager lookup in findById
+      usersRepo.merge.mockReturnValue({ ...mockUser, managerId, manager: managerUser } as User);
+      usersRepo.save.mockResolvedValue({ ...mockUser, managerId, manager: managerUser } as User);
+      usersRepo.findOne.mockResolvedValueOnce({
+        ...mockUser,
+        managerId,
+        manager: managerUser,
+      } as User); // final response lookup
+
+      await service.update(mockUser.id, updateDto, adminUser);
+
+      expect(usersRepo.merge).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ manager: managerUser }),
+      );
+      expect(usersRepo.save).toHaveBeenCalled();
+    });
+
+    it('should allow clearing manager by sending null', async () => {
+      const updateDto: UpdateUserDto = { managerId: null };
+
+      usersRepo.findOne.mockResolvedValueOnce(mockUser);
+      usersRepo.merge.mockReturnValue({ ...mockUser, managerId: null, manager: null } as User);
+      usersRepo.save.mockResolvedValue({ ...mockUser, managerId: null, manager: null } as User);
+      usersRepo.findOne.mockResolvedValueOnce({
+        ...mockUser,
+        managerId: null,
+        manager: null,
+      } as User);
+
+      await service.update(mockUser.id, updateDto, adminUser);
+
+      expect(usersRepo.merge).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ manager: null, managerId: null }),
+      );
+      expect(usersRepo.save).toHaveBeenCalled();
+    });
   });
 });

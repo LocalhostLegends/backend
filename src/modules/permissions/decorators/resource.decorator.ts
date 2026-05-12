@@ -6,7 +6,8 @@ export interface ResourceMetadata {
   type: Type<any>;
   paramName?: string;
   field?: string;
+  relations?: string[];
 }
 
-export const Resource = (type: Type<any>, paramName: string = 'id') =>
-  SetMetadata(RESOURCE_KEY, { type, paramName });
+export const Resource = (type: Type<any>, paramName: string = 'id', relations: string[] = []) =>
+  SetMetadata(RESOURCE_KEY, { type, paramName, relations });

@@ -1,0 +1,8 @@
+export enum BonusType {
+  PERFORMANCE = 'PERFORMANCE',
+  REFERRAL = 'REFERRAL',
+  RETENTION = 'RETENTION',
+  SIGN_ON = 'SIGN_ON',
+  ONE_TIME = 'ONE_TIME',
+  OTHER = 'OTHER',
+}

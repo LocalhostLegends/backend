@@ -79,4 +79,16 @@ export enum PermissionAction {
 
   LEAVE_BALANCE_READ = 'leave_balance.read',
   LEAVE_BALANCE_READ_ALL = 'leave_balance.read_all',
+
+  // Payroll
+  PAYROLL_READ = 'payroll.read',
+  PAYROLL_READ_SELF = 'payroll.read_self',
+  PAYROLL_MANAGE = 'payroll.manage',
+  PAYROLL_APPROVE = 'payroll.approve',
+  PAYROLL_EXPORT = 'payroll.export',
+
+  // Salary Revision Requests
+  SALARY_REVISION_CREATE = 'salary_revision.create',
+  SALARY_REVISION_READ_SELF = 'salary_revision.read_self',
+  SALARY_REVISION_MANAGE = 'salary_revision.manage',
 }

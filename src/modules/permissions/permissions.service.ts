@@ -15,6 +15,7 @@ export interface ObjectLiteral {
 
 export interface WrappedResource {
   id?: string;
+  status?: string;
   old?: WrappedResource;
   new?: Record<string, unknown>;
   roles?: UserRole[];

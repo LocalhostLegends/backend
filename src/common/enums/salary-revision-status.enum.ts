@@ -1,0 +1,6 @@
+export enum SalaryRevisionStatus {
+  PENDING = 'PENDING',
+  MANAGER_APPROVED = 'MANAGER_APPROVED',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}

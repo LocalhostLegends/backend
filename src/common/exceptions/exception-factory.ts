@@ -44,6 +44,14 @@ export class ExceptionFactory {
     return new AppException(ExceptionCode.USER_DELETED, HttpStatus.FORBIDDEN);
   }
 
+  static userCannotBeOwnManager() {
+    return new AppException(ExceptionCode.USER_CANNOT_BE_OWN_MANAGER, HttpStatus.BAD_REQUEST);
+  }
+
+  static userManagerNotInCompany() {
+    return new AppException(ExceptionCode.USER_MANAGER_NOT_IN_COMPANY, HttpStatus.FORBIDDEN);
+  }
+
   // Departments
   static departmentNotFound(id: string) {
     return new AppException(ExceptionCode.DEPARTMENT_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);

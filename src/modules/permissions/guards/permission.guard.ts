@@ -3,6 +3,7 @@ import { Reflector, ModuleRef } from '@nestjs/core';
 import { Request } from 'express';
 import { Repository, FindOptionsWhere, ObjectLiteral as TypeORMObjectLiteral } from 'typeorm';
 import { PermissionAction } from '@common/enums/permission-action.enum';
+import { UserRole } from '@common/enums/user-role.enum';
 import { PermissionsService, PermissionResource, WrappedResource } from '../permissions.service';
 import { PERMISSION_KEY } from '../decorators/require-permission.decorator';
 import { RESOURCE_KEY, ResourceMetadata } from '../decorators/resource.decorator';
@@ -21,6 +22,10 @@ interface EntityWithRelations {
   company?: { id: string | number } | null;
   department?: { id: string | number } | null;
   roles?: string[];
+}
+
+interface BaseEntity extends EntityWithRelations {
+  status?: string;
 }
 
 function isWrappedResource(resource: PermissionResource | undefined): resource is WrappedResource {
@@ -87,7 +92,8 @@ export class PermissionGuard implements CanActivate {
     }
 
     const paramName = resourceMetadata.paramName || 'id';
-    const resourceIdParam = request.params[paramName];
+    const body = request.body as Record<string, unknown>;
+    const resourceIdParam = request.params[paramName] || body?.[paramName];
     const resourceId = typeof resourceIdParam === 'string' ? resourceIdParam : undefined;
 
     if (!resourceId) {
@@ -108,29 +114,40 @@ export class PermissionGuard implements CanActivate {
         id: resourceId,
       };
 
+      const relations = ['company', 'department', ...(resourceMetadata.relations || [])];
+
       const found = await repository.findOne({
         where: whereCondition,
-        relations: ['company', 'department'],
+        relations,
       });
 
       if (!found) {
         return undefined;
       }
 
-      const entity = found as unknown as EntityWithRelations;
+      const entity = found as unknown as BaseEntity;
+
+      // Detailed logging for debugging
+      console.log(
+        `[PermissionGuard] Loaded entity ${resourceMetadata.type.name} with ID ${resourceId}`,
+      );
+      console.log(`[PermissionGuard] Entity status in DB: ${entity.status}`);
 
       const resource: WrappedResource = {
+        ...(entity as unknown as Record<string, unknown>),
         id: String(entity.id),
+        status: entity.status,
         companyId: this.extractCompanyIdFromEntity(entity),
         departmentId: this.extractDepartmentIdFromEntity(entity),
         company: entity.company ? { id: String(entity.company.id) } : null,
         department: entity.department ? { id: String(entity.department.id) } : null,
-        roles: entity.roles as WrappedResource['roles'],
+        roles: entity.roles as UserRole[],
       };
 
       request.resource = resource;
       return resource;
-    } catch {
+    } catch (error) {
+      console.error('[PermissionGuard] Error loading resource:', error);
       return undefined;
     }
   }
@@ -150,14 +167,13 @@ export class PermissionGuard implements CanActivate {
 
     if (resource && resourceFromBody) {
       finalResource = {
-        id: resource.id,
+        ...resource,
         old: resource,
         new: resourceFromBody,
+        status: resource.status, // Always use current DB status for policy checks
         roles: this.extractRolesFromBody(resourceFromBody.roles, resource.roles),
         companyId: this.extractCompanyIdFromBody(resourceFromBody, resource),
         departmentId: this.extractDepartmentIdFromBody(resourceFromBody, resource),
-        company: resource.company,
-        department: resource.department,
       };
     } else if (resource) {
       finalResource = resource;

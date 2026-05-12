@@ -56,6 +56,24 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       { action: 'task.update', description: 'Permission to update task' },
       { action: 'task.update_stage', description: 'Permission to update stage' },
       { action: 'task.delete', description: 'Permission to delete task' },
+      // Payroll
+      { action: 'payroll.read', description: 'Permission to read payroll data' },
+      { action: 'payroll.manage', description: 'Permission to manage salaries and periods' },
+      { action: 'payroll.approve', description: 'Permission to approve bonuses and payroll' },
+      { action: 'payroll.export', description: 'Permission to export payroll data' },
+      // Salary Revision Requests
+      {
+        action: 'salary_revision.create',
+        description: 'Permission to create salary revision request',
+      },
+      {
+        action: 'salary_revision.read_self',
+        description: 'Permission to read own salary revision requests',
+      },
+      {
+        action: 'salary_revision.manage',
+        description: 'Permission to manage salary revision requests',
+      },
     ];
 
     for (const p of permissions) {
@@ -129,6 +147,13 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       'calendar.read',
       'calendar.update',
       'calendar.delete',
+      'payroll.read',
+      'payroll.manage',
+      'payroll.approve',
+      'payroll.export',
+      'salary_revision.create',
+      'salary_revision.read_self',
+      'salary_revision.manage',
     ];
     for (const p of hrPermissions) {
       await queryRunner.query(
@@ -165,6 +190,10 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       'calendar.read',
       'calendar.update',
       'calendar.delete',
+      'payroll.read',
+      'salary_revision.create',
+      'salary_revision.read_self',
+      'salary_revision.manage',
     ];
     for (const p of managerPermissions) {
       await queryRunner.query(
@@ -190,6 +219,8 @@ export class SeedRolesAndPermissions1778165649430 implements MigrationInterface 
       'calendar.read',
       'calendar.update',
       'calendar.delete',
+      'salary_revision.create',
+      'salary_revision.read_self',
     ];
     for (const p of employeePermissions) {
       await queryRunner.query(

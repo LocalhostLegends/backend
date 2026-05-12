@@ -10,6 +10,24 @@ import { CompanyResponseDto } from '@modules/organization/companies/dto/company-
 import { UserFields } from '@modules/core/users/swagger/user.fields';
 import { CustomFieldValueType } from '@modules/custom-fields/custom-fields.types';
 
+export class UserManagerResponseDto {
+  @Expose()
+  @ApiProperty(UserFields.id)
+  id: string;
+
+  @Expose()
+  @ApiProperty(UserFields.firstName)
+  firstName: string;
+
+  @Expose()
+  @ApiProperty(UserFields.lastName)
+  lastName: string;
+
+  @Expose()
+  @ApiPropertyOptional(UserFields.avatar)
+  avatar: string | null;
+}
+
 export class UserResponseDto {
   @Expose()
   @ApiProperty(UserFields.id)
@@ -63,6 +81,15 @@ export class UserResponseDto {
   get companyId(): string | null {
     return this.company?.id || null;
   }
+
+  @Expose()
+  @ApiPropertyOptional({ description: 'Manager details', type: UserManagerResponseDto })
+  @Type(() => UserManagerResponseDto)
+  manager: UserManagerResponseDto | null;
+
+  @Expose()
+  @ApiPropertyOptional({ description: 'Manager ID', format: 'uuid' })
+  managerId: string | null;
 
   @Expose()
   @ApiProperty({ description: 'User permissions', isArray: true, type: String })

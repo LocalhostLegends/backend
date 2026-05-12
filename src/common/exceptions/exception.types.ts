@@ -11,6 +11,8 @@ export type ExceptionParams = {
   [ExceptionCode.USER_INVITED]: [];
   [ExceptionCode.USER_BLOCKED]: [];
   [ExceptionCode.USER_DELETED]: [];
+  [ExceptionCode.USER_CANNOT_BE_OWN_MANAGER]: [];
+  [ExceptionCode.USER_MANAGER_NOT_IN_COMPANY]: [];
 
   // Departments
   [ExceptionCode.DEPARTMENT_NOT_FOUND]: [id: string];

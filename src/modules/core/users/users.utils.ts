@@ -24,6 +24,8 @@ export async function toUserResponse(
       department: user.department,
       position: user.position,
       company: user.company,
+      manager: user.manager,
+      managerId: user.managerId,
       lastLoginAt: user.security?.lastLoginAt,
       dateOfBirth: user.dateOfBirth,
       hireDate: user.hireDate,
