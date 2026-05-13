@@ -1,5 +1,5 @@
 import { AuthorizedUser } from '@modules/core/users/users.types';
-import { PolicyResult, PermissionResource } from '../permissions.service';
+import { PolicyResult, PermissionResource } from '../types/permissions.types';
 
 export interface PolicyRule {
   supports(action: string): boolean;

@@ -1,49 +1,27 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector, ModuleRef } from '@nestjs/core';
 import { Request } from 'express';
-import { Repository, FindOptionsWhere, ObjectLiteral as TypeORMObjectLiteral } from 'typeorm';
+import { Repository } from 'typeorm';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { UserRole } from '@common/enums/user-role.enum';
-import { PermissionsService, PermissionResource, WrappedResource } from '../permissions.service';
+import { PermissionsService } from '../permissions.service';
 import { PERMISSION_KEY } from '../decorators/require-permission.decorator';
 import { RESOURCE_KEY, ResourceMetadata } from '../decorators/resource.decorator';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AuthorizedUser } from '@modules/core/users/users.types';
+import { PermissionResource, WrappedResource, IOwnable } from '../types/permissions.types';
 
 interface RequestWithUser extends Request {
   user: AuthorizedUser;
-  resource?: WrappedResource;
-}
-
-interface EntityWithRelations {
-  id: string | number;
-  companyId?: string | null;
-  departmentId?: string | null;
-  company?: { id: string | number } | null;
-  department?: { id: string | number } | null;
-  roles?: string[];
-}
-
-interface BaseEntity extends EntityWithRelations {
-  status?: string;
-}
-
-function isWrappedResource(resource: PermissionResource | undefined): resource is WrappedResource {
-  return resource !== undefined && typeof resource === 'object' && 'id' in resource;
-}
-
-function isObjectLiteral(
-  resource: PermissionResource | undefined,
-): resource is Record<string, unknown> {
-  return resource !== undefined && typeof resource === 'object' && !('id' in resource);
+  resource?: PermissionResource;
 }
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
   constructor(
-    private reflector: Reflector,
-    private permissionsService: PermissionsService,
-    private moduleRef: ModuleRef,
+    private readonly reflector: Reflector,
+    private readonly permissionsService: PermissionsService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -52,267 +30,145 @@ export class PermissionGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (!action) {
-      return true;
-    }
+    if (!action) return true;
+
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    const user = request.user;
+    if (!user) return false;
 
     const resourceMetadata = this.reflector.getAllAndOverride<ResourceMetadata>(RESOURCE_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
-    const user = request.user;
-
-    if (!user) {
-      return false;
-    }
-
-    const resource = await this.loadResource(request, resourceMetadata);
-    const finalResource = this.buildFinalResource(request, resource, user);
+    const resource = await this.loadAndBuildResource(request, user, resourceMetadata);
+    request.resource = resource;
 
     try {
-      await this.permissionsService.assertCan(user, action, finalResource);
+      await this.permissionsService.assertCan(user, action, resource);
       return true;
     } catch (error) {
-      if (error instanceof ForbiddenException) {
-        throw error;
-      }
+      if (error instanceof ForbiddenException) throw error;
       const message = error instanceof Error ? error.message : 'Forbidden';
       throw new ForbiddenException(message);
     }
   }
 
-  private async loadResource(
+  private async loadAndBuildResource(
     request: RequestWithUser,
-    resourceMetadata: ResourceMetadata | undefined,
-  ): Promise<WrappedResource | undefined> {
-    if (!resourceMetadata) {
-      return undefined;
-    }
-
-    const paramName = resourceMetadata.paramName || 'id';
-    const body = request.body as Record<string, unknown>;
-    const resourceIdParam = request.params[paramName] || body?.[paramName];
-    const resourceId = typeof resourceIdParam === 'string' ? resourceIdParam : undefined;
-
-    if (!resourceId) {
-      return undefined;
-    }
-
-    try {
-      const repository = this.moduleRef.get<Repository<TypeORMObjectLiteral>>(
-        getRepositoryToken(resourceMetadata.type),
-        { strict: false },
-      );
-
-      if (!repository) {
-        return undefined;
-      }
-
-      const whereCondition: FindOptionsWhere<TypeORMObjectLiteral> = {
-        id: resourceId,
-      };
-
-      const relations = ['company', 'department', ...(resourceMetadata.relations || [])];
-
-      const found = await repository.findOne({
-        where: whereCondition,
-        relations,
-      });
-
-      if (!found) {
-        return undefined;
-      }
-
-      const entity = found as unknown as BaseEntity;
-
-      const resource: WrappedResource = {
-        ...(entity as unknown as Record<string, unknown>),
-        id: String(entity.id),
-        status: entity.status,
-        companyId: this.extractCompanyIdFromEntity(entity),
-        departmentId: this.extractDepartmentIdFromEntity(entity),
-        company: entity.company ? { id: String(entity.company.id) } : null,
-        department: entity.department ? { id: String(entity.department.id) } : null,
-        roles: entity.roles as UserRole[],
-      };
-
-      request.resource = resource;
-      return resource;
-    } catch {
-      return undefined;
-    }
-  }
-
-  private buildFinalResource(
-    request: RequestWithUser,
-    resource: WrappedResource | undefined,
     user: AuthorizedUser,
-  ): PermissionResource | undefined {
-    const resourceFromBody = this.getResourceFromBody(request);
+    metadata?: ResourceMetadata,
+  ): Promise<PermissionResource | undefined> {
+    const dbResource = await this.fetchResourceFromDb(request, metadata);
+    const bodyResource = this.extractResourceFromBody(request);
 
-    if (!resource && !resourceFromBody) {
-      return undefined;
+    if (!dbResource && !bodyResource) {
+      return this.shouldAddUserContext(undefined, user) ? { companyId: user.companyId } : undefined;
     }
 
-    let finalResource: PermissionResource | undefined;
+    let finalResource: PermissionResource;
 
-    if (resource && resourceFromBody) {
+    if (dbResource && bodyResource) {
       finalResource = {
-        ...resource,
-        old: resource,
-        new: resourceFromBody,
-        status: resource.status, // Always use current DB status for policy checks
-        roles: this.extractRolesFromBody(resourceFromBody.roles, resource.roles),
-        companyId: this.extractCompanyIdFromBody(resourceFromBody, resource),
-        departmentId: this.extractDepartmentIdFromBody(resourceFromBody, resource),
+        ...dbResource,
+        old: dbResource,
+        new: bodyResource,
       };
-    } else if (resource) {
-      finalResource = resource;
-    } else if (resourceFromBody) {
-      finalResource = resourceFromBody;
+    } else {
+      finalResource = (dbResource || bodyResource) as PermissionResource;
     }
 
-    if (finalResource && this.shouldAddUserCompanyId(finalResource, user)) {
-      if (isWrappedResource(finalResource)) {
-        finalResource = {
-          ...finalResource,
-          companyId: user.companyId,
-        };
-      } else if (isObjectLiteral(finalResource)) {
-        finalResource = {
-          ...finalResource,
-          companyId: user.companyId,
-        };
+    if (this.shouldAddUserContext(finalResource, user)) {
+      // Use type guard/assertion to add companyId safely
+      if (this.isOwnable(finalResource)) {
+        finalResource.companyId = user.companyId;
+      } else {
+        finalResource = { ...finalResource, companyId: user.companyId };
       }
     }
 
     return finalResource;
   }
 
-  private getResourceFromBody(request: RequestWithUser): Record<string, unknown> | undefined {
-    const methodsWithBody = ['POST', 'PATCH', 'PUT'];
-    if (methodsWithBody.includes(request.method)) {
+  private async fetchResourceFromDb(
+    request: RequestWithUser,
+    metadata?: ResourceMetadata,
+  ): Promise<WrappedResource | undefined> {
+    if (!metadata) return undefined;
+
+    const paramName = metadata.paramName || 'id';
+    const resourceIdRaw =
+      request.params[paramName] || this.getSafeProperty(request.body, paramName);
+
+    if (typeof resourceIdRaw !== 'string') return undefined;
+
+    try {
+      const repository = this.moduleRef.get<Repository<Record<string, unknown>>>(
+        getRepositoryToken(metadata.type),
+        { strict: false },
+      );
+
+      const entity = await repository.findOne({
+        where: { id: resourceIdRaw },
+        relations: ['company', 'department', ...(metadata.relations || [])],
+      });
+
+      if (!entity) return undefined;
+
+      return {
+        ...entity,
+        id: String(entity.id),
+        companyId: this.extractId(entity, 'company'),
+        departmentId: this.extractId(entity, 'department'),
+        roles: Array.isArray(entity.roles) ? (entity.roles as UserRole[]) : undefined,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
+  private extractResourceFromBody(request: RequestWithUser): Record<string, unknown> | undefined {
+    if (['POST', 'PATCH', 'PUT'].includes(request.method)) {
       return request.body as Record<string, unknown>;
     }
     return undefined;
   }
 
-  private extractCompanyIdFromEntity(entity: EntityWithRelations): string | undefined {
-    if (entity.companyId) {
-      return entity.companyId;
-    }
-    if (entity.company?.id) {
-      return String(entity.company.id);
+  private extractId(entity: Record<string, unknown>, key: string): string | undefined {
+    const directId = entity[key + 'Id'];
+    if (typeof directId === 'string') return directId;
+
+    const nested = entity[key];
+    if (nested && typeof nested === 'object' && 'id' in nested) {
+      const nestedId = (nested as Record<string, unknown>).id;
+      if (typeof nestedId === 'string') return nestedId;
+      if (typeof nestedId === 'number') return String(nestedId);
     }
     return undefined;
   }
 
-  private extractDepartmentIdFromEntity(entity: EntityWithRelations): string | undefined {
-    if (entity.departmentId) {
-      return entity.departmentId;
-    }
-    if (entity.department?.id) {
-      return String(entity.department.id);
+  private shouldAddUserContext(
+    resource: PermissionResource | undefined,
+    user: AuthorizedUser,
+  ): boolean {
+    if (!user.companyId) return false;
+    if (!resource) return true;
+
+    // Check if company information is missing
+    const companyId = this.getSafeProperty(resource, 'companyId');
+    const company = this.getSafeProperty(resource, 'company');
+
+    return !companyId && !company;
+  }
+
+  private getSafeProperty(obj: unknown, key: string): unknown {
+    if (obj && typeof obj === 'object' && key in obj) {
+      return (obj as Record<string, unknown>)[key];
     }
     return undefined;
   }
 
-  private extractRolesFromBody(
-    bodyRoles: unknown,
-    resourceRoles: string[] | undefined,
-  ): string[] | undefined {
-    if (
-      Array.isArray(bodyRoles) &&
-      bodyRoles.every((role: unknown): role is string => typeof role === 'string')
-    ) {
-      return bodyRoles;
-    }
-    return resourceRoles;
-  }
-
-  private extractCompanyIdFromBody(
-    body: Record<string, unknown>,
-    resource: WrappedResource,
-  ): string | undefined {
-    const bodyCompanyId = this.toSafeString(body.companyId);
-    if (bodyCompanyId) {
-      return bodyCompanyId;
-    }
-
-    const resourceCompanyId = this.extractNestedId(resource.company);
-    if (resourceCompanyId) {
-      return resourceCompanyId;
-    }
-
-    return resource.companyId ?? undefined;
-  }
-
-  private extractDepartmentIdFromBody(
-    body: Record<string, unknown>,
-    resource: WrappedResource,
-  ): string | undefined {
-    const bodyDepartmentId = this.toSafeString(body.departmentId);
-    if (bodyDepartmentId) {
-      return bodyDepartmentId;
-    }
-
-    const resourceDepartmentId = this.extractNestedId(resource.department);
-    if (resourceDepartmentId) {
-      return resourceDepartmentId;
-    }
-
-    return resource.departmentId ?? undefined;
-  }
-
-  private extractNestedId(obj: unknown): string | undefined {
-    if (obj && typeof obj === 'object' && 'id' in obj) {
-      const id = obj.id;
-      if (typeof id === 'string') {
-        return id;
-      }
-      if (typeof id === 'number') {
-        return String(id);
-      }
-    }
-    return undefined;
-  }
-
-  private toSafeString(value: unknown): string | undefined {
-    if (typeof value === 'string') {
-      return value;
-    }
-    if (typeof value === 'number') {
-      return String(value);
-    }
-    if (value && typeof value === 'object' && 'id' in value) {
-      const id = value.id;
-      if (typeof id === 'string') {
-        return id;
-      }
-      if (typeof id === 'number') {
-        return String(id);
-      }
-    }
-    return undefined;
-  }
-
-  private shouldAddUserCompanyId(resource: PermissionResource, user: AuthorizedUser): boolean {
-    if (isWrappedResource(resource)) {
-      const hasCompanyId = resource.companyId !== undefined && resource.companyId !== null;
-      const hasCompany = resource.company !== undefined && resource.company !== null;
-      return !hasCompanyId && !hasCompany && !!user.companyId;
-    }
-
-    if (isObjectLiteral(resource)) {
-      const hasCompanyId =
-        'companyId' in resource && resource.companyId !== undefined && resource.companyId !== null;
-      const hasCompany =
-        'company' in resource && resource.company !== undefined && resource.company !== null;
-      return !hasCompanyId && !hasCompany && !!user.companyId;
-    }
-
-    return false;
+  private isOwnable(resource: PermissionResource): resource is IOwnable {
+    return typeof resource === 'object' && resource !== null;
   }
 }

@@ -3,7 +3,7 @@ import { UserRole } from '@common/enums/user-role.enum';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { PolicyRule } from '../interfaces/policy-rule.interface';
-import { PolicyResult, PermissionResource } from '../permissions.service';
+import { PolicyResult, PermissionResource } from '../types/permissions.types';
 
 @Injectable()
 export class CalendarRule implements PolicyRule {

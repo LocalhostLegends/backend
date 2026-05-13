@@ -3,8 +3,13 @@ import { UserRole } from '@common/enums/user-role.enum';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { PolicyRule } from '../interfaces/policy-rule.interface';
-import { PolicyResult, PermissionResource, WrappedResource } from '../permissions.service';
 import { ExceptionCode } from '@common/exceptions/exception-codes';
+import {
+  PolicyResult,
+  PermissionResource,
+  isWrappedResource,
+  getSafeProperty,
+} from '../types/permissions.types';
 
 @Injectable()
 export class HrRestrictionRule implements PolicyRule {
@@ -22,7 +27,10 @@ export class HrRestrictionRule implements PolicyRule {
   }
 
   check(user: AuthorizedUser, _action: string, resource?: PermissionResource | null): PolicyResult {
-    if (resource && resource.id === user.id) return { effect: 'SKIP' };
+    if (!resource) return { effect: 'SKIP' };
+
+    const resourceId = getSafeProperty<string | number>(resource, 'id');
+    if (resourceId === user.id) return { effect: 'SKIP' };
 
     const isAdmin = user.roles.some((role) =>
       [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role),
@@ -32,9 +40,15 @@ export class HrRestrictionRule implements PolicyRule {
 
     if (isAdmin) return { effect: 'SKIP' };
 
-    const wrappedRes = resource as WrappedResource | undefined;
-    const currentRoles = wrappedRes?.old?.roles || wrappedRes?.roles || [];
-    const newRoles = wrappedRes?.new?.['roles'] as UserRole[] | undefined;
+    const wrappedRes = isWrappedResource(resource) ? resource : undefined;
+    const currentRoles =
+      wrappedRes?.old?.roles ||
+      wrappedRes?.roles ||
+      getSafeProperty<UserRole[]>(resource, 'roles') ||
+      [];
+    const newRoles = wrappedRes?.new
+      ? (wrappedRes.new['roles'] as UserRole[] | undefined)
+      : undefined;
 
     const targetHasAdmin = currentRoles.some((role) =>
       [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role),
@@ -53,7 +67,6 @@ export class HrRestrictionRule implements PolicyRule {
             },
           };
         }
-        // HR can edit others (HR, Manager, Employee)
       } else if (isManager) {
         if (targetHasAdmin || targetHasHR) {
           return {
@@ -81,8 +94,6 @@ export class HrRestrictionRule implements PolicyRule {
       const givingAdmin = newRoles.some((role) =>
         [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role),
       );
-      const givingHR = newRoles.includes(UserRole.HR);
-      const givingManager = newRoles.includes(UserRole.MANAGER);
 
       if (isHR) {
         if (givingAdmin) {
@@ -95,6 +106,8 @@ export class HrRestrictionRule implements PolicyRule {
           };
         }
       } else if (isManager) {
+        const givingHR = newRoles.includes(UserRole.HR);
+        const givingManager = newRoles.includes(UserRole.MANAGER);
         if (givingAdmin || givingHR || givingManager) {
           return {
             effect: 'DENY',

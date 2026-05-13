@@ -4,7 +4,12 @@ import { AuthorizedUser } from '@modules/core/users/users.types';
 import { SalaryRevisionStatus } from '@common/enums/salary-revision-status.enum';
 import { ExceptionCode } from '@common/exceptions/exception-codes';
 import { PolicyRule } from '../interfaces/policy-rule.interface';
-import { PolicyResult, PermissionResource, WrappedResource } from '../permissions.service';
+import {
+  PolicyResult,
+  PermissionResource,
+  isWrappedResource,
+  getSafeProperty,
+} from '../types/permissions.types';
 
 @Injectable()
 export class PayrollRule implements PolicyRule {
@@ -33,19 +38,25 @@ export class PayrollRule implements PolicyRule {
 
       if (!resource) return isHR ? { effect: 'ALLOW' } : { effect: 'SKIP' };
 
-      const wrappedRes = resource as WrappedResource | undefined;
+      const wrappedRes = isWrappedResource(resource) ? resource : undefined;
       const resourceCompanyId =
-        wrappedRes?.companyId || (wrappedRes?.company as { id: string })?.id;
+        wrappedRes?.companyId ||
+        getSafeProperty<string>(resource, 'companyId') ||
+        getSafeProperty<{ id: string }>(resource, 'company')?.id;
 
       if (isHR && resourceCompanyId === user.companyId) return { effect: 'ALLOW' };
 
       const isManager = user.roles.some((role) => role.toLowerCase() === 'manager');
-      if (isManager && wrappedRes) {
-        const employee = (wrappedRes.user || wrappedRes) as { managerId?: string };
-        if (employee.managerId === user.id) {
+      if (isManager && resource) {
+        const employee =
+          getSafeProperty<Record<string, unknown>>(resource, 'user') ||
+          (resource as Record<string, unknown>);
+        const managerId = employee['managerId'];
+
+        if (typeof managerId === 'string' && managerId === user.id) {
           if (actionEnum === PermissionAction.SALARY_REVISION_MANAGE) {
-            const status = wrappedRes.status as SalaryRevisionStatus | undefined;
-            if (status && status !== SalaryRevisionStatus.PENDING) {
+            const status = getSafeProperty<SalaryRevisionStatus>(resource, 'status');
+            if (status && (status as string) !== (SalaryRevisionStatus.PENDING as string)) {
               return { effect: 'DENY', reason: { code: ExceptionCode.AUTH_FORBIDDEN } };
             }
           }
@@ -62,8 +73,10 @@ export class PayrollRule implements PolicyRule {
     ) {
       if (!resource) return { effect: 'ALLOW' };
 
-      const wrappedRes = resource as WrappedResource | undefined;
-      const resourceId = wrappedRes?.id || (wrappedRes?.user as { id: string })?.id;
+      const resourceId =
+        getSafeProperty<string>(resource, 'id') ||
+        getSafeProperty<{ id: string }>(resource, 'user')?.id;
+
       if (resourceId === user.id) return { effect: 'ALLOW' };
     }
 

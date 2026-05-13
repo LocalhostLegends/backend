@@ -4,47 +4,15 @@ import { PermissionAction } from '@common/enums/permission-action.enum';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { ExceptionCode } from '@common/exceptions/exception-codes';
 import { AppException } from '@common/exceptions/app.exception';
-import { ExceptionParams } from '@common/exceptions/exception.types';
 import { PolicyRule } from './interfaces/policy-rule.interface';
+import {
+  DenialReason,
+  PermissionResource,
+  PermissionTrace,
+  PolicyEffect,
+} from './types/permissions.types';
 
 export const POLICY_RULES = 'POLICY_RULES';
-
-export interface ObjectLiteral {
-  [key: string]: any;
-}
-
-export interface WrappedResource {
-  id?: string;
-  status?: string;
-  old?: WrappedResource;
-  new?: Record<string, unknown>;
-  roles?: UserRole[];
-  companyId?: string | null;
-  departmentId?: string | null;
-  company?: { id: string } | null;
-  department?: { id: string } | null;
-  [key: string]: unknown;
-}
-
-export type PermissionResource = WrappedResource | ObjectLiteral;
-
-export interface DenialReason<K extends ExceptionCode = ExceptionCode> {
-  code: K;
-  params?: ExceptionParams[K];
-}
-
-export type PolicyEffect = 'ALLOW' | 'DENY' | 'SKIP';
-
-export interface PolicyResult {
-  effect: PolicyEffect;
-  reason?: DenialReason;
-}
-
-export interface PermissionTrace {
-  rule: string;
-  effect: PolicyEffect;
-  reason?: DenialReason;
-}
 
 @Injectable()
 export class PermissionsService {
