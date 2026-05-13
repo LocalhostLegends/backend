@@ -25,6 +25,7 @@
     "test:auth": "jest src/modules/core/auth",
     "test:permissions": "jest src/modules/permissions src/modules/core/users/users.service.spec.ts",
     "test:onboarding": "jest src/modules/onboarding",
+    "test:org-structure": "jest src/modules/organization/structure",
     "test:integration": "jest src",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",

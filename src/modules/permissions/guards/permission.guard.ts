@@ -127,12 +127,6 @@ export class PermissionGuard implements CanActivate {
 
       const entity = found as unknown as BaseEntity;
 
-      // Detailed logging for debugging
-      console.log(
-        `[PermissionGuard] Loaded entity ${resourceMetadata.type.name} with ID ${resourceId}`,
-      );
-      console.log(`[PermissionGuard] Entity status in DB: ${entity.status}`);
-
       const resource: WrappedResource = {
         ...(entity as unknown as Record<string, unknown>),
         id: String(entity.id),
@@ -146,8 +140,7 @@ export class PermissionGuard implements CanActivate {
 
       request.resource = resource;
       return resource;
-    } catch (error) {
-      console.error('[PermissionGuard] Error loading resource:', error);
+    } catch {
       return undefined;
     }
   }

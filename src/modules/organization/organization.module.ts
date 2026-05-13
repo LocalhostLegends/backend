@@ -19,15 +19,18 @@ import { DepartmentsController } from './departments/departments.controller';
 import { PositionsService } from './positions/positions.service';
 import { PositionsController } from './positions/positions.controller';
 
+import { OrganizationStructureModule } from './structure/organization-structure.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([Company, Department, Position, User]),
     UsersModule,
     PermissionsModule,
     CustomFieldsModule,
+    OrganizationStructureModule,
   ],
   controllers: [CompaniesController, DepartmentsController, PositionsController],
   providers: [CompaniesService, DepartmentsService, PositionsService],
-  exports: [CompaniesService, DepartmentsService, PositionsService],
+  exports: [CompaniesService, DepartmentsService, PositionsService, OrganizationStructureModule],
 })
 export class OrganizationModule {}
