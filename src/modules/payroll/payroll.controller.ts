@@ -1,5 +1,4 @@
 import { Controller, Get, Post, Body, Patch, Param, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import type { AuthorizedUser } from '@modules/core/users/users.types';
@@ -20,8 +19,9 @@ import {
   ReviewSalaryRevisionRequestDto,
 } from './dto/revision-request.dto';
 import { PayrollPeriodStatus } from '@common/enums/payroll-period-status.enum';
+import { swagger } from './swagger';
 
-@ApiTags('Payroll')
+@swagger.ApiTags()
 @Controller('payroll')
 export class PayrollController {
   constructor(
@@ -34,7 +34,7 @@ export class PayrollController {
   @Get('compensation/:userId')
   @RequirePermission(PermissionAction.PAYROLL_READ_SELF)
   @Resource(User, 'userId')
-  @ApiOperation({ summary: 'Get employee compensation' })
+  @swagger.ApiGetSalary()
   getSalary(@Param('userId') userId: string, @CurrentUser() user: AuthorizedUser) {
     return this.compensationService.getSalary(userId, user.companyId);
   }
@@ -42,7 +42,7 @@ export class PayrollController {
   @Patch('compensation/:userId')
   @RequirePermission(PermissionAction.PAYROLL_MANAGE)
   @Resource(User, 'userId')
-  @ApiOperation({ summary: 'Update employee compensation' })
+  @swagger.ApiUpdateSalary()
   updateSalary(
     @Param('userId') userId: string,
     @Body() dto: UpdateSalaryDto,
@@ -54,7 +54,7 @@ export class PayrollController {
   @Get('compensation/:userId/history')
   @RequirePermission(PermissionAction.PAYROLL_READ_SELF)
   @Resource(User, 'userId')
-  @ApiOperation({ summary: 'Get employee compensation history' })
+  @swagger.ApiGetHistory()
   getHistory(@Param('userId') userId: string, @CurrentUser() user: AuthorizedUser) {
     return this.compensationService.getHistory(userId, user.companyId);
   }
@@ -63,21 +63,21 @@ export class PayrollController {
   @Post('bonuses')
   @RequirePermission(PermissionAction.PAYROLL_MANAGE)
   @Resource(User, 'userId')
-  @ApiOperation({ summary: 'Award a bonus' })
+  @swagger.ApiCreateBonus()
   createBonus(@Body() dto: CreateBonusDto, @CurrentUser() user: AuthorizedUser) {
     return this.bonusService.create(dto, user);
   }
 
   @Get('bonuses')
   @RequirePermission(PermissionAction.PAYROLL_READ)
-  @ApiOperation({ summary: 'List all bonuses' })
+  @swagger.ApiFindAllBonuses()
   findAllBonuses(@CurrentUser() user: AuthorizedUser, @Query('userId') userId?: string) {
     return this.bonusService.findAll(user.companyId, userId);
   }
 
   @Patch('bonuses/:id/status')
   @RequirePermission(PermissionAction.PAYROLL_APPROVE)
-  @ApiOperation({ summary: 'Update bonus status' })
+  @swagger.ApiUpdateBonusStatus()
   updateBonusStatus(
     @Param('id') id: string,
     @Body() dto: UpdateBonusStatusDto,
@@ -89,49 +89,49 @@ export class PayrollController {
   // Payroll Periods
   @Post('periods')
   @RequirePermission(PermissionAction.PAYROLL_MANAGE)
-  @ApiOperation({ summary: 'Create a new payroll period' })
+  @swagger.ApiCreatePeriod()
   createPeriod(@Body() dto: CreatePayrollPeriodDto, @CurrentUser() user: AuthorizedUser) {
     return this.payrollService.createPeriod(dto, user.companyId);
   }
 
   @Get('periods')
   @RequirePermission(PermissionAction.PAYROLL_READ)
-  @ApiOperation({ summary: 'List all payroll periods' })
+  @swagger.ApiFindAllPeriods()
   findAllPeriods(@CurrentUser() user: AuthorizedUser) {
     return this.payrollService.findAllPeriods(user.companyId);
   }
 
   @Post('periods/:id/generate')
   @RequirePermission(PermissionAction.PAYROLL_MANAGE)
-  @ApiOperation({ summary: 'Generate payroll records for a period' })
+  @swagger.ApiGenerateRecords()
   generateRecords(@Param('id') id: string, @CurrentUser() user: AuthorizedUser) {
     return this.payrollService.generateRecords(id, user.companyId);
   }
 
   @Get('periods/:id/records')
   @RequirePermission(PermissionAction.PAYROLL_READ)
-  @ApiOperation({ summary: 'Get payroll records for a period' })
+  @swagger.ApiGetPeriodRecords()
   getPeriodRecords(@Param('id') id: string, @CurrentUser() user: AuthorizedUser) {
     return this.payrollService.getPeriodRecords(id, user.companyId);
   }
 
   @Get('periods/:id')
   @RequirePermission(PermissionAction.PAYROLL_READ)
-  @ApiOperation({ summary: 'Get payroll period details' })
+  @swagger.ApiGetPeriod()
   getPeriod(@Param('id') id: string, @CurrentUser() user: AuthorizedUser) {
     return this.payrollService.getPeriodById(id, user.companyId);
   }
 
   @Get('my-history')
   @RequirePermission(PermissionAction.PAYROLL_READ_SELF)
-  @ApiOperation({ summary: 'Get my payroll history' })
+  @swagger.ApiGetMyPayrollHistory()
   getMyPayrollHistory(@CurrentUser() user: AuthorizedUser) {
     return this.payrollService.getMyPayrollHistory(user.id, user.companyId);
   }
 
   @Patch('periods/:id/status')
   @RequirePermission(PermissionAction.PAYROLL_MANAGE)
-  @ApiOperation({ summary: 'Update payroll period status' })
+  @swagger.ApiUpdatePeriodStatus()
   updatePeriodStatus(
     @Param('id') id: string,
     @Body() dto: UpdatePayrollStatusDto,
@@ -148,7 +148,7 @@ export class PayrollController {
   // Salary Revision Requests
   @Post('revisions/requests')
   @RequirePermission(PermissionAction.SALARY_REVISION_CREATE)
-  @ApiOperation({ summary: 'Submit a salary revision request' })
+  @swagger.ApiCreateRevisionRequest()
   createRevisionRequest(
     @Body() dto: CreateSalaryRevisionRequestDto,
     @CurrentUser() user: AuthorizedUser,
@@ -158,14 +158,14 @@ export class PayrollController {
 
   @Get('revisions/requests/my')
   @RequirePermission(PermissionAction.SALARY_REVISION_READ_SELF)
-  @ApiOperation({ summary: 'Get my salary revision requests' })
+  @swagger.ApiGetMyRevisionRequests()
   getMyRevisionRequests(@CurrentUser() user: AuthorizedUser) {
     return this.compensationService.getMyRequests(user.id, user.companyId);
   }
 
   @Get('revisions/requests')
   @RequirePermission(PermissionAction.SALARY_REVISION_MANAGE)
-  @ApiOperation({ summary: 'List salary revision requests' })
+  @swagger.ApiFindAllRevisionRequests()
   findAllRevisionRequests(@CurrentUser() user: AuthorizedUser) {
     return this.compensationService.findAllRequests(user);
   }
@@ -173,7 +173,7 @@ export class PayrollController {
   @Patch('revisions/requests/:id/review')
   @RequirePermission(PermissionAction.SALARY_REVISION_MANAGE)
   @Resource(SalaryRevisionRequest, 'id', ['user'])
-  @ApiOperation({ summary: 'Review (Approve/Reject) a salary revision request' })
+  @swagger.ApiReviewRevisionRequest()
   reviewRevisionRequest(
     @Param('id') id: string,
     @Body() dto: ReviewSalaryRevisionRequestDto,

@@ -1,0 +1,23 @@
+import { Module } from '@nestjs/common';
+import { DashboardController } from './dashboard.controller';
+import { DashboardService } from './dashboard.service';
+import { LeaveModule } from '@modules/leave/leave.module';
+import { PayrollModule } from '@modules/payroll/payroll.module';
+import { TasksModule } from '@modules/tasks/tasks.module';
+import { UsersModule } from '@modules/core/users/users.module';
+import { RecruitmentModule } from '@modules/recruitment/recruitment.module';
+import { NotificationsModule } from '@modules/notifications/notifications.module';
+
+@Module({
+  imports: [
+    LeaveModule,
+    PayrollModule,
+    TasksModule,
+    UsersModule,
+    RecruitmentModule,
+    NotificationsModule,
+  ],
+  controllers: [DashboardController],
+  providers: [DashboardService],
+})
+export class DashboardModule {}
