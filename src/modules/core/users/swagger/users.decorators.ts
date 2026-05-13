@@ -13,8 +13,65 @@ import { UserPaginatedResponseDto } from '../dto/user-paginated-response.dto';
 import { UserDirectoryPaginatedResponseDto } from '../dto/user-directory-paginated-response.dto';
 import { AvatarUploadResponseDto } from '../dto/avatar-upload-response.dto';
 import { AvatarDeleteResponseDto } from '../dto/avatar-delete-response.dto';
+import { UserDocumentResponseDto } from '../dto/user-document-response.dto';
 
 export const ApiUserTags = () => ApiTags('Users');
+
+// Documents section
+export const ApiUploadDocument = () => {
+  return applyDecorators(
+    ApiBearerAuth('JWT-auth'),
+    ApiOperation({ summary: 'Upload a document for a user' }),
+    ApiConsumes('multipart/form-data'),
+    ApiBody({
+      schema: {
+        type: 'object',
+        properties: {
+          file: {
+            type: 'string',
+            format: 'binary',
+          },
+          name: { type: 'string' },
+          category: { type: 'string' },
+          metadata: { type: 'object' },
+        },
+      },
+    }),
+    ApiResponse({ status: HttpStatus.CREATED, type: UserDocumentResponseDto }),
+  );
+};
+
+export const ApiFindAllDocuments = () => {
+  return applyDecorators(
+    ApiBearerAuth('JWT-auth'),
+    ApiOperation({ summary: 'Get all documents for a user' }),
+    ApiResponse({ status: HttpStatus.OK, type: [UserDocumentResponseDto] }),
+  );
+};
+
+export const ApiFindOneDocument = () => {
+  return applyDecorators(
+    ApiBearerAuth('JWT-auth'),
+    ApiOperation({ summary: 'Get a user document by ID' }),
+    ApiResponse({ status: HttpStatus.OK, type: UserDocumentResponseDto }),
+  );
+};
+
+export const ApiUpdateDocumentStatus = () => {
+  return applyDecorators(
+    ApiBearerAuth('JWT-auth'),
+    ApiOperation({ summary: 'Update document status (Verify/Reject) - HR/Admin only' }),
+    ApiResponse({ status: HttpStatus.OK, type: UserDocumentResponseDto }),
+  );
+};
+
+export const ApiRemoveDocument = () => {
+  return applyDecorators(
+    ApiBearerAuth('JWT-auth'),
+    ApiOperation({ summary: 'Delete a user document' }),
+    ApiResponse({ status: HttpStatus.OK, description: 'Document deleted successfully' }),
+  );
+};
 
 // GET /users - findAll
 export const ApiFindAllUsers = () => {

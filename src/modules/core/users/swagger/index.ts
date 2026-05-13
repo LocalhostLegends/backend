@@ -10,8 +10,14 @@ import {
   ApiRemoveUser,
   ApiUploadAvatar,
   ApiDeleteAvatar,
+  ApiUploadDocument,
+  ApiFindAllDocuments,
+  ApiFindOneDocument,
+  ApiUpdateDocumentStatus,
+  ApiRemoveDocument,
 } from './users.decorators';
 import { UserFields } from './user.fields';
+import { DocumentFields } from './documents.fields';
 
 export const swagger = {
   ApiTags: ApiUserTags,
@@ -25,6 +31,11 @@ export const swagger = {
   ApiRemove: ApiRemoveUser,
   ApiUploadAvatar: ApiUploadAvatar,
   ApiDeleteAvatar: ApiDeleteAvatar,
+  ApiUploadDocument: ApiUploadDocument,
+  ApiFindAllDocuments: ApiFindAllDocuments,
+  ApiFindOneDocument: ApiFindOneDocument,
+  ApiUpdateDocumentStatus: ApiUpdateDocumentStatus,
+  ApiRemoveDocument: ApiRemoveDocument,
 };
 
-export { UserFields };
+export { UserFields, DocumentFields };
