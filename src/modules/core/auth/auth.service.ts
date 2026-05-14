@@ -35,7 +35,10 @@ export class AuthService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async registerCompany(registerDto: RegisterCompanyDto): Promise<AuthResponse> {
+  async registerCompany(
+    registerDto: RegisterCompanyDto,
+    context?: AppRequestContext,
+  ): Promise<AuthResponse> {
     const existingUser = await this._usersService.findByEmail(registerDto.email);
 
     if (existingUser) {
@@ -65,12 +68,12 @@ export class AuthService {
     const user = await this._usersService.create(userData);
 
     const accessToken = this._generateAccessToken(user);
-    const refreshToken = this._generateRefreshToken(user);
+    const refreshToken = this._generateRefreshToken(user, false, context);
     const userResponse = (await toUserResponse(user, (userId) =>
       this._usersService.getUserPermissions(userId),
     )) as UserResponseDto;
 
-    return { accessToken, refreshToken, user: userResponse };
+    return { accessToken, refreshToken, user: userResponse, rememberMe: false };
   }
 
   async login(loginDto: LoginDto, context?: AppRequestContext): Promise<AuthResponse> {
@@ -161,16 +164,21 @@ export class AuthService {
     });
     await this._usersService.updateLastLogin(user.id, context?.ip, context?.userAgent);
 
+    const rememberMe = loginDto.rememberMe ?? false;
     const accessToken = this._generateAccessToken(user);
-    const refreshToken = this._generateRefreshToken(user);
+    const refreshToken = this._generateRefreshToken(user, rememberMe, context);
     const userResponse = (await toUserResponse(user, (userId) =>
       this._usersService.getUserPermissions(userId),
     )) as UserResponseDto;
 
-    return { accessToken, refreshToken, user: userResponse };
+    return { accessToken, refreshToken, user: userResponse, rememberMe };
   }
 
-  async refresh(userId: string): Promise<AuthResponse> {
+  async refresh(
+    userId: string,
+    rememberMe: boolean = false,
+    context?: AppRequestContext,
+  ): Promise<AuthResponse> {
     const user = await this._usersService.findById(userId);
 
     if (!user.isActive()) {
@@ -178,12 +186,12 @@ export class AuthService {
     }
 
     const accessToken = this._generateAccessToken(user);
-    const refreshToken = this._generateRefreshToken(user);
+    const refreshToken = this._generateRefreshToken(user, rememberMe, context);
     const userResponse = (await toUserResponse(user, (userId) =>
       this._usersService.getUserPermissions(userId),
     )) as UserResponseDto;
 
-    return { accessToken, refreshToken, user: userResponse };
+    return { accessToken, refreshToken, user: userResponse, rememberMe };
   }
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<void> {
@@ -256,15 +264,24 @@ export class AuthService {
     });
   }
 
-  private _generateRefreshToken(user: User): string {
+  private _generateRefreshToken(
+    user: User,
+    rememberMe: boolean,
+    context?: AppRequestContext,
+  ): string {
     const payload: JwtRefreshPayload = {
       sub: user.id,
       companyId: user.company.id,
+      rememberMe,
+      ip: context?.ip,
+      ua: context?.userAgent,
     };
+
+    const expiresIn = rememberMe ? '30d' : config.jwt.refreshExpiresIn;
 
     return this._jwtService.sign(payload, {
       secret: config.jwt.refreshSecret,
-      expiresIn: config.jwt.refreshExpiresIn,
+      expiresIn,
     });
   }
 }

@@ -115,5 +115,37 @@ describe('AuthService', () => {
         expect(signCall[0]).not.toHaveProperty('permissions');
       }
     });
+
+    it('should generate long-lived refresh token when rememberMe is true', async () => {
+      usersService.findByEmail.mockResolvedValue(mockUser);
+
+      const context = {
+        ip: '127.0.0.1',
+        userAgent: 'test-agent',
+      } as any;
+
+      const result = await service.login(
+        {
+          email: 'test@example.com',
+          password: 'password',
+          rememberMe: true,
+        },
+        context,
+      );
+
+      expect(result.rememberMe).toBe(true);
+
+      expect(jwtService.sign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sub: mockUser.id,
+          rememberMe: true,
+          ip: '127.0.0.1',
+          ua: 'test-agent',
+        }),
+        expect.objectContaining({
+          expiresIn: '30d',
+        }),
+      );
+    });
   });
 });
