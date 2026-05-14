@@ -1,6 +1,7 @@
 import {
   ApiUserTags,
   ApiFindAllUsers,
+  ApiExportUsersCsv,
   ApiGetDirectory,
   ApiGetCurrentUser,
   ApiFindOneUser,
@@ -22,6 +23,7 @@ import { DocumentFields } from './documents.fields';
 export const swagger = {
   ApiTags: ApiUserTags,
   ApiFindAll: ApiFindAllUsers,
+  ApiExportCsv: ApiExportUsersCsv,
   ApiGetDirectory: ApiGetDirectory,
   ApiGetCurrent: ApiGetCurrentUser,
   ApiFindOne: ApiFindOneUser,

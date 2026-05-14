@@ -71,6 +71,48 @@ export const ApiGetTasks = () => {
   );
 };
 
+export const ApiExportTasksCsv = () => {
+  return applyDecorators(
+    ApiBearerAuth('JWT-auth'),
+    ApiOperation({ summary: 'Export tasks to CSV with filtering' }),
+    ApiQuery({ name: 'search', type: String, required: false, description: 'Search term' }),
+    ApiQuery({ name: 'stage', enum: TaskStage, required: false, description: 'Filter by stage' }),
+    ApiQuery({
+      name: 'priority',
+      enum: TaskPriority,
+      required: false,
+      description: 'Filter by priority',
+    }),
+    ApiQuery({
+      name: 'assigneeId',
+      type: String,
+      format: 'uuid',
+      required: false,
+      description: 'Filter by assignee ID',
+    }),
+    ApiQuery({
+      name: 'creatorId',
+      type: String,
+      format: 'uuid',
+      required: false,
+      description: 'Filter by creator ID',
+    }),
+    ApiQuery({
+      name: 'departmentId',
+      type: String,
+      format: 'uuid',
+      required: false,
+      description: 'Filter by department ID',
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'CSV file',
+      content: { 'text/csv': { schema: { type: 'string', format: 'binary' } } },
+    }),
+    ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Insufficient permissions' }),
+  );
+};
+
 export const ApiGetTask = () => {
   return applyDecorators(
     ApiBearerAuth('JWT-auth'),

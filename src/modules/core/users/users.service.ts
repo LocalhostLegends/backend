@@ -309,6 +309,24 @@ export class UsersService {
     };
   }
 
+  async getExportStream(filters: UserFilterDto, currentUser: AuthorizedUser) {
+    const queryBuilder = this._usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.department', 'department')
+      .leftJoinAndSelect('user.position', 'position')
+      .leftJoinAndSelect('user.company', 'company')
+      .where('user.company_id = :companyId', { companyId: currentUser.companyId });
+
+    this._userFilterBuilder.buildFilters(queryBuilder, filters);
+    this._applyRoleBasedAccess(queryBuilder, currentUser);
+
+    if (!filters.withDeleted) {
+      queryBuilder.andWhere('user.deletedAt IS NULL');
+    }
+
+    return queryBuilder.stream();
+  }
+
   async getDirectoryPaginated(
     filters: UserFilterDto,
     currentUser: AuthorizedUser,

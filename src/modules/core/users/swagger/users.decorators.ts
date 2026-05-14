@@ -82,6 +82,19 @@ export const ApiFindAllUsers = () => {
   );
 };
 
+// GET /users/export/csv - exportCsv
+export const ApiExportUsersCsv = () => {
+  return applyDecorators(
+    ApiBearerAuth('JWT-auth'),
+    ApiOperation({ summary: 'Export users to CSV with filtering' }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'CSV file',
+      content: { 'text/csv': { schema: { type: 'string', format: 'binary' } } },
+    }),
+  );
+};
+
 // GET /users/directory - getDirectory
 export const ApiGetDirectory = () => {
   return applyDecorators(

@@ -10,11 +10,14 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
+  Res,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
 import type { AuthorizedUser } from '@modules/core/users/users.types';
+import { CsvService } from '@modules/csv/csv.service';
 
 import { TasksService, TaskWithCustomFields } from './tasks.service';
 import { TaskCommentsService } from './task-comments.service';
@@ -35,6 +38,7 @@ export class TasksController {
     private readonly _attachmentsService: TaskAttachmentsService,
     private readonly _referencesService: TaskReferencesService,
     private readonly _activityService: TaskActivityService,
+    private readonly _csvService: CsvService,
   ) {}
 
   @Post()
@@ -53,6 +57,39 @@ export class TasksController {
     @Query() query: GetTasksQueryDto,
   ): Promise<TaskWithCustomFields[]> {
     return this._tasksService.findAll(user, query);
+  }
+
+  @Get('export/csv')
+  @swagger.ApiExportCsv()
+  async exportCsv(
+    @CurrentUser() user: AuthorizedUser,
+    @Query() query: GetTasksQueryDto,
+    @Res() res: Response,
+  ) {
+    const stream = await this._tasksService.getExportStream(user, query);
+    const columns = [
+      { header: 'Key', key: 'task_key' },
+      { header: 'Title', key: 'task_title' },
+      { header: 'Stage', key: 'task_stage' },
+      { header: 'Priority', key: 'task_priority' },
+      {
+        header: 'Creator',
+        key: 'creator_firstName',
+        transform: (_val: unknown, item: Record<string, unknown>) =>
+          `${String(item.creator_firstName)} ${String(item.creator_lastName)}`,
+      },
+      {
+        header: 'Assignee',
+        key: 'assignee_firstName',
+        transform: (_val: unknown, item: Record<string, unknown>) =>
+          item.assignee_id
+            ? `${String(item.assignee_firstName)} ${String(item.assignee_lastName)}`
+            : 'Unassigned',
+      },
+      { header: 'Created At', key: 'task_createdAt' },
+    ];
+
+    await this._csvService.streamCsv(res, 'tasks-export', columns, stream);
   }
 
   @Get(':id')

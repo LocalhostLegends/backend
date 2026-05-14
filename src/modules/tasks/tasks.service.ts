@@ -103,20 +103,13 @@ export class TasksService {
     return task;
   }
 
-  async findAll(
-    user: AuthorizedUser,
-    query: GetTasksQueryDto = {},
-  ): Promise<TaskWithCustomFields[]> {
-    await this._permissions.assertCan(user, PermissionAction.TASK_READ);
-
-    const { stage, priority, assigneeId, creatorId, departmentId, search, limit } = query;
+  private _buildQuery(user: AuthorizedUser, query: GetTasksQueryDto) {
+    const { stage, priority, assigneeId, creatorId, departmentId, search } = query;
 
     const queryBuilder = this._taskRepository
       .createQueryBuilder('task')
       .leftJoinAndSelect('task.creator', 'creator')
       .leftJoinAndSelect('task.assignee', 'assignee')
-      .loadRelationCountAndMap('task.commentsCount', 'task.comments')
-      .loadRelationCountAndMap('task.attachmentsCount', 'task.attachments')
       .where('task.companyId = :companyId', { companyId: user.companyId });
 
     if (stage) queryBuilder.andWhere('task.stage = :stage', { stage });
@@ -128,7 +121,22 @@ export class TasksService {
 
     queryBuilder.orderBy('task.order', 'ASC').addOrderBy('task.createdAt', 'DESC');
 
-    if (limit) queryBuilder.take(limit);
+    return queryBuilder;
+  }
+
+  async findAll(
+    user: AuthorizedUser,
+    query: GetTasksQueryDto = {},
+  ): Promise<TaskWithCustomFields[]> {
+    await this._permissions.assertCan(user, PermissionAction.TASK_READ);
+
+    const queryBuilder = this._buildQuery(user, query);
+
+    queryBuilder
+      .loadRelationCountAndMap('task.commentsCount', 'task.comments')
+      .loadRelationCountAndMap('task.attachmentsCount', 'task.attachments');
+
+    if (query.limit) queryBuilder.take(query.limit);
 
     const tasks = (await queryBuilder.getMany()) as TaskWithCounts[];
 
@@ -155,6 +163,12 @@ export class TasksService {
       ...t,
       customFields: customFieldsMap.get(t.id) || {},
     }));
+  }
+
+  async getExportStream(user: AuthorizedUser, query: GetTasksQueryDto) {
+    await this._permissions.assertCan(user, PermissionAction.TASK_READ);
+    const queryBuilder = this._buildQuery(user, query);
+    return queryBuilder.stream();
   }
 
   async findOne(id: string, user: AuthorizedUser): Promise<TaskWithCustomFields> {
