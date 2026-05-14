@@ -12,7 +12,6 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { RequirePermission } from '@modules/permissions/decorators/require-permission.decorator';
 import { CurrentUser } from '@modules/core/users/decorators/current-user.decorator';
@@ -23,8 +22,9 @@ import { EventsService, CalendarEventWithCustomFields } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { QueryEventDto } from './dto/query-event.dto';
+import { Swagger } from './swagger';
 
-@ApiTags('Calendar Events')
+@Swagger.ApiTags()
 @Controller('calendar/events')
 @UseGuards(JwtAuthGuard)
 export class EventsController {
@@ -32,8 +32,7 @@ export class EventsController {
 
   @Post(':id/respond')
   @RequirePermission(PermissionAction.CALENDAR_READ)
-  @ApiOperation({ summary: 'Respond to event invitation' })
-  @ApiResponse({ status: 200, description: 'Response saved' })
+  @Swagger.ApiRespond()
   async respond(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('status') status: ParticipantStatus,
@@ -44,8 +43,7 @@ export class EventsController {
 
   @Get()
   @RequirePermission(PermissionAction.CALENDAR_READ)
-  @ApiOperation({ summary: 'Get all calendar events for current user' })
-  @ApiResponse({ status: 200, description: 'Return list of events' })
+  @Swagger.ApiFindAll()
   async findAll(
     @Query() query: QueryEventDto,
     @CurrentUser() user: AuthorizedUser,
@@ -55,9 +53,7 @@ export class EventsController {
 
   @Get(':id')
   @RequirePermission(PermissionAction.CALENDAR_READ)
-  @ApiOperation({ summary: 'Get calendar event by ID' })
-  @ApiResponse({ status: 200, description: 'Return event details' })
-  @ApiResponse({ status: 404, description: 'Event not found' })
+  @Swagger.ApiFindOne()
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthorizedUser,
@@ -67,8 +63,7 @@ export class EventsController {
 
   @Post()
   @RequirePermission(PermissionAction.CALENDAR_CREATE)
-  @ApiOperation({ summary: 'Create new calendar event' })
-  @ApiResponse({ status: 201, description: 'Event successfully created' })
+  @Swagger.ApiCreate()
   async create(
     @Body() dto: CreateEventDto,
     @CurrentUser() user: AuthorizedUser,
@@ -78,9 +73,7 @@ export class EventsController {
 
   @Patch(':id')
   @RequirePermission(PermissionAction.CALENDAR_UPDATE)
-  @ApiOperation({ summary: 'Update calendar event' })
-  @ApiResponse({ status: 200, description: 'Event successfully updated' })
-  @ApiResponse({ status: 404, description: 'Event not found' })
+  @Swagger.ApiUpdate()
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEventDto,
@@ -92,9 +85,7 @@ export class EventsController {
   @Delete(':id')
   @RequirePermission(PermissionAction.CALENDAR_DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete calendar event' })
-  @ApiResponse({ status: 204, description: 'Event successfully deleted' })
-  @ApiResponse({ status: 404, description: 'Event not found' })
+  @Swagger.ApiDelete()
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthorizedUser,
