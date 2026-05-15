@@ -39,10 +39,20 @@ export class CreateBonusDto {
   @IsEnum(BonusStatus)
   @IsOptional()
   status?: BonusStatus;
+
+  @ApiPropertyOptional({ example: 'uuid' })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 }
 
 export class UpdateBonusStatusDto {
   @ApiProperty({ enum: BonusStatus })
   @IsEnum(BonusStatus)
   status: BonusStatus;
+
+  @ApiPropertyOptional({ example: 'uuid' })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 }

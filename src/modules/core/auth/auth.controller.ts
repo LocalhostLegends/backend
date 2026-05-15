@@ -38,7 +38,7 @@ export class AuthController {
       rememberMe = false,
     } = await this._authService.registerCompany(registerDto, req.context);
     this._setRefreshTokenCookie(res, refreshToken, rememberMe);
-    return { accessToken, user };
+    return { accessToken, user, rememberMe };
   }
 
   @Public()
@@ -58,7 +58,7 @@ export class AuthController {
       rememberMe = false,
     } = await this._authService.login(loginDto, req.context);
     this._setRefreshTokenCookie(res, refreshToken, rememberMe);
-    return { accessToken, user };
+    return { accessToken, user, rememberMe };
   }
 
   @Public()
@@ -94,7 +94,7 @@ export class AuthController {
       rememberMe = false,
     } = await this._authService.refresh(user.id, user.rememberMe, req.context);
     this._setRefreshTokenCookie(res, refreshToken, rememberMe);
-    return { accessToken, user: userData };
+    return { accessToken, user: userData, rememberMe };
   }
 
   @Post('logout')

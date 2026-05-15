@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNumber, IsString, IsEnum, IsOptional, MinLength } from 'class-validator';
 import { SalaryRevisionStatus } from '@common/enums/salary-revision-status.enum';
 
@@ -11,6 +11,11 @@ export class CreateSalaryRevisionRequestDto {
   @IsString()
   @MinLength(10)
   reason: string;
+
+  @ApiPropertyOptional({ example: 'uuid' })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 }
 
 export class ReviewSalaryRevisionRequestDto {
@@ -18,8 +23,13 @@ export class ReviewSalaryRevisionRequestDto {
   @IsEnum(SalaryRevisionStatus)
   status: SalaryRevisionStatus;
 
-  @ApiProperty({ example: 'Approved based on performance review.', required: false })
+  @ApiPropertyOptional({ example: 'Approved based on performance review.' })
   @IsString()
   @IsOptional()
   reviewNote?: string;
+
+  @ApiPropertyOptional({ example: 'uuid' })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 }

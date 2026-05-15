@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsDateString, IsOptional, IsString } from 'class-validator';
 
 export class CreatePayrollPeriodDto {
   @ApiProperty({ example: 'May 2026' })
@@ -13,10 +13,20 @@ export class CreatePayrollPeriodDto {
   @ApiProperty({ example: '2026-05-31' })
   @IsDateString()
   endDate: string;
+
+  @ApiPropertyOptional({ example: 'uuid' })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 }
 
 export class UpdatePayrollStatusDto {
   @ApiProperty({ example: 'OPEN' })
   @IsString()
   status: string;
+
+  @ApiPropertyOptional({ example: 'uuid' })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 }

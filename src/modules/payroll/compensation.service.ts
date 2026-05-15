@@ -52,9 +52,9 @@ export class CompensationService {
 
       if (!salary) {
         salary = queryRunner.manager.create(Salary, {
+          ...updateDto,
           userId,
           companyId: currentUser.companyId,
-          ...updateDto,
           effectiveDate: new Date(updateDto.effectiveDate),
         });
       } else {

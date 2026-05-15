@@ -24,4 +24,9 @@ export class UpdateSalaryDto {
   @IsString()
   @IsOptional()
   reason?: string;
+
+  @ApiPropertyOptional({ example: 'uuid' })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 }

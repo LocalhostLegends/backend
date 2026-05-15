@@ -19,7 +19,7 @@ function setupMiddleware(app: INestApplication) {
 
 function setupCors(app: INestApplication) {
   app.enableCors({
-    origin: config.cors,
+    origin: config.cors.origins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
