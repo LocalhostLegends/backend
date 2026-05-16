@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { logger } from '@common/logger/pino.config';
+
 import { AuthAuditLogEntity } from './entities/auth-audit-log.entity';
 import { CreateAuthAuditLogInput } from './audit.types';
 
@@ -27,6 +29,31 @@ export class AuditLogService {
       enrichmentStatus: input.enrichmentStatus ?? 'pending',
     });
 
-    return this.authAuditLogRepository.save(auditLog);
+    const savedAuditLog = await this.authAuditLogRepository.save(auditLog);
+
+    logger.info({
+      message: 'Auth audit event',
+      eventType: savedAuditLog.eventType,
+      userId: savedAuditLog.userId,
+      emailAttempted: savedAuditLog.emailAttempted,
+      ip: savedAuditLog.ip,
+      userAgent: savedAuditLog.userAgent,
+      requestId: savedAuditLog.requestId,
+      method: savedAuditLog.method,
+      path: savedAuditLog.path,
+      success: savedAuditLog.success,
+      failureReason: savedAuditLog.failureReason,
+      enrichmentStatus: savedAuditLog.enrichmentStatus,
+      riskScore: savedAuditLog.riskScore,
+      suspicious: savedAuditLog.suspicious,
+      country: savedAuditLog.country,
+      city: savedAuditLog.city,
+      browser: savedAuditLog.browser,
+      os: savedAuditLog.os,
+      deviceType: savedAuditLog.deviceType,
+      createdAt: savedAuditLog.createdAt,
+    });
+
+    return savedAuditLog;
   }
 }
