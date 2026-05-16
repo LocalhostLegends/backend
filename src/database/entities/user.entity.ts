@@ -86,6 +86,13 @@ export class User {
   @Column({ type: 'uuid', nullable: true, name: 'updated_by' })
   updatedBy: string | null;
 
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'manager_id' })
+  manager: User | null;
+
+  @Column({ type: 'uuid', nullable: true, name: 'manager_id' })
+  managerId: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

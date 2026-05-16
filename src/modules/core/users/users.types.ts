@@ -10,4 +10,5 @@ export interface AuthorizedUser {
   lastName?: string;
   permissions: string[];
   permissionsVersion: number;
+  rememberMe?: boolean;
 }

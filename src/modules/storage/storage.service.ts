@@ -5,7 +5,9 @@ import {
   DeleteObjectCommand,
   ListObjectsV2Command,
   HeadObjectCommand,
+  GetObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as crypto from 'crypto';
 import 'multer';
 
@@ -33,7 +35,7 @@ export class StorageService {
       forcePathStyle: config.storage.provider === 'minio',
     });
 
-    this.logger.log(`✅ Storage initialized with ${config.storage.provider}`);
+    this.logger.log(`Storage initialized with ${config.storage.provider}`);
   }
 
   private sanitizeEmail(email: string): string {
@@ -64,6 +66,20 @@ export class StorageService {
     };
   }
 
+  /**
+   * Generates a signed URL for temporary access to a private file
+   * @param key S3 Object Key
+   * @param expiresIn Seconds until expiration (default 1 hour)
+   */
+  async getSignedUrl(key: string, expiresIn = 3600): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: config.storage.bucketName,
+      Key: key,
+    });
+
+    return getSignedUrl(this.s3Client, command, { expiresIn });
+  }
+
   async uploadAvatar(
     file: Express.Multer.File,
     companyId: string,
@@ -81,17 +97,17 @@ export class StorageService {
               Key: oldKey,
             }),
           );
-          this.logger.log(`✅ Deleted old avatar`);
+          this.logger.log(`Deleted old avatar`);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          this.logger.error(`❌ Failed to delete old avatar: ${errorMessage}`);
+          this.logger.error(`Failed to delete old avatar: ${errorMessage}`);
         }
       }
     }
 
     const sanitizedEmail = this.sanitizeEmail(userEmail);
     const fileName = this.generateFileName(file.originalname);
-    const key = `${companyId}/${sanitizedEmail}/avatar/${fileName}`;
+    const key = `public/avatars/${companyId}/${sanitizedEmail}/${fileName}`;
 
     await this.s3Client.send(
       new PutObjectCommand({
@@ -102,7 +118,7 @@ export class StorageService {
       }),
     );
 
-    this.logger.log(`✅ Avatar uploaded: ${key}`);
+    this.logger.log(`Avatar uploaded: ${key}`);
 
     return { url: `${config.storage.publicUrl.replace(/\/$/, '')}/${key}` };
   }
@@ -139,8 +155,54 @@ export class StorageService {
       }),
     );
 
-    this.logger.log(`✅ Seed avatar uploaded: ${key}`);
+    this.logger.log(`Seed avatar uploaded: ${key}`);
     return { url: `${config.storage.publicUrl.replace(/\/$/, '')}/${key}` };
+  }
+
+  /**
+   * Uploads a file to a public path (accessible via public URL)
+   */
+  async uploadFile(file: Express.Multer.File, path: string): Promise<{ url: string; key: string }> {
+    const fileName = this.generateFileName(file.originalname);
+    const key = `public/${path}/${fileName}`;
+
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: config.storage.bucketName,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      }),
+    );
+
+    this.logger.log(`Public file uploaded: ${key}`);
+
+    return {
+      url: `${config.storage.publicUrl.replace(/\/$/, '')}/${key}`,
+      key,
+    };
+  }
+
+  /**
+   * Uploads a file to a private path (requires signed URL for access)
+   */
+  async uploadPrivateFile(file: Express.Multer.File, path: string): Promise<{ key: string }> {
+    const fileName = this.generateFileName(file.originalname);
+    const key = `private/${path}/${fileName}`;
+
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: config.storage.bucketName,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        // Cloudflare R2 ignores ACLs, but we use the path to distinguish
+      }),
+    );
+
+    this.logger.log(`Private file uploaded: ${key}`);
+
+    return { key };
   }
 
   async deleteFile(key: string): Promise<void> {
@@ -150,7 +212,7 @@ export class StorageService {
         Key: key,
       }),
     );
-    this.logger.log(`✅ File deleted: ${key}`);
+    this.logger.log(`File deleted: ${key}`);
   }
 
   extractKeyFromUrl(url: string): string | null {

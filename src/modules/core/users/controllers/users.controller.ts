@@ -11,7 +11,9 @@ import {
   Post,
   HttpCode,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import type { AuthorizedUser } from '@modules/core/users/users.types';
@@ -19,6 +21,7 @@ import { PaginatedResult } from '@modules/pagination/pagination.interfaces';
 import { RequirePermission } from '@modules/permissions/decorators/require-permission.decorator';
 import { Resource } from '@modules/permissions/decorators/resource.decorator';
 import { User } from '@database/entities/user.entity';
+import { CsvService } from '@modules/csv/csv.service';
 
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { UsersService } from '../users.service';
@@ -32,7 +35,10 @@ import { swagger } from '../swagger';
 @swagger.ApiTags()
 @Controller('users')
 export class UsersController {
-  constructor(private readonly _usersService: UsersService) {}
+  constructor(
+    private readonly _usersService: UsersService,
+    private readonly _csvService: CsvService,
+  ) {}
 
   @Get()
   @RequirePermission(PermissionAction.USER_READ)
@@ -42,6 +48,28 @@ export class UsersController {
     @CurrentUser() currentUser: AuthorizedUser,
   ): Promise<PaginatedResult<UserResponseDto>> {
     return this._usersService.findAllPaginated(filters, currentUser);
+  }
+
+  @Get('export/csv')
+  @RequirePermission(PermissionAction.USER_READ)
+  @swagger.ApiExportCsv()
+  async exportCsv(
+    @Query(new ValidationPipe({ transform: true })) filters: UserFilterDto,
+    @CurrentUser() currentUser: AuthorizedUser,
+    @Res() res: Response,
+  ) {
+    const stream = await this._usersService.getExportStream(filters, currentUser);
+    const columns = [
+      { header: 'First Name', key: 'user_firstName' },
+      { header: 'Last Name', key: 'user_lastName' },
+      { header: 'Email', key: 'user_email' },
+      { header: 'Status', key: 'user_status' },
+      { header: 'Department', key: 'department_name' },
+      { header: 'Position', key: 'position_name' },
+      { header: 'Joined At', key: 'user_createdAt' },
+    ];
+
+    await this._csvService.streamCsv(res, 'users-export', columns, stream);
   }
 
   @Get('directory')
@@ -54,7 +82,7 @@ export class UsersController {
   }
 
   @Get('me')
-  @swagger.ApiGetCurrentUser()
+  @swagger.ApiGetCurrent()
   async getCurrentUser(@CurrentUser() currentUser: AuthorizedUser): Promise<UserResponseDto> {
     return this._usersService.findOne(currentUser.id, currentUser);
   }
@@ -73,7 +101,7 @@ export class UsersController {
   @Patch(':id')
   @RequirePermission(PermissionAction.USER_UPDATE)
   @Resource(User)
-  @swagger.ApiUpdateUser()
+  @swagger.ApiUpdate()
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -86,7 +114,7 @@ export class UsersController {
   @RequirePermission(PermissionAction.USER_UPDATE)
   @Resource(User)
   @HttpCode(HttpStatus.OK)
-  @swagger.ApiBlockUser()
+  @swagger.ApiBlock()
   async blockUser(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -98,7 +126,7 @@ export class UsersController {
   @RequirePermission(PermissionAction.USER_UPDATE)
   @Resource(User)
   @HttpCode(HttpStatus.OK)
-  @swagger.ApiUnblockUser()
+  @swagger.ApiUnblock()
   async unblockUser(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -110,7 +138,7 @@ export class UsersController {
   @RequirePermission(PermissionAction.USER_DELETE)
   @Resource(User)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @swagger.ApiRemoveUser()
+  @swagger.ApiRemove()
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,

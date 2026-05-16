@@ -1,0 +1,2 @@
+aws_region        = "eu-central-1"
+backup_bucket_name = "example-bucket-name"

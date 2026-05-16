@@ -11,10 +11,14 @@ export interface JwtPayload {
 export interface JwtRefreshPayload {
   sub: string;
   companyId: string;
+  rememberMe?: boolean;
+  ip?: string;
+  ua?: string;
 }
 
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: UserResponseDto;
+  rememberMe?: boolean;
 }

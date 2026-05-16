@@ -8,17 +8,47 @@ import * as path from 'path';
 import config from '@config/app.config';
 import { UserStatus } from '@common/enums/user-status.enum';
 import { UserRole } from '@common/enums/user-role.enum';
+import { LeaveStatus } from '@common/enums/leave-status.enum';
+import { ParticipantStatus } from '@common/enums/participant-status.enum';
+import { ApplicationStage } from '@common/enums/application-stage.enum';
+import { OnboardingStatus } from '@common/enums/onboarding-status.enum';
+import { BonusStatus } from '@common/enums/bonus-status.enum';
+import { PayrollPeriodStatus } from '@common/enums/payroll-period-status.enum';
+import { PayrollRecordStatus } from '@common/enums/payroll-record-status.enum';
 
 import { companyData } from './data/company.data';
 import { departmentsData } from './data/departments.data';
 import { positionsData } from './data/positions.data';
 import { DEFAULT_SEED_PASSWORD, usersData } from './data/users.data';
+import { onboardingTemplatesData } from './data/onboarding-templates.data';
+import { leaveTypesData, leaveRequestsSeedData } from './data/leave.data';
+import { tasksData } from './data/tasks.data';
+import { calendarEventsData } from './data/calendar.data';
+import { recruitmentData } from './data/recruitment.data';
+import { salariesData, bonusesData, payrollPeriodsData } from './data/payroll.data';
 
 import { Company } from '../entities/company.entity';
 import { Department } from '../entities/department.entity';
 import { Position } from '../entities/position.entity';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
+import { OnboardingTemplate } from '../entities/onboarding-template.entity';
+import { OnboardingTemplateStep } from '../entities/onboarding-template-step.entity';
+import { LeaveType } from '../entities/leave-type.entity';
+import { LeaveBalance } from '../entities/leave-balance.entity';
+import { LeaveRequest } from '../entities/leave-request.entity';
+import { Task } from '../entities/task.entity';
+import { CalendarEvent } from '../entities/calendar-event.entity';
+import { CalendarEventParticipant } from '../entities/calendar-event-participant.entity';
+import { Job } from '../entities/job.entity';
+import { Candidate } from '../entities/candidate.entity';
+import { JobApplication } from '../entities/job-application.entity';
+import { OnboardingInstance } from '../entities/onboarding-instance.entity';
+import { OnboardingInstanceStep } from '../entities/onboarding-instance-step.entity';
+import { Salary } from '../entities/salary.entity';
+import { Bonus } from '../entities/bonus.entity';
+import { PayrollPeriod } from '../entities/payroll-period.entity';
+import { PayrollRecord } from '../entities/payroll-record.entity';
 import { StorageService } from '../../modules/storage/storage.service';
 
 @Injectable()
@@ -62,6 +92,23 @@ export class SeedService implements OnModuleInit {
       const positionRepository = manager.getRepository(Position);
       const userRepository = manager.getRepository(User);
       const roleRepository = manager.getRepository(Role);
+      const onboardingTemplateRepository = manager.getRepository(OnboardingTemplate);
+      const onboardingTemplateStepRepository = manager.getRepository(OnboardingTemplateStep);
+      const leaveTypeRepository = manager.getRepository(LeaveType);
+      const leaveBalanceRepository = manager.getRepository(LeaveBalance);
+      const leaveRequestRepository = manager.getRepository(LeaveRequest);
+      const taskRepository = manager.getRepository(Task);
+      const calendarEventRepository = manager.getRepository(CalendarEvent);
+      const participantRepository = manager.getRepository(CalendarEventParticipant);
+      const jobRepository = manager.getRepository(Job);
+      const candidateRepository = manager.getRepository(Candidate);
+      const jobApplicationRepository = manager.getRepository(JobApplication);
+      const onboardingInstanceRepository = manager.getRepository(OnboardingInstance);
+      const onboardingInstanceStepRepository = manager.getRepository(OnboardingInstanceStep);
+      const salaryRepository = manager.getRepository(Salary);
+      const bonusRepository = manager.getRepository(Bonus);
+      const payrollPeriodRepository = manager.getRepository(PayrollPeriod);
+      const payrollRecordRepository = manager.getRepository(PayrollRecord);
 
       const now = new Date();
       const subscriptionExpiresAt = this._addDays(now, companyData.subscriptionExpiresInDays);
@@ -88,6 +135,32 @@ export class SeedService implements OnModuleInit {
         }),
       );
       this.logger.log(`✅ Created company: ${company.name}`);
+
+      // --- ONBOARDING TEMPLATES SEEDING ---
+      const onboardingTemplatesMap = new Map<string, OnboardingTemplate>();
+      for (const templateData of onboardingTemplatesData) {
+        const template = await onboardingTemplateRepository.save(
+          onboardingTemplateRepository.create({
+            name: templateData.name,
+            description: templateData.description,
+            companyId: company.id,
+          }),
+        );
+
+        const steps = [];
+        for (const stepData of templateData.steps) {
+          const step = await onboardingTemplateStepRepository.save(
+            onboardingTemplateStepRepository.create({
+              ...stepData,
+              templateId: template.id,
+            }),
+          );
+          steps.push(step);
+        }
+        template.steps = steps;
+        onboardingTemplatesMap.set(template.name, template);
+      }
+      this.logger.log(`✅ Created ${onboardingTemplatesData.length} onboarding templates`);
 
       const departmentsByKey = new Map<string, Department>();
       for (const departmentData of departmentsData) {
@@ -264,6 +337,20 @@ export class SeedService implements OnModuleInit {
       }
       this.logger.log(`✅ Created ${usersByKey.size} users`);
 
+      // --- USER MANAGERS HIERARCHY SEEDING ---
+      for (const userData of usersData) {
+        if (userData.managerKey) {
+          const user = usersByKey.get(userData.key);
+          const manager = usersByKey.get(userData.managerKey);
+          if (user && manager) {
+            user.manager = manager;
+            user.managerId = manager.id;
+            await userRepository.save(user);
+          }
+        }
+      }
+      this.logger.log('✅ Updated user managers hierarchy');
+
       for (const departmentData of departmentsData) {
         const department = this._getFromMap(departmentsByKey, departmentData.key, 'department');
         const parentDepartment = departmentData.parentDepartmentKey
@@ -280,6 +367,352 @@ export class SeedService implements OnModuleInit {
         await departmentRepository.save(department);
       }
       this.logger.log('✅ Updated department managers and hierarchy');
+
+      // --- LEAVE TYPES SEEDING ---
+      const leaveTypesMap = new Map<string, LeaveType>();
+      for (const ltData of leaveTypesData) {
+        const leaveType = await leaveTypeRepository.save(
+          leaveTypeRepository.create({
+            ...ltData,
+            company,
+          }),
+        );
+        leaveTypesMap.set(ltData.code, leaveType);
+      }
+      this.logger.log(`✅ Created ${leaveTypesMap.size} leave types`);
+
+      // --- LEAVE BALANCES SEEDING ---
+      for (const user of usersByKey.values()) {
+        for (const leaveType of leaveTypesMap.values()) {
+          if (leaveType.requiresBalance) {
+            await leaveBalanceRepository.save(
+              leaveBalanceRepository.create({
+                employee: user,
+                leaveType: leaveType,
+                totalDays: leaveType.defaultDays,
+                usedDays: 0,
+                remainingDays: leaveType.defaultDays,
+              }),
+            );
+          }
+        }
+      }
+      this.logger.log('✅ Created leave balances for all users');
+
+      // --- LEAVE REQUESTS SEEDING ---
+      for (const lrData of leaveRequestsSeedData) {
+        const user = usersByKey.get(lrData.userKey);
+        const leaveType = leaveTypesMap.get(lrData.leaveTypeCode);
+        if (user && leaveType) {
+          const startDate = this._addDays(now, lrData.startDateOffset);
+          const endDate = this._addDays(now, lrData.endDateOffset);
+
+          await leaveRequestRepository.save(
+            leaveRequestRepository.create({
+              employee: user,
+              leaveType: leaveType,
+              company: company,
+              startDate,
+              endDate,
+              totalDays: this._calculateDays(startDate, endDate),
+              status: lrData.status,
+              reason: lrData.reason,
+              approvedAt: lrData.status === LeaveStatus.APPROVED ? now : null,
+            }),
+          );
+        }
+      }
+      this.logger.log(`✅ Created ${leaveRequestsSeedData.length} leave requests`);
+
+      // --- TASKS SEEDING ---
+      const engineeringDept = departmentsByKey.get('engineering');
+      if (engineeringDept) {
+        const defaultCreator = usersByKey.get('eng-lead') || Array.from(usersByKey.values())[0];
+
+        if (defaultCreator) {
+          for (let i = 0; i < tasksData.length; i++) {
+            const tData = tasksData[i];
+            const assignee = tData.assigneeKey ? usersByKey.get(tData.assigneeKey) || null : null;
+
+            await taskRepository.save(
+              taskRepository.create({
+                ...tData,
+                key: `ENG-${i + 1}`,
+                company: company,
+                department: engineeringDept,
+                creator: defaultCreator,
+                assignee: assignee,
+                order: i,
+              }),
+            );
+          }
+          this.logger.log(`✅ Created ${tasksData.length} tasks for Engineering`);
+        }
+      }
+
+      // --- CALENDAR EVENTS SEEDING ---
+      for (const ceData of calendarEventsData) {
+        const organizer = usersByKey.get(ceData.userKeys[0]) || Array.from(usersByKey.values())[0];
+        if (organizer) {
+          const startTime = new Date(now);
+          startTime.setDate(startTime.getDate() + ceData.dayOffset);
+          startTime.setHours(ceData.startHour, 0, 0, 0);
+
+          const endTime = new Date(startTime);
+          endTime.setMinutes(endTime.getMinutes() + ceData.durationMinutes);
+
+          const event = await calendarEventRepository.save(
+            calendarEventRepository.create({
+              title: ceData.title,
+              description: ceData.description,
+              type: ceData.type,
+              startTime,
+              endTime,
+              company,
+              organizer,
+              attendees: ceData.userKeys.length,
+            }),
+          );
+
+          for (const userKey of ceData.userKeys) {
+            const user = usersByKey.get(userKey);
+            if (user) {
+              await participantRepository.save(
+                participantRepository.create({
+                  event,
+                  user,
+                  status: ParticipantStatus.ACCEPTED,
+                }),
+              );
+            }
+          }
+        }
+      }
+      this.logger.log(`✅ Created ${calendarEventsData.length} calendar events`);
+
+      // --- RECRUITMENT SEEDING ---
+      const engineeringPosition =
+        positionsByKey.get('be-engineer') || Array.from(positionsByKey.values())[0];
+      const adminUser = Array.from(usersByKey.values())[0];
+
+      for (const vData of recruitmentData.vacancies) {
+        const dept = departmentsByKey.get(vData.departmentKey);
+        const job = await jobRepository.save(
+          jobRepository.create({
+            title: vData.title,
+            description: vData.description,
+            status: vData.status,
+            type: vData.type,
+            company,
+            department: dept,
+            creator: adminUser,
+          }),
+        );
+
+        for (let i = 0; i < vData.applications.length; i++) {
+          const appData = vData.applications[i];
+          const [firstName, ...lastNameParts] = appData.name.split(' ');
+          const lastName = lastNameParts.join(' ');
+
+          const candidate = await candidateRepository.save(
+            candidateRepository.create({
+              firstName,
+              lastName,
+              email: appData.email,
+              company,
+            }),
+          );
+
+          await jobApplicationRepository.save(
+            jobApplicationRepository.create({
+              job,
+              candidate,
+              stage: appData.stage,
+              order: i,
+            }),
+          );
+
+          // If hired, create User and Onboarding
+          if (appData.stage === ApplicationStage.HIRED) {
+            const hiredUser = await userRepository.save(
+              userRepository.create({
+                firstName,
+                lastName,
+                email: appData.email,
+                status: UserStatus.ACTIVE,
+                company,
+                department: dept,
+                position: engineeringPosition,
+                hireDate: now,
+                roles: [rolesMap.get(UserRole.EMPLOYEE)!],
+                security: {
+                  password: hashedPassword,
+                  emailVerifiedAt: now,
+                },
+                settings: {
+                  language: 'en',
+                  timezone: company.timezone,
+                  theme: 'system',
+                },
+              }),
+            );
+
+            // Create Onboarding Instance
+            const template =
+              onboardingTemplatesMap.get('Software Engineer Onboarding') ||
+              onboardingTemplatesMap.get('Standard Employee Onboarding');
+            if (template) {
+              const instance = await onboardingInstanceRepository.save(
+                onboardingInstanceRepository.create({
+                  employee: hiredUser,
+                  template,
+                  company,
+                  status: OnboardingStatus.IN_PROGRESS,
+                  startedAt: now,
+                }),
+              );
+
+              // Partially complete steps (e.g., first 2-3 steps)
+              const stepsToComplete = Math.floor(Math.random() * 2) + 2; // 2 or 3
+              for (let j = 0; j < template.steps.length; j++) {
+                const tStep = template.steps[j];
+                const isCompleted = j < stepsToComplete;
+
+                await onboardingInstanceStepRepository.save(
+                  onboardingInstanceStepRepository.create({
+                    instance,
+                    templateStep: tStep,
+                    status: isCompleted ? OnboardingStatus.COMPLETED : OnboardingStatus.PENDING,
+                    completedAt: isCompleted ? now : null,
+                  }),
+                );
+              }
+
+              // Update progress
+              instance.progress = Math.round((stepsToComplete / template.steps.length) * 100);
+              await onboardingInstanceRepository.save(instance);
+            }
+          }
+        }
+      }
+      this.logger.log(`✅ Created recruitment data and onboarding instances`);
+
+      // --- PAYROLL SEEDING ---
+      // Salaries
+      for (const sData of salariesData) {
+        const user = usersByKey.get(sData.userKey);
+        if (user) {
+          await salaryRepository.save(
+            salaryRepository.create({
+              user,
+              company,
+              amount: sData.amount,
+              currency: sData.currency,
+              payFrequency: sData.payFrequency,
+              effectiveDate: user.hireDate,
+            }),
+          );
+        }
+      }
+      this.logger.log(`✅ Created ${salariesData.length} salaries`);
+
+      // Bonuses
+      const savedBonusesByEntry = new Map<any, Bonus>();
+      for (const bData of bonusesData) {
+        const user = usersByKey.get(bData.userKey);
+        if (user) {
+          const bonus = await bonusRepository.save(
+            bonusRepository.create({
+              user,
+              company,
+              amount: bData.amount,
+              currency: 'USD',
+              type: bData.type,
+              reason: bData.reason,
+              status: bData.status,
+              date: this._addDays(now, bData.dateOffset),
+            }),
+          );
+          savedBonusesByEntry.set(bData, bonus);
+        }
+      }
+      this.logger.log(`✅ Created ${bonusesData.length} bonuses`);
+
+      // Payroll Periods and Records
+      for (const ppData of payrollPeriodsData) {
+        const period = await payrollPeriodRepository.save(
+          payrollPeriodRepository.create({
+            company,
+            name: ppData.name,
+            startDate: new Date(ppData.startDate),
+            endDate: new Date(ppData.endDate),
+            status: ppData.status,
+            currency: 'USD',
+          }),
+        );
+
+        // If OPEN or PAID, create records for Engineering department
+        if (
+          ppData.status === PayrollPeriodStatus.OPEN ||
+          ppData.status === PayrollPeriodStatus.PAID
+        ) {
+          let periodTotal = 0;
+          for (const sData of salariesData) {
+            const user = usersByKey.get(sData.userKey);
+            const userData = usersData.find((u) => u.key === sData.userKey);
+
+            // Only for engineering for now as per request
+            if (user && userData?.departmentKey === 'engineering') {
+              const baseSalary = Number(sData.amount);
+
+              // Get approved bonuses for this user that fall within the period
+              const periodStartDate = new Date(ppData.startDate);
+              const periodEndDate = new Date(ppData.endDate);
+
+              const relevantBonuses = bonusesData.filter((bData) => {
+                const bonusDate = this._addDays(now, bData.dateOffset);
+                return (
+                  bData.userKey === sData.userKey &&
+                  bData.status === BonusStatus.APPROVED &&
+                  bonusDate >= periodStartDate &&
+                  bonusDate <= periodEndDate
+                );
+              });
+
+              const bonusesAmount = relevantBonuses.reduce((sum, b) => sum + Number(b.amount), 0);
+              const totalNet = baseSalary + bonusesAmount;
+              periodTotal += totalNet;
+
+              const record = await payrollRecordRepository.save(
+                payrollRecordRepository.create({
+                  payrollPeriod: period,
+                  user,
+                  baseSalary,
+                  bonusesAmount,
+                  totalNet,
+                  currency: 'USD',
+                  status:
+                    ppData.status === PayrollPeriodStatus.PAID
+                      ? PayrollRecordStatus.PAID
+                      : PayrollRecordStatus.PENDING,
+                }),
+              );
+
+              // Link bonuses to this record
+              for (const bData of relevantBonuses) {
+                const savedBonus = savedBonusesByEntry.get(bData);
+                if (savedBonus) {
+                  savedBonus.payrollRecordId = record.id;
+                  await bonusRepository.save(savedBonus);
+                }
+              }
+            }
+          }
+          period.totalAmount = periodTotal;
+          await payrollPeriodRepository.save(period);
+        }
+      }
+      this.logger.log(`✅ Created ${payrollPeriodsData.length} payroll periods and records`);
     });
 
     this.logger.log('Database seed completed');
@@ -318,5 +751,11 @@ export class SeedService implements OnModuleInit {
     const date = new Date(baseDate);
     date.setDate(date.getDate() + offset);
     return date;
+  }
+
+  private _calculateDays(start: Date, end: Date): number {
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
   }
 }

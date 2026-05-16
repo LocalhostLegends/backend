@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { PolicyRule } from '../interfaces/policy-rule.interface';
-import { PolicyResult, PermissionResource } from '../permissions.service';
+import { PolicyResult, PermissionResource, getSafeProperty } from '../types/permissions.types';
 import { ExceptionCode } from '@common/exceptions/exception-codes';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { ResourceHelper } from '../utils/resource-helper.service';
@@ -45,9 +45,11 @@ export class CompanyBoundaryRule implements PolicyRule {
         this.actionErrorMap[action as PermissionAction] ||
         ExceptionCode.AUTH_FORBIDDEN_NON_OWNERSHIP;
 
+      const resourceId = getSafeProperty<string | number>(resource, 'id');
+
       return {
         effect: 'DENY',
-        reason: { code, params: [resource.id || 'new', user.companyId] },
+        reason: { code, params: [String(resourceId || 'new'), user.companyId] },
       };
     }
 

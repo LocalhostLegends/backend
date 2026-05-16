@@ -9,4 +9,11 @@ export class AccessTokenResponseDto {
 
   @ApiProperty({ type: UserResponseDto })
   user: UserResponseDto;
+
+  @ApiProperty({
+    description: 'Whether the session is long-lived',
+    example: true,
+    required: false,
+  })
+  rememberMe?: boolean;
 }

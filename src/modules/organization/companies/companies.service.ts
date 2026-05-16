@@ -9,10 +9,15 @@ import { PermissionAction } from '@common/enums/permission-action.enum';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { PermissionsService } from '@modules/permissions/permissions.service';
 import { ExceptionFactory } from '@common/exceptions/exception-factory';
+import { CustomFieldsService } from '@modules/custom-fields/custom-fields.service';
+import { EntityType } from '@common/enums/entity-type.enum';
+import { CustomFieldsMap } from '@modules/custom-fields/custom-fields.types';
 
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { Address } from '@/database/entities/address.entity';
+
+export type CompanyWithCustomFields = Company & { customFields: CustomFieldsMap };
 
 @Injectable()
 export class CompaniesService {
@@ -20,9 +25,13 @@ export class CompaniesService {
     @InjectRepository(Company)
     private readonly _companyRepository: Repository<Company>,
     private readonly _permissions: PermissionsService,
+    private readonly _customFieldsService: CustomFieldsService,
   ) {}
 
-  async create(createCompanyDto: CreateCompanyDto, currentUser?: AuthorizedUser): Promise<Company> {
+  async create(
+    createCompanyDto: CreateCompanyDto,
+    currentUser?: AuthorizedUser,
+  ): Promise<CompanyWithCustomFields> {
     if (currentUser) {
       await this._permissions.assertCan(currentUser, PermissionAction.COMPANY_UPDATE);
     }
@@ -74,21 +83,46 @@ export class CompaniesService {
           : [],
     } as DeepPartial<Company>);
 
-    return this._companyRepository.save(company);
+    const saved = await this._companyRepository.save(company);
+    return this.findById(saved.id, currentUser);
   }
 
-  async findAll(currentUser?: AuthorizedUser): Promise<Company[]> {
+  async findAll(currentUser?: AuthorizedUser): Promise<CompanyWithCustomFields[]> {
     if (currentUser) {
       await this._permissions.assertCan(currentUser, PermissionAction.COMPANY_READ);
     }
 
-    return this._companyRepository.find({
+    const companies = await this._companyRepository.find({
       relations: ['users', 'departments', 'positions', 'profile', 'addresses'],
       order: { createdAt: 'DESC' },
     });
+
+    if (companies.length === 0) return [];
+
+    const companyIds = companies.map((c) => c.id);
+    const allCustomFields = await this._customFieldsService.getValuesForMultipleEntities(
+      currentUser?.companyId || companies[0].id,
+      EntityType.COMPANY,
+      companyIds,
+    );
+
+    const customFieldsMap = new Map<string, CustomFieldsMap>();
+    allCustomFields.forEach((cf) => {
+      let entry = customFieldsMap.get(cf.entityId);
+      if (!entry) {
+        entry = {};
+        customFieldsMap.set(cf.entityId, entry);
+      }
+      entry[cf.fieldKey] = cf.value;
+    });
+
+    return companies.map((c) => ({
+      ...c,
+      customFields: customFieldsMap.get(c.id) || {},
+    }));
   }
 
-  async findById(id: string, currentUser?: AuthorizedUser): Promise<Company> {
+  async findById(id: string, currentUser?: AuthorizedUser): Promise<CompanyWithCustomFields> {
     const company = await this._companyRepository.findOne({
       where: { id },
       relations: ['users', 'departments', 'positions', 'profile', 'addresses'],
@@ -102,7 +136,16 @@ export class CompaniesService {
       await this._permissions.assertCan(currentUser, PermissionAction.COMPANY_READ, company);
     }
 
-    return company;
+    const customFields = await this._customFieldsService.getValues(
+      id, // For Company entity, its own id is the owner of definitions too (mostly)
+      EntityType.COMPANY,
+      id,
+    );
+
+    return {
+      ...company,
+      customFields,
+    };
   }
 
   async findBySubdomain(subdomain: string): Promise<Company | null> {
@@ -116,7 +159,7 @@ export class CompaniesService {
     id: string,
     updateCompanyDto: UpdateCompanyDto,
     currentUser?: AuthorizedUser,
-  ): Promise<Company> {
+  ): Promise<CompanyWithCustomFields> {
     const company = await this.findById(id, currentUser);
 
     if (currentUser) {
@@ -141,6 +184,7 @@ export class CompaniesService {
       phone,
       email,
       website,
+      customFields,
       ...companyData
     } = updateCompanyDto;
 
@@ -160,7 +204,7 @@ export class CompaniesService {
     if (email !== undefined) company.profile.email = email;
     if (website !== undefined) company.profile.website = website;
 
-    // Update address (assume primary/legal address for simplicity in this DTO)
+    // Update address
     if (
       country !== undefined ||
       city !== undefined ||
@@ -189,7 +233,13 @@ export class CompaniesService {
       }
     }
 
-    return this._companyRepository.save(company);
+    const saved = await this._companyRepository.save(company);
+
+    if (customFields !== undefined) {
+      await this._customFieldsService.setValues(id, EntityType.COMPANY, id, customFields);
+    }
+
+    return this.findById(saved.id, currentUser);
   }
 
   async remove(id: string, currentUser?: AuthorizedUser): Promise<void> {
@@ -225,7 +275,7 @@ export class CompaniesService {
     plan: string,
     expiresAt: Date,
     currentUser?: AuthorizedUser,
-  ): Promise<Company> {
+  ): Promise<CompanyWithCustomFields> {
     const company = await this.findById(id, currentUser);
 
     if (currentUser) {
@@ -234,7 +284,8 @@ export class CompaniesService {
 
     company.subscriptionPlan = plan;
     company.subscriptionExpiresAt = expiresAt;
-    return this._companyRepository.save(company);
+    const saved = await this._companyRepository.save(company);
+    return this.findById(saved.id, currentUser);
   }
 
   async getCompanyStats(

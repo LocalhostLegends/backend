@@ -26,12 +26,16 @@ import { PermissionsService } from '@modules/permissions/permissions.service';
 import { UsersService } from './users.service';
 import { AuthorizedUser } from './users.types';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CustomFieldsService } from '@modules/custom-fields/custom-fields.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('UsersService', () => {
   let service: UsersService;
   let usersRepo: jest.Mocked<Repository<User>>;
   let tokenService: jest.Mocked<TokenService>;
   let permissionsService: jest.Mocked<PermissionsService>;
+  let customFieldsService: jest.Mocked<CustomFieldsService>;
+  let eventEmitter: jest.Mocked<EventEmitter2>;
 
   const mockUser = {
     id: 'user-id',
@@ -60,8 +64,17 @@ describe('UsersService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [],
       providers: [
         UsersService,
+        {
+          provide: CustomFieldsService,
+          useValue: {
+            setValues: jest.fn(),
+            getValues: jest.fn(),
+            getValuesForMultipleEntities: jest.fn(),
+          },
+        },
         {
           provide: getRepositoryToken(User),
           useValue: {
@@ -102,6 +115,12 @@ describe('UsersService', () => {
             assertCan: jest.fn().mockResolvedValue(undefined),
           },
         },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -109,6 +128,8 @@ describe('UsersService', () => {
     usersRepo = module.get(getRepositoryToken(User));
     tokenService = module.get(TokenService);
     permissionsService = module.get(PermissionsService);
+    customFieldsService = module.get(CustomFieldsService);
+    eventEmitter = module.get(EventEmitter2);
   });
 
   describe('Permissions Version Cache', () => {
@@ -181,6 +202,63 @@ describe('UsersService', () => {
       await service.update(mockUser.id, updateDto, hrUser);
 
       expect(tokenService.revokeUserTokens).not.toHaveBeenCalled();
+      expect(usersRepo.save).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequest if user is assigned as their own manager', async () => {
+      const updateDto: UpdateUserDto = { managerId: mockUser.id };
+      usersRepo.findOne.mockResolvedValueOnce(mockUser);
+
+      await expect(service.update(mockUser.id, updateDto, adminUser)).rejects.toThrow(
+        ExceptionFactory.userCannotBeOwnManager(),
+      );
+    });
+
+    it('should update manager for a user', async () => {
+      const managerId = 'manager-id';
+      const updateDto: UpdateUserDto = { managerId };
+      const managerUser = {
+        id: managerId,
+        company: { id: 'company-id' },
+      } as User;
+
+      usersRepo.findOne.mockResolvedValueOnce(mockUser); // user to update
+      usersRepo.findOne.mockResolvedValueOnce(managerUser); // manager lookup in findById
+      usersRepo.merge.mockReturnValue({ ...mockUser, managerId, manager: managerUser } as User);
+      usersRepo.save.mockResolvedValue({ ...mockUser, managerId, manager: managerUser } as User);
+      usersRepo.findOne.mockResolvedValueOnce({
+        ...mockUser,
+        managerId,
+        manager: managerUser,
+      } as User); // final response lookup
+
+      await service.update(mockUser.id, updateDto, adminUser);
+
+      expect(usersRepo.merge).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ manager: managerUser }),
+      );
+      expect(usersRepo.save).toHaveBeenCalled();
+    });
+
+    it('should allow clearing manager by sending null', async () => {
+      const updateDto: UpdateUserDto = { managerId: null };
+
+      usersRepo.findOne.mockResolvedValueOnce(mockUser);
+      usersRepo.merge.mockReturnValue({ ...mockUser, managerId: null, manager: null } as User);
+      usersRepo.save.mockResolvedValue({ ...mockUser, managerId: null, manager: null } as User);
+      usersRepo.findOne.mockResolvedValueOnce({
+        ...mockUser,
+        managerId: null,
+        manager: null,
+      } as User);
+
+      await service.update(mockUser.id, updateDto, adminUser);
+
+      expect(usersRepo.merge).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ manager: null, managerId: null }),
+      );
       expect(usersRepo.save).toHaveBeenCalled();
     });
   });

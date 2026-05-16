@@ -13,6 +13,7 @@ import { UserFields } from '@modules/core/users/swagger/user.fields';
 import { CompanyFields } from '@modules/organization/companies/swagger/company.fields';
 import { DepartmentFields } from '@modules/organization/departments/swagger/department.fields';
 import { PositionFields } from '@modules/organization/positions/swagger/position.fields';
+import { CustomFieldValueType } from '@modules/custom-fields/custom-fields.types';
 
 export class CreateUserDto {
   @ApiProperty(UserFields.firstName)
@@ -71,4 +72,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsBoolean()
   sendInvitation?: boolean = true;
+
+  @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
+  @IsOptional()
+  customFields?: Record<string, CustomFieldValueType>;
 }

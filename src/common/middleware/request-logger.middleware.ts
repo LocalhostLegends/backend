@@ -1,17 +1,38 @@
-import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
-import { NextFunction, Request, Response } from 'express';
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { NextFunction, Response } from 'express';
+
+import { logger } from '@common/logger/pino.config';
+
+import { AppRequest } from '../types/common.types';
 
 @Injectable()
 export class RequestLoggerMiddleware implements NestMiddleware {
-  private readonly logger = new Logger('HTTP');
-
-  use(req: Request, res: Response, next: NextFunction) {
+  use(req: AppRequest, res: Response, next: NextFunction) {
     const start = Date.now();
     const { method, originalUrl } = req;
 
+    logger.info({
+      message: 'HTTP request started',
+      method,
+      path: originalUrl,
+      requestId: req.context?.requestId,
+      ip: req.context?.ip,
+      userAgent: req.context?.userAgent,
+    });
+
     res.on('finish', () => {
-      const duration = Date.now() - start;
-      this.logger.log(`${method} ${originalUrl} ${res.statusCode} - ${duration}ms`);
+      const durationMs = Date.now() - start;
+
+      logger.info({
+        message: 'HTTP request completed',
+        method,
+        path: originalUrl,
+        statusCode: res.statusCode,
+        durationMs,
+        requestId: req.context?.requestId,
+        ip: req.context?.ip,
+        userAgent: req.context?.userAgent,
+      });
     });
 
     next();

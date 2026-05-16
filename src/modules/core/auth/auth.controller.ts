@@ -28,12 +28,17 @@ export class AuthController {
   @swagger.ApiRegisterCompany()
   async registerCompany(
     @Body() registerDto: RegisterCompanyDto,
+    @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AccessTokenResponseDto> {
-    const { accessToken, refreshToken, user } =
-      await this._authService.registerCompany(registerDto);
-    this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken, user };
+    const {
+      accessToken,
+      refreshToken,
+      user,
+      rememberMe = false,
+    } = await this._authService.registerCompany(registerDto, req.context);
+    this._setRefreshTokenCookie(res, refreshToken, rememberMe);
+    return { accessToken, user, rememberMe };
   }
 
   @Public()
@@ -46,12 +51,14 @@ export class AuthController {
     @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AccessTokenResponseDto> {
-    const { accessToken, refreshToken, user } = await this._authService.login(
-      loginDto,
-      req.context,
-    );
-    this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken, user };
+    const {
+      accessToken,
+      refreshToken,
+      user,
+      rememberMe = false,
+    } = await this._authService.login(loginDto, req.context);
+    this._setRefreshTokenCookie(res, refreshToken, rememberMe);
+    return { accessToken, user, rememberMe };
   }
 
   @Public()
@@ -77,11 +84,17 @@ export class AuthController {
   @swagger.ApiRefreshToken()
   async refresh(
     @CurrentUser() user: AuthorizedUser,
+    @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AccessTokenResponseDto> {
-    const { accessToken, refreshToken, user: userData } = await this._authService.refresh(user.id);
-    this._setRefreshTokenCookie(res, refreshToken);
-    return { accessToken, user: userData };
+    const {
+      accessToken,
+      refreshToken,
+      user: userData,
+      rememberMe = false,
+    } = await this._authService.refresh(user.id, user.rememberMe, req.context);
+    this._setRefreshTokenCookie(res, refreshToken, rememberMe);
+    return { accessToken, user: userData, rememberMe };
   }
 
   @Post('logout')
@@ -98,8 +111,8 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 
-  private _setRefreshTokenCookie(res: Response, token: string): void {
-    const maxAge = 30 * 24 * 60 * 60 * 1000;
+  private _setRefreshTokenCookie(res: Response, token: string, rememberMe: boolean = false): void {
+    const maxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : undefined;
 
     res.cookie('refresh_token', token, {
       httpOnly: true,

@@ -8,6 +8,25 @@ import { DepartmentResponseDto } from '@modules/organization/departments/dto/dep
 import { PositionResponseDto } from '@modules/organization/positions/dto/position-response.dto';
 import { CompanyResponseDto } from '@modules/organization/companies/dto/company-response.dto';
 import { UserFields } from '@modules/core/users/swagger/user.fields';
+import { CustomFieldValueType } from '@modules/custom-fields/custom-fields.types';
+
+export class UserManagerResponseDto {
+  @Expose()
+  @ApiProperty(UserFields.id)
+  id: string;
+
+  @Expose()
+  @ApiProperty(UserFields.firstName)
+  firstName: string;
+
+  @Expose()
+  @ApiProperty(UserFields.lastName)
+  lastName: string;
+
+  @Expose()
+  @ApiPropertyOptional(UserFields.avatar)
+  avatar: string | null;
+}
 
 export class UserResponseDto {
   @Expose()
@@ -64,6 +83,15 @@ export class UserResponseDto {
   }
 
   @Expose()
+  @ApiPropertyOptional({ description: 'Manager details', type: UserManagerResponseDto })
+  @Type(() => UserManagerResponseDto)
+  manager: UserManagerResponseDto | null;
+
+  @Expose()
+  @ApiPropertyOptional({ description: 'Manager ID', format: 'uuid' })
+  managerId: string | null;
+
+  @Expose()
   @ApiProperty({ description: 'User permissions', isArray: true, type: String })
   permissions: string[];
 
@@ -80,8 +108,12 @@ export class UserResponseDto {
   hireDate: Date;
 
   @Expose()
-  @ApiPropertyOptional(UserFields.fullName)
+  @ApiPropertyOptional({ description: 'User fullName' })
   get fullName(): string {
     return `${this.firstName} ${this.lastName}`;
   }
+
+  @Expose()
+  @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
+  customFields?: Record<string, CustomFieldValueType>;
 }

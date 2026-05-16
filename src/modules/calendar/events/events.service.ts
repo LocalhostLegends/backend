@@ -1,13 +1,22 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Brackets } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+
 import { CalendarEvent } from '@database/entities/calendar-event.entity';
 import { CalendarEventParticipant } from '@database/entities/calendar-event-participant.entity';
 import { AuthorizedUser } from '@modules/core/users/users.types';
 import { ParticipantStatus } from '@common/enums/participant-status.enum';
+import { CustomFieldsService } from '@modules/custom-fields/custom-fields.service';
+import { EntityType } from '@common/enums/entity-type.enum';
+import { CustomFieldsMap } from '@modules/custom-fields/custom-fields.types';
+import { CalendarEventInvitedEvent } from '@modules/notifications/events/notification.events';
+
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { QueryEventDto } from './dto/query-event.dto';
+
+export type CalendarEventWithCustomFields = CalendarEvent & { customFields: CustomFieldsMap };
 
 @Injectable()
 export class EventsService {
@@ -16,9 +25,14 @@ export class EventsService {
     private readonly _eventsRepository: Repository<CalendarEvent>,
     @InjectRepository(CalendarEventParticipant)
     private readonly _participantsRepository: Repository<CalendarEventParticipant>,
+    private readonly _customFieldsService: CustomFieldsService,
+    private readonly _eventBus: EventEmitter2,
   ) {}
 
-  async findAll(query: QueryEventDto, user: AuthorizedUser): Promise<CalendarEvent[]> {
+  async findAll(
+    query: QueryEventDto,
+    user: AuthorizedUser,
+  ): Promise<CalendarEventWithCustomFields[]> {
     const { startDate, endDate } = query;
 
     const qb = this._eventsRepository
@@ -28,7 +42,6 @@ export class EventsService {
       .leftJoinAndSelect('event.organizer', 'organizer')
       .where('event.companyId = :companyId', { companyId: user.companyId });
 
-    // User must be either organizer or participant
     qb.andWhere(
       new Brackets((innerQb) => {
         innerQb
@@ -46,10 +59,34 @@ export class EventsService {
 
     qb.orderBy('event.startTime', 'ASC');
 
-    return qb.getMany();
+    const events = await qb.getMany();
+
+    if (events.length === 0) return [];
+
+    const eventIds = events.map((e) => e.id);
+    const allCustomFields = await this._customFieldsService.getValuesForMultipleEntities(
+      user.companyId,
+      EntityType.CALENDAR_EVENT,
+      eventIds,
+    );
+
+    const customFieldsMap = new Map<string, CustomFieldsMap>();
+    allCustomFields.forEach((cf) => {
+      let entry = customFieldsMap.get(cf.entityId);
+      if (!entry) {
+        entry = {};
+        customFieldsMap.set(cf.entityId, entry);
+      }
+      entry[cf.fieldKey] = cf.value;
+    });
+
+    return events.map((e) => ({
+      ...e,
+      customFields: customFieldsMap.get(e.id) || {},
+    }));
   }
 
-  async findOne(id: string, user: AuthorizedUser): Promise<CalendarEvent> {
+  async findOne(id: string, user: AuthorizedUser): Promise<CalendarEventWithCustomFields> {
     const qb = this._eventsRepository
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.participants', 'participant')
@@ -64,7 +101,6 @@ export class EventsService {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
 
-    // Check if user is organizer or participant
     const isOrganizer = event.organizerId === user.id;
     const isParticipant = event.participants.some((p) => p.userId === user.id);
 
@@ -72,11 +108,20 @@ export class EventsService {
       throw new ForbiddenException('You do not have access to this event');
     }
 
-    return event;
+    const customFields = await this._customFieldsService.getValues(
+      user.companyId,
+      EntityType.CALENDAR_EVENT,
+      event.id,
+    );
+
+    return {
+      ...event,
+      customFields,
+    };
   }
 
-  async create(dto: CreateEventDto, user: AuthorizedUser): Promise<CalendarEvent> {
-    const { participantIds, ...eventData } = dto;
+  async create(dto: CreateEventDto, user: AuthorizedUser): Promise<CalendarEventWithCustomFields> {
+    const { participantIds, customFields, ...eventData } = dto;
 
     const event = this._eventsRepository.create({
       ...eventData,
@@ -88,10 +133,17 @@ export class EventsService {
 
     const savedEvent = await this._eventsRepository.save(event);
 
-    // Add participants
+    if (customFields) {
+      await this._customFieldsService.setValues(
+        user.companyId,
+        EntityType.CALENDAR_EVENT,
+        savedEvent.id,
+        customFields,
+      );
+    }
+
     const participants: Partial<CalendarEventParticipant>[] = [];
 
-    // Organizer is always a participant with ACCEPTED status
     participants.push({
       eventId: savedEvent.id,
       userId: user.id,
@@ -99,7 +151,6 @@ export class EventsService {
     });
 
     if (participantIds && participantIds.length > 0) {
-      // Filter out organizer if they were included in participantIds
       const uniqueParticipantIds = [...new Set(participantIds.filter((id) => id !== user.id))];
 
       uniqueParticipantIds.forEach((pUserId) => {
@@ -113,18 +164,36 @@ export class EventsService {
 
     await this._participantsRepository.save(this._participantsRepository.create(participants));
 
+    // Notifications for participants (excluding organizer)
+    if (participantIds && participantIds.length > 0) {
+      const uniqueParticipantIds = [...new Set(participantIds.filter((id) => id !== user.id))];
+      uniqueParticipantIds.forEach((pUserId) => {
+        this._eventBus.emit(
+          'notification.calendar_invited',
+          new CalendarEventInvitedEvent(pUserId, {
+            eventId: savedEvent.id,
+            eventTitle: savedEvent.title,
+            startTime: savedEvent.startTime,
+          }),
+        );
+      });
+    }
+
     return this.findOne(savedEvent.id, user);
   }
 
-  async update(id: string, dto: UpdateEventDto, user: AuthorizedUser): Promise<CalendarEvent> {
+  async update(
+    id: string,
+    dto: UpdateEventDto,
+    user: AuthorizedUser,
+  ): Promise<CalendarEventWithCustomFields> {
     const event = await this.findOne(id, user);
 
-    // Only organizer can update main event details
     if (event.organizerId !== user.id) {
       throw new ForbiddenException('Only the organizer can update the event');
     }
 
-    const { participantIds, ...updateData } = dto;
+    const { participantIds, customFields, ...updateData } = dto;
 
     Object.assign(event, {
       ...updateData,
@@ -132,14 +201,21 @@ export class EventsService {
       endTime: dto.endTime ? new Date(dto.endTime) : event.endTime,
     });
 
-    await this._eventsRepository.save(event);
+    const saved = await this._eventsRepository.save(event);
+
+    if (customFields !== undefined) {
+      await this._customFieldsService.setValues(
+        user.companyId,
+        EntityType.CALENDAR_EVENT,
+        saved.id,
+        customFields,
+      );
+    }
 
     if (participantIds !== undefined) {
-      // Update participants list
       const currentParticipantIds = event.participants.map((p) => p.userId);
       const newParticipantIds = [...new Set(participantIds.filter((pid) => pid !== user.id))];
 
-      // Remove participants not in new list
       const toRemove = event.participants.filter(
         (p) => p.userId !== user.id && !newParticipantIds.includes(p.userId),
       );
@@ -147,7 +223,6 @@ export class EventsService {
         await this._participantsRepository.remove(toRemove);
       }
 
-      // Add new participants
       const toAdd = newParticipantIds.filter((pid) => !currentParticipantIds.includes(pid));
       if (toAdd.length > 0) {
         const newParticipants = toAdd.map((pid) =>
@@ -158,6 +233,18 @@ export class EventsService {
           }),
         );
         await this._participantsRepository.save(newParticipants);
+
+        // Notify only newly added participants
+        toAdd.forEach((pUserId) => {
+          this._eventBus.emit(
+            'notification.calendar_invited',
+            new CalendarEventInvitedEvent(pUserId, {
+              eventId: event.id,
+              eventTitle: event.title,
+              startTime: event.startTime,
+            }),
+          );
+        });
       }
     }
 
@@ -167,7 +254,6 @@ export class EventsService {
   async remove(id: string, user: AuthorizedUser): Promise<void> {
     const event = await this.findOne(id, user);
 
-    // Only organizer can delete
     if (event.organizerId !== user.id) {
       throw new ForbiddenException('Only the organizer can delete the event');
     }
@@ -189,5 +275,12 @@ export class EventsService {
 
     participant.status = status;
     await this._participantsRepository.save(participant);
+
+    this._eventBus.emit('calendar.event_responded', {
+      eventId: id,
+      userId: user.id,
+      status: status,
+      companyId: user.companyId,
+    });
   }
 }

@@ -2,7 +2,7 @@ import '@common/init/env';
 
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import type { Express, Request, Response } from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -12,6 +12,8 @@ import { swaggerConfig, swaggerOptions } from '@config/swagger.config';
 
 import { AppModule } from './app.module';
 
+const logger = new Logger('Bootstrap');
+
 function setupMiddleware(app: INestApplication) {
   app.use(helmet());
   app.use(cookieParser());
@@ -19,7 +21,7 @@ function setupMiddleware(app: INestApplication) {
 
 function setupCors(app: INestApplication) {
   app.enableCors({
-    origin: config.cors,
+    origin: config.cors.origins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
@@ -100,6 +102,6 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((error: unknown) => {
-  console.error('Failed to start application', error);
+  logger.error('Failed to start application', error instanceof Error ? error.stack : String(error));
   process.exit(1);
 });

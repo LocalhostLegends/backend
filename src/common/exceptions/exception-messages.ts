@@ -13,6 +13,8 @@ export const ExceptionMessages: Record<string, (...args: any[]) => string> = {
   [ExceptionCode.USER_INVITED]: () => 'User account has been invited',
   [ExceptionCode.USER_BLOCKED]: () => 'User account has been blocked',
   [ExceptionCode.USER_DELETED]: () => 'User account has been deleted',
+  [ExceptionCode.USER_CANNOT_BE_OWN_MANAGER]: () => 'User cannot be their own manager',
+  [ExceptionCode.USER_MANAGER_NOT_IN_COMPANY]: () => 'Manager must belong to the same company',
 
   // Departments
   [ExceptionCode.DEPARTMENT_NOT_FOUND]: (id: string) => `Department with id "${id}" not found`,
@@ -67,6 +69,14 @@ export const ExceptionMessages: Record<string, (...args: any[]) => string> = {
 
   // Tasks
   [ExceptionCode.TASK_NOT_FOUND]: (id: string) => `Task with id "${id}" not found`,
+
+  // Leave Management
+  [ExceptionCode.LEAVE_TYPE_NOT_FOUND]: (id: string) => `Leave type with id "${id}" not found`,
+  [ExceptionCode.LEAVE_TYPE_CODE_EXISTS]: (code: string) =>
+    `Leave type with code "${code}" already exists`,
+  [ExceptionCode.LEAVE_REQUEST_NOT_FOUND]: (id: string) =>
+    `Leave request with id "${id}" not found`,
+  [ExceptionCode.LEAVE_BALANCE_INSUFFICIENT]: () => 'Insufficient leave balance',
 
   // Common
   [ExceptionCode.COMMON_REQUIRED_FIELD]: (field: string) => `${field} is required`,

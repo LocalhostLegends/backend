@@ -1,13 +1,20 @@
-import * as departmentDecorators from './departments.decorators';
+import {
+  ApiDepartmentTags,
+  ApiCreateDepartment,
+  ApiFindAllDepartments,
+  ApiFindOneDepartment,
+  ApiUpdateDepartment,
+  ApiRemoveDepartment,
+} from './departments.decorators';
 import { DepartmentFields } from './department.fields';
 
 export const swagger = {
-  ApiTags: departmentDecorators.ApiDepartmentTags,
-  ApiCreate: departmentDecorators.ApiCreateDepartment,
-  ApiFindAll: departmentDecorators.ApiFindAllDepartments,
-  ApiFindOne: departmentDecorators.ApiFindOneDepartment,
-  ApiUpdate: departmentDecorators.ApiUpdateDepartment,
-  ApiRemove: departmentDecorators.ApiRemoveDepartment,
+  ApiTags: ApiDepartmentTags,
+  ApiCreate: ApiCreateDepartment,
+  ApiFindAll: ApiFindAllDepartments,
+  ApiFindOne: ApiFindOneDepartment,
+  ApiUpdate: ApiUpdateDepartment,
+  ApiRemove: ApiRemoveDepartment,
 };
 
 export { DepartmentFields };

@@ -44,6 +44,14 @@ export class ExceptionFactory {
     return new AppException(ExceptionCode.USER_DELETED, HttpStatus.FORBIDDEN);
   }
 
+  static userCannotBeOwnManager() {
+    return new AppException(ExceptionCode.USER_CANNOT_BE_OWN_MANAGER, HttpStatus.BAD_REQUEST);
+  }
+
+  static userManagerNotInCompany() {
+    return new AppException(ExceptionCode.USER_MANAGER_NOT_IN_COMPANY, HttpStatus.FORBIDDEN);
+  }
+
   // Departments
   static departmentNotFound(id: string) {
     return new AppException(ExceptionCode.DEPARTMENT_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
@@ -189,6 +197,23 @@ export class ExceptionFactory {
   // Tasks
   static taskNotFound(id: string) {
     return new AppException(ExceptionCode.TASK_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
+  // Leave Management
+  static leaveTypeNotFound(id: string) {
+    return new AppException(ExceptionCode.LEAVE_TYPE_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
+  static leaveTypeCodeExists(code: string) {
+    return new AppException(ExceptionCode.LEAVE_TYPE_CODE_EXISTS, HttpStatus.CONFLICT, [code]);
+  }
+
+  static leaveRequestNotFound(id: string) {
+    return new AppException(ExceptionCode.LEAVE_REQUEST_NOT_FOUND, HttpStatus.NOT_FOUND, [id]);
+  }
+
+  static leaveBalanceInsufficient() {
+    return new AppException(ExceptionCode.LEAVE_BALANCE_INSUFFICIENT, HttpStatus.BAD_REQUEST);
   }
 
   // Common

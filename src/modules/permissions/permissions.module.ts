@@ -9,6 +9,7 @@ import { DepartmentScopeRule } from './rules/department-scope.rule';
 import { CompanyBoundaryRule } from './rules/company-boundary.rule';
 import { SelfAccessRule } from './rules/self-access.rule';
 import { CalendarRule } from './rules/calendar.rule';
+import { PayrollRule } from './rules/payroll.rule';
 import { ResourceHelper } from './utils/resource-helper.service';
 
 @Global()
@@ -22,6 +23,7 @@ import { ResourceHelper } from './utils/resource-helper.service';
     CompanyBoundaryRule,
     SelfAccessRule,
     CalendarRule,
+    PayrollRule,
     {
       provide: POLICY_RULES,
       useFactory: (
@@ -30,13 +32,15 @@ import { ResourceHelper } from './utils/resource-helper.service';
         boundary: CompanyBoundaryRule,
         self: SelfAccessRule,
         calendar: CalendarRule,
-      ) => [hr, dept, boundary, self, calendar],
+        payroll: PayrollRule,
+      ) => [hr, dept, boundary, self, calendar, payroll],
       inject: [
         HrRestrictionRule,
         DepartmentScopeRule,
         CompanyBoundaryRule,
         SelfAccessRule,
         CalendarRule,
+        PayrollRule,
       ],
     },
   ],

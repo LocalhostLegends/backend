@@ -14,6 +14,7 @@ import {
 import { UserFields } from '@modules/core/users/swagger/user.fields';
 import { DepartmentFields } from '@modules/organization/departments/swagger/department.fields';
 import { PositionFields } from '@modules/organization/positions/swagger/position.fields';
+import { CustomFieldValueType } from '@modules/custom-fields/custom-fields.types';
 
 export class UpdateUserDto {
   @ApiPropertyOptional(UserFields.firstName)
@@ -61,6 +62,11 @@ export class UpdateUserDto {
   @IsUUID()
   positionId?: string | null;
 
+  @ApiPropertyOptional({ description: 'Manager ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  managerId?: string | null;
+
   @ApiPropertyOptional(CommonFields.phone)
   @IsOptional()
   @IsPhone()
@@ -70,4 +76,8 @@ export class UpdateUserDto {
   @IsOptional()
   @IsUrl()
   avatar?: string | null;
+
+  @ApiPropertyOptional({ description: 'Custom fields', type: 'object', additionalProperties: true })
+  @IsOptional()
+  customFields?: Record<string, CustomFieldValueType>;
 }

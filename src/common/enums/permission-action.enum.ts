@@ -61,4 +61,34 @@ export enum PermissionAction {
   TASK_UPDATE = 'task.update',
   TASK_UPDATE_STAGE = 'task.update_stage',
   TASK_DELETE = 'task.delete',
+
+  // Leave Management
+  LEAVE_REQUEST_CREATE = 'leave_request.create',
+  LEAVE_REQUEST_READ = 'leave_request.read',
+  LEAVE_REQUEST_UPDATE = 'leave_request.update',
+  LEAVE_REQUEST_DELETE = 'leave_request.delete',
+  LEAVE_REQUEST_SUBMIT = 'leave_request.submit',
+  LEAVE_REQUEST_APPROVE = 'leave_request.approve',
+  LEAVE_REQUEST_REJECT = 'leave_request.reject',
+  LEAVE_REQUEST_CANCEL = 'leave_request.cancel',
+
+  LEAVE_TYPE_CREATE = 'leave_type.create',
+  LEAVE_TYPE_READ = 'leave_type.read',
+  LEAVE_TYPE_UPDATE = 'leave_type.update',
+  LEAVE_TYPE_DELETE = 'leave_type.delete',
+
+  LEAVE_BALANCE_READ = 'leave_balance.read',
+  LEAVE_BALANCE_READ_ALL = 'leave_balance.read_all',
+
+  // Payroll
+  PAYROLL_READ = 'payroll.read',
+  PAYROLL_READ_SELF = 'payroll.read_self',
+  PAYROLL_MANAGE = 'payroll.manage',
+  PAYROLL_APPROVE = 'payroll.approve',
+  PAYROLL_EXPORT = 'payroll.export',
+
+  // Salary Revision Requests
+  SALARY_REVISION_CREATE = 'salary_revision.create',
+  SALARY_REVISION_READ_SELF = 'salary_revision.read_self',
+  SALARY_REVISION_MANAGE = 'salary_revision.manage',
 }

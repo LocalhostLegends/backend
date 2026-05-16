@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, SelectQueryBuilder, In } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as bcrypt from 'bcryptjs';
 
 import config from '@config/app.config';
@@ -21,6 +22,9 @@ import { PaginatedResult } from '@modules/pagination/pagination.interfaces';
 import { PermissionAction } from '@common/enums/permission-action.enum';
 import { PermissionsService } from '@modules/permissions/permissions.service';
 import { ExceptionFactory } from '@common/exceptions/exception-factory';
+import { EntityType } from '@common/enums/entity-type.enum';
+import { CustomFieldsService } from '@modules/custom-fields/custom-fields.service';
+import { CustomFieldsMap } from '@modules/custom-fields/custom-fields.types';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -55,6 +59,8 @@ export class UsersService {
     private readonly _emailService: EmailService,
     private readonly _tokenService: TokenService,
     private readonly _permissions: PermissionsService,
+    private readonly _customFieldsService: CustomFieldsService,
+    private readonly _eventBus: EventEmitter2,
   ) {}
 
   /**
@@ -178,9 +184,20 @@ export class UsersService {
 
     const savedUser = await this._usersRepository.save(user);
 
+    if (createUserDto.customFields) {
+      await this._customFieldsService.setValues(
+        companyId,
+        EntityType.USER,
+        savedUser.id,
+        createUserDto.customFields,
+      );
+    }
+
     if (createUserDto.sendInvitation && !hasPassword) {
       await this._createAndSendInvitation(savedUser);
     }
+
+    this._eventBus.emit('user.created', savedUser);
 
     return this.findById(savedUser.id);
   }
@@ -222,6 +239,8 @@ export class UsersService {
     const savedUser = await this._usersRepository.save(user);
     await this._createAndSendInvitation(savedUser);
 
+    this._eventBus.emit('user.created', savedUser);
+
     return savedUser;
   }
 
@@ -235,6 +254,7 @@ export class UsersService {
       .leftJoinAndSelect('user.position', 'position')
       .leftJoinAndSelect('user.company', 'company')
       .leftJoinAndSelect('user.roles', 'roles')
+      .leftJoinAndSelect('user.manager', 'manager')
       .where('user.company_id = :companyId', { companyId: currentUser.companyId });
 
     this._userFilterBuilder.buildFilters(queryBuilder, filters);
@@ -254,13 +274,57 @@ export class UsersService {
 
     const result = await this._paginationService.paginate(queryBuilder, page, limit);
 
+    const userIds = result.items.map((user) => user.id);
+    const customFieldsMap = new Map<string, CustomFieldsMap>();
+
+    if (userIds.length > 0) {
+      const allCustomFields = await this._customFieldsService.getValuesForMultipleEntities(
+        currentUser.companyId,
+        EntityType.USER,
+        userIds,
+      );
+
+      allCustomFields.forEach((cf) => {
+        let entry = customFieldsMap.get(cf.entityId);
+        if (!entry) {
+          entry = {};
+          customFieldsMap.set(cf.entityId, entry);
+        }
+        entry[cf.fieldKey] = cf.value;
+      });
+    }
+
+    const userResponses = (await toUserResponse(
+      result.items,
+      this.getUserPermissions.bind(this),
+    )) as UserResponseDto[];
+
+    userResponses.forEach((res) => {
+      res.customFields = customFieldsMap.get(res.id) || {};
+    });
+
     return {
       ...result,
-      items: (await toUserResponse(
-        result.items,
-        this.getUserPermissions.bind(this),
-      )) as UserResponseDto[],
+      items: userResponses,
     };
+  }
+
+  async getExportStream(filters: UserFilterDto, currentUser: AuthorizedUser) {
+    const queryBuilder = this._usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.department', 'department')
+      .leftJoinAndSelect('user.position', 'position')
+      .leftJoinAndSelect('user.company', 'company')
+      .where('user.company_id = :companyId', { companyId: currentUser.companyId });
+
+    this._userFilterBuilder.buildFilters(queryBuilder, filters);
+    this._applyRoleBasedAccess(queryBuilder, currentUser);
+
+    if (!filters.withDeleted) {
+      queryBuilder.andWhere('user.deletedAt IS NULL');
+    }
+
+    return queryBuilder.stream();
   }
 
   async getDirectoryPaginated(
@@ -271,6 +335,7 @@ export class UsersService {
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.department', 'department')
       .leftJoinAndSelect('user.position', 'position')
+      .leftJoinAndSelect('user.manager', 'manager')
       .where('user.company_id = :companyId', { companyId: currentUser.companyId })
       .andWhere('user.status = :status', { status: UserStatus.ACTIVE })
       .andWhere('user.deletedAt IS NULL');
@@ -293,13 +358,26 @@ export class UsersService {
   async findOne(id: string, currentUser: AuthorizedUser): Promise<UserResponseDto> {
     const user = await this.findById(id);
     await this._permissions.assertCan(currentUser, PermissionAction.USER_READ, user);
-    return (await toUserResponse(user, this.getUserPermissions.bind(this))) as UserResponseDto;
+
+    const customFields = await this._customFieldsService.getValues(
+      currentUser.companyId,
+      EntityType.USER,
+      user.id,
+    );
+
+    const response = (await toUserResponse(
+      user,
+      this.getUserPermissions.bind(this),
+    )) as UserResponseDto;
+
+    response.customFields = customFields;
+    return response;
   }
 
   async findById(id: string): Promise<User> {
     const user = await this._usersRepository.findOne({
       where: { id },
-      relations: ['company', 'department', 'position', 'roles', 'security', 'settings'],
+      relations: ['company', 'department', 'position', 'roles', 'security', 'settings', 'manager'],
     });
 
     if (!user) {
@@ -434,9 +512,34 @@ export class UsersService {
           updateData.position = position;
         }
       }
+
+      if (updateUserDto.managerId !== undefined) {
+        if (updateUserDto.managerId === null) {
+          updateData.manager = null;
+          updateData.managerId = null;
+        } else {
+          if (updateUserDto.managerId === id) {
+            throw ExceptionFactory.userCannotBeOwnManager();
+          }
+          const manager = await this.findById(updateUserDto.managerId);
+          if (manager.company.id !== currentUser.companyId) {
+            throw ExceptionFactory.userManagerNotInCompany();
+          }
+          updateData.manager = manager;
+        }
+      }
     }
 
     updateData.updatedBy = currentUser.id;
+
+    if (updateUserDto.customFields !== undefined) {
+      await this._customFieldsService.setValues(
+        currentUser.companyId,
+        EntityType.USER,
+        user.id,
+        updateUserDto.customFields,
+      );
+    }
 
     const updatedUser = this._usersRepository.merge(user, updateData);
     const savedUser = await this._usersRepository.save(updatedUser);
@@ -527,6 +630,8 @@ export class UsersService {
 
     await this._tokenService.revokeToken(token);
 
+    this._eventBus.emit('user.activated', savedUser);
+
     return this.findById(savedUser.id);
   }
 
@@ -572,6 +677,7 @@ export class UsersService {
     const user = await this.findById(userId);
     if (!user.security) {
       user.security = new UserSecurity();
+      user.security.user_id = user.id;
     }
     user.security.lastLoginAt = new Date();
     user.security.lastLoginIp = ipAddress ?? null;

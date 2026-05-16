@@ -9,6 +9,7 @@ import { UserRole } from '@common/enums/user-role.enum';
 import { AuthorizedUser } from '@/modules/core/users/users.types';
 import { UsersService } from '@modules/core/users/users.service';
 import { ExceptionFactory } from '@common/exceptions/exception-factory';
+import { type AppRequest } from '@common/types/common.types';
 
 import { JwtRefreshPayload } from '../auth.types';
 
@@ -25,11 +26,20 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       jwtFromRequest: (req: RequestWithRefreshCookie): string | null =>
         req.cookies?.refresh_token ?? null,
       secretOrKey: config.jwt.refreshSecret,
+      passReqToCallback: true,
     });
   }
 
-  async validate(payload: JwtRefreshPayload): Promise<AuthorizedUser> {
+  async validate(req: AppRequest, payload: JwtRefreshPayload): Promise<AuthorizedUser> {
     try {
+      if (payload.rememberMe) {
+        const currentUa = req.context?.userAgent;
+
+        if (payload.ua && currentUa && payload.ua !== currentUa) {
+          throw ExceptionFactory.unauthorized();
+        }
+      }
+
       const user = await this._usersService.findById(payload.sub);
 
       if (!user) {
@@ -56,6 +66,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         lastName: user.lastName,
         permissions,
         permissionsVersion: user.permissionsVersion,
+        rememberMe: payload.rememberMe,
       };
     } catch {
       throw ExceptionFactory.unauthorized();

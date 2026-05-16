@@ -11,6 +11,8 @@ export type ExceptionParams = {
   [ExceptionCode.USER_INVITED]: [];
   [ExceptionCode.USER_BLOCKED]: [];
   [ExceptionCode.USER_DELETED]: [];
+  [ExceptionCode.USER_CANNOT_BE_OWN_MANAGER]: [];
+  [ExceptionCode.USER_MANAGER_NOT_IN_COMPANY]: [];
 
   // Departments
   [ExceptionCode.DEPARTMENT_NOT_FOUND]: [id: string];
@@ -56,6 +58,12 @@ export type ExceptionParams = {
 
   // Tasks
   [ExceptionCode.TASK_NOT_FOUND]: [id: string];
+
+  // Leave Management
+  [ExceptionCode.LEAVE_TYPE_NOT_FOUND]: [id: string];
+  [ExceptionCode.LEAVE_TYPE_CODE_EXISTS]: [code: string];
+  [ExceptionCode.LEAVE_REQUEST_NOT_FOUND]: [id: string];
+  [ExceptionCode.LEAVE_BALANCE_INSUFFICIENT]: [];
 
   // Common
   [ExceptionCode.COMMON_REQUIRED_FIELD]: [field: string];

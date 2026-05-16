@@ -40,7 +40,7 @@ export class InviteController {
   @Post()
   @UseGuards(UserRolesGuard)
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
-  @swagger.ApiCreateInvite()
+  @swagger.ApiCreate()
   async createInvite(
     @Body() dto: CreateInviteDto,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -50,7 +50,7 @@ export class InviteController {
 
   @Public()
   @Get('validate')
-  @swagger.ApiValidateInvite()
+  @swagger.ApiValidate()
   async validateInvite(@Query() query: ValidateInviteDto): Promise<InviteResponseDto> {
     return toInviteResponse(await this._inviteService.validateInvite(query.token));
   }
@@ -58,7 +58,7 @@ export class InviteController {
   @Public()
   @Post('accept')
   @HttpCode(HttpStatus.OK)
-  @swagger.ApiAcceptInvite()
+  @swagger.ApiAccept()
   async acceptInvite(@Body() body: AcceptInviteDto, @Req() req: Request): Promise<void> {
     await this._inviteService.acceptInvite(
       body.token,
@@ -72,7 +72,7 @@ export class InviteController {
   @Post('resend')
   @UseGuards(UserRolesGuard)
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
-  @swagger.ApiResendInvite()
+  @swagger.ApiResend()
   async resendInvite(
     @Body() dto: ResendInviteDto,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -84,7 +84,7 @@ export class InviteController {
   @UseGuards(UserRolesGuard)
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @swagger.ApiCancelInvite()
+  @swagger.ApiCancel()
   async cancelInvite(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() currentUser: AuthorizedUser,
@@ -95,7 +95,7 @@ export class InviteController {
   @Get()
   @UseGuards(UserRolesGuard)
   @RequireUserRoles(UserRole.ADMIN, UserRole.HR, UserRole.MANAGER)
-  @swagger.ApiGetCompanyInvites()
+  @swagger.ApiGetCompany()
   async getCompanyInvites(
     @Query() filters: InviteFilterDto,
     @CurrentUser() currentUser: AuthorizedUser,
