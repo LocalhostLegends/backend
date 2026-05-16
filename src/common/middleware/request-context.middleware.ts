@@ -6,7 +6,7 @@ import { AppRequest } from '../types/common.types';
 
 @Injectable()
 export class RequestContextMiddleware implements NestMiddleware {
-  use(req: AppRequest, _res: Response, next: NextFunction) {
+  use(req: AppRequest, res: Response, next: NextFunction) {
     const requestId = randomUUID();
 
     const forwardedFor = req.headers['x-forwarded-for'];
@@ -35,6 +35,8 @@ export class RequestContextMiddleware implements NestMiddleware {
       path: req.originalUrl || req.url,
       startedAt: Date.now(),
     };
+
+    res.setHeader('x-request-id', requestId);
 
     next();
   }
