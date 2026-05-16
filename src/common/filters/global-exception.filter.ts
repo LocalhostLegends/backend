@@ -1,6 +1,10 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, Logger } from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
 import { Response, Request } from 'express';
+
+import { logger } from '@common/logger/pino.config';
+
 import { AppException } from '../exceptions/app.exception';
+import { AppRequest } from '../types/common.types';
 
 interface ErrorResponse {
   message?: string | string[];
@@ -9,12 +13,10 @@ interface ErrorResponse {
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(GlobalExceptionFilter.name);
-
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const request = ctx.getRequest<Request>() as AppRequest;
 
     let status: number = 500;
     let code: string = 'INTERNAL_ERROR';
@@ -22,11 +24,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let context: Record<string, unknown> | undefined = undefined;
 
     if (exception instanceof AppException) {
-      const appEx = exception as AppException;
-      status = appEx.getStatus();
-      code = String(appEx.code);
-      message = appEx.message;
-      context = appEx.context;
+      status = exception.getStatus();
+      code = String(exception.code);
+      message = exception.message;
+      context = exception.context;
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const res: unknown = exception.getResponse();
@@ -43,18 +44,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message = exception.message;
     }
 
-    const logMessage = Array.isArray(message) ? message.join(', ') : message;
+    const errorMessage = Array.isArray(message) ? message.join(', ') : message;
 
-    this.logger.error(
-      `${request.method} ${request.url} - ${status} - ${code} - ${logMessage}`,
-      exception instanceof Error ? exception.stack : undefined,
-    );
+    logger.error({
+      message: 'HTTP exception',
+      method: request.method,
+      path: request.url,
+      statusCode: status,
+      code,
+      errorMessage,
+      requestId: request.context?.requestId,
+      ip: request.context?.ip,
+      userAgent: request.context?.userAgent,
+      stack: exception instanceof Error ? exception.stack : undefined,
+    });
 
     response.status(status).json({
       statusCode: status,
       code,
       message,
       timestamp: new Date().toISOString(),
+      requestId: request.context?.requestId,
       ...(context && { context }),
     });
   }
