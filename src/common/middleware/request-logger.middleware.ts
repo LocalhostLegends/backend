@@ -9,8 +9,16 @@ import { AppRequest } from '../types/common.types';
 export class RequestLoggerMiddleware implements NestMiddleware {
   use(req: AppRequest, res: Response, next: NextFunction) {
     const start = Date.now();
-
     const { method, originalUrl } = req;
+
+    logger.info({
+      message: 'HTTP request started',
+      method,
+      path: originalUrl,
+      requestId: req.context?.requestId,
+      ip: req.context?.ip,
+      userAgent: req.context?.userAgent,
+    });
 
     res.on('finish', () => {
       const durationMs = Date.now() - start;
