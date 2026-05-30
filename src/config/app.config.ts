@@ -94,4 +94,8 @@ export default configSchema.parse({
     commit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || 'unknown',
     branch: process.env.RENDER_GIT_BRANCH || process.env.GIT_BRANCH || 'unknown',
   },
+
+  metrics: {
+    apiKey: process.env.METRICS_API_KEY,
+  },
 });

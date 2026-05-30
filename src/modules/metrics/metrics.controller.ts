@@ -1,7 +1,9 @@
-import { Controller, Get, Res } from '@nestjs/common';
+import { Controller, Get, Headers, Res, UnauthorizedException } from '@nestjs/common';
 import type { Response } from 'express';
 
 import { Public } from '@/common/decorators/public.decorator';
+import config from '@config/app.config';
+
 import { MetricsService } from './metrics.service';
 
 @Controller('metrics')
@@ -10,7 +12,14 @@ export class MetricsController {
 
   @Public()
   @Get()
-  async getMetrics(@Res() res: Response): Promise<void> {
+  async getMetrics(
+    @Headers('x-metrics-key') metricsKey: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (metricsKey !== config.metrics.apiKey) {
+      throw new UnauthorizedException('Invalid metrics key');
+    }
+
     res.setHeader('Content-Type', this.metricsService.getContentType());
     res.send(await this.metricsService.getMetrics());
   }

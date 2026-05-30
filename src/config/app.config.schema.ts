@@ -79,6 +79,10 @@ export default z
       commit: z.string(),
       branch: z.string(),
     }),
+
+    metrics: z.object({
+      apiKey: z.string().min(10),
+    }),
   })
   .superRefine((config, ctx) => {
     if (config.email.provider === 'resend') {
