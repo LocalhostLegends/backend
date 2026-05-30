@@ -26,6 +26,7 @@ import { ResponseInterceptor } from '@common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { RequestLoggerMiddleware } from '@common/middleware/request-logger.middleware';
 import { RequestContextMiddleware } from '@common/middleware/request-context.middleware';
+import { MetricsModule } from './modules/metrics/metrics.module';
 import config from '@config/app.config';
 
 @Module({
@@ -72,6 +73,7 @@ import config from '@config/app.config';
     SeedModule,
     PaginationModule,
     CsvModule,
+    MetricsModule,
   ],
   providers: [
     {

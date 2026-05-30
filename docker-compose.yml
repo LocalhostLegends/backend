@@ -1,6 +1,9 @@
 version: '3.8'
 
 services:
+  # =========================
+  # POSTGRES
+  # =========================
   postgres:
     image: postgres:15-alpine
     container_name: market-postgres
@@ -21,6 +24,9 @@ services:
       timeout: 5s
       retries: 5
 
+  # =========================
+  # PGADMIN
+  # =========================
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: market-pgadmin
@@ -39,6 +45,9 @@ services:
       postgres:
         condition: service_healthy
 
+  # =========================
+  # MINIO
+  # =========================
   minio:
     image: quay.io/minio/minio:latest
     container_name: market-minio
@@ -60,6 +69,9 @@ services:
       timeout: 3s
       retries: 10
 
+  # =========================
+  # MINIO INIT
+  # =========================
   minio-init:
     image: minio/mc:latest
     container_name: market-minio-init
@@ -82,11 +94,46 @@ services:
       exit 0;
       "
 
+  # =========================
+  # BACKEND (NestJS)
+  # =========================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: market-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 3175
+
+      # DB (docker internal)
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+
+      # MinIO
+      STORAGE_ENDPOINT: http://minio:9000
+
+      # Loki
+      GRAFANA_LOKI_HOST: http://loki:3100
+    ports:
+      - '3175:3175'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - market-network
+
 volumes:
   postgres_data:
     name: market-postgres-data
+
   pgadmin_data:
     name: market-pgadmin-data
+
   minio_data:
     name: market-minio-data
 
