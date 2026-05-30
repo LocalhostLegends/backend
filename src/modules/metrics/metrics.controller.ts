@@ -13,13 +13,20 @@ export class MetricsController {
   @Public()
   @Get()
   async getMetrics(
-    @Headers('x-metrics-key') metricsKey: string,
+    @Headers('x-metrics-key') metricsKey: string | undefined,
+    @Headers('authorization') authorization: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
-    if (metricsKey !== config.metrics.apiKey) {
+    const bearerToken = authorization?.startsWith('Bearer ')
+      ? authorization.replace('Bearer ', '').trim()
+      : undefined;
+
+    const providedKey = (metricsKey ?? bearerToken)?.trim();
+    const expectedKey = config.metrics.apiKey.trim();
+
+    if (providedKey !== expectedKey) {
       throw new UnauthorizedException('Invalid metrics key');
     }
-
     res.setHeader('Content-Type', this.metricsService.getContentType());
     res.send(await this.metricsService.getMetrics());
   }
