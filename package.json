@@ -36,7 +36,12 @@
     "migration:show": "npm run typeorm -- -d ./src/database/data-source.ts migration:show",
     "db:drop": "npm run typeorm -- -d ./src/database/data-source.ts schema:drop",
     "db:clear": "npm run typeorm -- -d ./src/database/data-source.ts query \"TRUNCATE TABLE information_schema.tables CASCADE\"",
-    "db:reset": "npm run db:drop && npm run migration:run"
+    "db:reset": "npm run db:drop && npm run migration:run",
+    "audit:lint": "cd tools/audit-worker && ruff check .",
+    "audit:format": "cd tools/audit-worker && black --check .",
+    "audit:typecheck": "cd tools/audit-worker && mypy .",
+    "audit:quality": "npm run audit:lint && npm run audit:format && npm run audit:typecheck",
+    "quality": "npm run lint && npm run build && npm run audit:quality"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1015.0",

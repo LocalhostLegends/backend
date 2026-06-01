@@ -4,7 +4,6 @@ from metrics_server import (
     AUDIT_WORKER_PROCESSING_DURATION_SECONDS,
     mark_worker_run,
     start_metrics_server,
-    track_failure,
     track_geo_anomaly,
     track_success,
     track_suspicious_login,
