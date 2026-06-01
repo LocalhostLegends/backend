@@ -9,7 +9,7 @@ import { PERMISSION_KEY } from '../decorators/require-permission.decorator';
 import { RESOURCE_KEY, ResourceMetadata } from '../decorators/resource.decorator';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AuthorizedUser } from '@modules/core/users/users.types';
-import { PermissionResource, WrappedResource, IOwnable } from '../types/permissions.types';
+import { PermissionResource, WrappedResource } from '../types/permissions.types';
 
 interface RequestWithUser extends Request {
   user: AuthorizedUser;
@@ -79,12 +79,7 @@ export class PermissionGuard implements CanActivate {
     }
 
     if (this.shouldAddUserContext(finalResource, user)) {
-      // Use type guard/assertion to add companyId safely
-      if (this.isOwnable(finalResource)) {
-        finalResource.companyId = user.companyId;
-      } else {
-        finalResource = { ...finalResource, companyId: user.companyId };
-      }
+      finalResource = { ...finalResource, companyId: user.companyId };
     }
 
     return finalResource;
@@ -128,8 +123,12 @@ export class PermissionGuard implements CanActivate {
   }
 
   private extractResourceFromBody(request: RequestWithUser): Record<string, unknown> | undefined {
-    if (['POST', 'PATCH', 'PUT'].includes(request.method)) {
-      return request.body as Record<string, unknown>;
+    if (
+      ['POST', 'PATCH', 'PUT'].includes(request.method) &&
+      request.body &&
+      typeof request.body === 'object'
+    ) {
+      return { ...request.body } as Record<string, unknown>;
     }
     return undefined;
   }
@@ -166,9 +165,5 @@ export class PermissionGuard implements CanActivate {
       return (obj as Record<string, unknown>)[key];
     }
     return undefined;
-  }
-
-  private isOwnable(resource: PermissionResource): resource is IOwnable {
-    return typeof resource === 'object' && resource !== null;
   }
 }
