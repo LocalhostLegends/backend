@@ -72,6 +72,11 @@ AUTH_SUSPICIOUS_USERS = Gauge(
     "Number of unique users with suspicious auth events",
 )
 
+AUTH_BRUTEFORCE_IP_COUNT = Gauge(
+    "auth_bruteforce_ip_count",
+    "Number of IP addresses with brute force behavior in the current lookback window",
+)
+
 
 def start_metrics_server(port: int = 8001) -> None:
     start_http_server(port)
@@ -126,3 +131,7 @@ def set_failed_login_ips(count: int) -> None:
 
 def set_suspicious_users(count: int) -> None:
     AUTH_SUSPICIOUS_USERS.set(count)
+
+
+def set_bruteforce_ip_count(count: int) -> None:
+    AUTH_BRUTEFORCE_IP_COUNT.set(count)
