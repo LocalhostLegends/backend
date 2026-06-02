@@ -77,6 +77,16 @@ AUTH_BRUTEFORCE_IP_COUNT = Gauge(
     "Number of IP addresses with brute force behavior in the current lookback window",
 )
 
+AUTH_CREDENTIAL_STUFFING_IP_COUNT = Gauge(
+    "auth_credential_stuffing_ip_count",
+    "Number of IP addresses with credential stuffing behavior in the current lookback window",
+)
+
+AUTH_GEO_ANOMALY_USER_COUNT = Gauge(
+    "auth_geo_anomaly_user_count",
+    "Number of users with geo anomaly behavior in the current lookback window",
+)
+
 
 def start_metrics_server(port: int = 8001) -> None:
     start_http_server(port)
@@ -135,3 +145,11 @@ def set_suspicious_users(count: int) -> None:
 
 def set_bruteforce_ip_count(count: int) -> None:
     AUTH_BRUTEFORCE_IP_COUNT.set(count)
+
+
+def set_credential_stuffing_ip_count(count: int) -> None:
+    AUTH_CREDENTIAL_STUFFING_IP_COUNT.set(count)
+
+
+def set_geo_anomaly_user_count(count: int) -> None:
+    AUTH_GEO_ANOMALY_USER_COUNT.set(count)
