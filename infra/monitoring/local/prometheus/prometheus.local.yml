@@ -2,6 +2,12 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+remote_write:
+  - url: https://prometheus-prod-58-prod-eu-central-0.grafana.net/api/prom/push
+    basic_auth:
+      username: "3205010"
+      password_file: /etc/prometheus/secrets/grafana_cloud_api_token.txt
+
 scrape_configs:
   - job_name: "hrtech-backend-local"
     metrics_path: /api/metrics
