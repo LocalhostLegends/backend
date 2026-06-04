@@ -1,0 +1,61 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+remote_write:
+  - url: https://prometheus-prod-58-prod-eu-central-0.grafana.net/api/prom/push
+    basic_auth:
+      username: "3205010"
+      password_file: /etc/prometheus/secrets/grafana_cloud_api_token.txt
+
+scrape_configs:
+  - job_name: "hrtech-backend-local"
+    metrics_path: /api/metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/metrics_api_key.txt
+    static_configs:
+      - targets:
+          - "host.docker.internal:3175"
+        labels:
+          env: "local"
+          service: "backend"
+
+  - job_name: "hrtech-backend-prod"
+    metrics_path: /api/metrics
+    scheme: https
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/metrics_api_key.txt
+    static_configs:
+      - targets:
+          - "backend-pcz4.onrender.com"
+        labels:
+          env: "prod"
+          service: "backend"
+
+  - job_name: "hrtech-audit-worker-local"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "host.docker.internal:8001"
+        labels:
+          env: "local"
+          service: "audit-worker"
+
+  - job_name: "hrtech-node-exporter-local"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "node-exporter:9100"
+        labels:
+          env: "local"
+          service: "node-exporter"
+
+  - job_name: "prometheus-local"
+    static_configs:
+      - targets:
+          - "prometheus:9090"
+        labels:
+          env: "local"
+          service: "prometheus"

@@ -1,6 +1,7 @@
-version: '3.8'
-
 services:
+  # =========================
+  # POSTGRES
+  # =========================
   postgres:
     image: postgres:15-alpine
     container_name: market-postgres
@@ -10,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_DATABASE:-db_postgres}
     ports:
-      - '${DB_PORT:-5432}:5432'
+      - '${DATABASE_PORT:-5433}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -21,6 +22,9 @@ services:
       timeout: 5s
       retries: 5
 
+  # =========================
+  # PGADMIN
+  # =========================
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: market-pgadmin
@@ -39,6 +43,9 @@ services:
       postgres:
         condition: service_healthy
 
+  # =========================
+  # MINIO
+  # =========================
   minio:
     image: quay.io/minio/minio:latest
     container_name: market-minio
@@ -60,6 +67,9 @@ services:
       timeout: 3s
       retries: 10
 
+  # =========================
+  # MINIO INIT
+  # =========================
   minio-init:
     image: minio/mc:latest
     container_name: market-minio-init
@@ -82,11 +92,70 @@ services:
       exit 0;
       "
 
+  # =========================
+  # BACKEND (NestJS)
+  # =========================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: market-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 3175
+
+      # DB docker internal
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/db_postgres
+
+      # MinIO docker internal
+      STORAGE_ENDPOINT: http://minio:9000
+
+      # Loki docker internal
+      GRAFANA_LOKI_HOST: http://loki:3100
+    ports:
+      - '3175:3175'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - market-network
+
+  # =========================
+  # AUDIT WORKER (Python)
+  # =========================
+  audit-worker:
+    build:
+      context: ./tools/audit-worker
+      dockerfile: Dockerfile
+    container_name: hrtech-audit-worker-local
+    restart: unless-stopped
+    env_file:
+      - ./tools/audit-worker/.env.audit
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/db_postgres
+      AUDIT_WORKER_PORT: 8001
+      AUDIT_ENV: local
+    ports:
+      - '8001:8001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - market-network
+
 volumes:
   postgres_data:
     name: market-postgres-data
+
   pgadmin_data:
     name: market-pgadmin-data
+
   minio_data:
     name: market-minio-data
 
