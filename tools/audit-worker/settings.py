@@ -1,10 +1,12 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 
-load_dotenv(".env.audit")
+ENV_FILE = Path(__file__).with_name(".env.audit")
+load_dotenv(ENV_FILE, override=False)
 
 
 @dataclass(frozen=True)

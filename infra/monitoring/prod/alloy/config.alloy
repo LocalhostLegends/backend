@@ -1,0 +1,29 @@
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_PROMETHEUS_URL")
+
+    basic_auth {
+      username = env("GRAFANA_CLOUD_PROMETHEUS_USERNAME")
+      password = env("GRAFANA_CLOUD_API_TOKEN")
+    }
+  }
+}
+
+prometheus.scrape "backend_prod" {
+  targets = [
+    {
+      "__address__" = "backend-pcz4.onrender.com",
+      "__scheme__" = "https",
+      "__metrics_path__" = "/api/metrics",
+      "env" = "prod",
+      "service" = "backend",
+      "job" = "hrtech-backend-prod",
+    },
+  ]
+
+  bearer_token = env("METRICS_API_KEY")
+
+  forward_to = [
+    prometheus.remote_write.grafana_cloud.receiver,
+  ]
+}
