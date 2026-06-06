@@ -1,6 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Response } from 'express';
 import { randomUUID } from 'crypto';
+import { logger } from '@common/logger/pino.config';
 
 import { AppRequest } from '../types/common.types';
 
@@ -35,6 +36,15 @@ export class RequestContextMiddleware implements NestMiddleware {
       path: req.originalUrl || req.url,
       startedAt: Date.now(),
     };
+
+    logger.info({
+      message: 'Request context created',
+      requestId,
+      ip,
+      userAgent,
+      method: req.method,
+      path: req.originalUrl || req.url,
+    });
 
     res.setHeader('x-request-id', requestId);
 
