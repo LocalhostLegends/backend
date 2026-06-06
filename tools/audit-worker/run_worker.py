@@ -9,12 +9,18 @@ from metrics_server import (
 )
 from security_analyzer import analyze_security_events
 from settings import get_settings
+from audit_enricher import enrich_pending_auth_events
 
 
 def run_once() -> None:
     start = time.perf_counter()
 
     try:
+        updated = enrich_pending_auth_events()
+
+        if updated:
+            print(f"Enriched {updated} audit events")
+
         analyze_security_events()
         track_success()
     except Exception as error:
