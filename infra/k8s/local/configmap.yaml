@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: hrtech-local
+data:
+  NODE_ENV: "development"
+  API_PREFIX: "api"
+  PORT: "3175"
+  RABBITMQ_URL: "amqp://rabbitmq:5672"

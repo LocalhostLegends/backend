@@ -1,3 +1,4 @@
+import { RabbitMqModule } from './modules/rabbitmq/rabbitmq.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -57,6 +58,7 @@ import config from '@config/app.config';
         },
       }),
     }),
+    RabbitMqModule,
     CoreModule,
     OrganizationModule,
     PermissionsModule,

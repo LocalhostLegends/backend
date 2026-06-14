@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as bcrypt from 'bcryptjs';
 
 import config from '@config/app.config';
@@ -33,6 +34,7 @@ export class AuthService {
     private readonly _jwtService: JwtService,
     private readonly _emailService: EmailService,
     private readonly auditLogService: AuditLogService,
+    private readonly _eventBus: EventEmitter2,
   ) {}
 
   async registerCompany(
@@ -92,6 +94,7 @@ export class AuthService {
         success: false,
         failureReason: 'user_not_found',
       });
+
       throw ExceptionFactory.invalidCredentials();
     }
 
@@ -122,6 +125,7 @@ export class AuthService {
         success: false,
         failureReason: 'account_locked',
       });
+
       throw ExceptionFactory.userBlocked();
     }
 
@@ -162,6 +166,18 @@ export class AuthService {
       success: true,
       failureReason: null,
     });
+
+    this._eventBus.emit('auth.login.success', {
+      userId: user.id,
+      email: loginDto.email,
+      ip: context?.ip,
+      userAgent: context?.userAgent,
+      requestId: context?.requestId,
+      method: context?.method,
+      path: context?.path,
+      createdAt: new Date().toISOString(),
+    });
+
     await this._usersService.updateLastLogin(user.id, context?.ip, context?.userAgent);
 
     const rememberMe = loginDto.rememberMe ?? false;
