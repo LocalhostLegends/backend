@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 jest.mock('@config/app.config', () => ({
   __esModule: true,
@@ -32,6 +33,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let jwtService: JwtService;
   let usersService: jest.Mocked<UsersService>;
+  let eventBus: jest.Mocked<EventEmitter2>;
 
   const mockUser = {
     id: 'user-id',
@@ -58,6 +60,7 @@ describe('AuthService', () => {
             findById: jest.fn(),
             getUserPermissions: jest.fn().mockResolvedValue(['user.read']),
             updateLastLogin: jest.fn(),
+            incrementFailedLoginAttempts: jest.fn(),
           },
         },
         { provide: CompaniesService, useValue: {} },
@@ -75,12 +78,19 @@ describe('AuthService', () => {
             createAuthLog: jest.fn(),
           },
         },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
     usersService = module.get(UsersService);
+    eventBus = module.get(EventEmitter2);
   });
 
   describe('login', () => {
@@ -107,9 +117,18 @@ describe('AuthService', () => {
         expect.any(Object),
       );
 
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'auth.login.success',
+        expect.objectContaining({
+          userId: mockUser.id,
+          email: mockUser.email,
+        }),
+      );
+
       const signCall = (jwtService.sign as jest.Mock).mock.calls.find(
         (call) => !call[1].secret.includes('refresh'),
       );
+
       if (signCall) {
         expect(signCall[0]).not.toHaveProperty('email');
         expect(signCall[0]).not.toHaveProperty('permissions');
@@ -144,6 +163,16 @@ describe('AuthService', () => {
         }),
         expect.objectContaining({
           expiresIn: '30d',
+        }),
+      );
+
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'auth.login.success',
+        expect.objectContaining({
+          userId: mockUser.id,
+          email: mockUser.email,
+          ip: '127.0.0.1',
+          userAgent: 'test-agent',
         }),
       );
     });
